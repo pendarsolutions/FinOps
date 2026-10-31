@@ -25,15 +25,12 @@ T = {
     "s9": ("۹. فرضیات", "9. Assumptions"),
     "s10": ("۱۰. منابع قیمت و تاریخ‌ها", "10. Price sources and dates"),
     "s11": ("۱۱. داده‌های ناقص", "11. What data is missing"),
-    "s12": ("۱۲. کمک اجرایی پندار (اختیاری)", "12. Optional Pendar implementation help"),
     "toman": ("تومان", "Toman"),
     "incomplete": ("قیمت‌گذاری کامل نیست؛ موارد PRICE_UNAVAILABLE در بخش ۱۱ آمده‌اند.",
                    "Pricing is incomplete; PRICE_UNAVAILABLE items are listed in section 11."),
     "avoidable": ("هزینه قابل اجتناب ماهانه", "Avoidable monthly spend"),
     "current": ("هزینه ماهانه فعلی", "Current monthly spend"),
     "none": ("موردی وجود ندارد.", "None."),
-    "handoff_note": ("این بخش ثانویه است و روی اعداد پیشنهادها اثری ندارد.",
-                     "This section is secondary and does not change any recommendation or number."),
     "generated": ("تولیدشده از quote", "Generated from quote"),
 }
 
@@ -135,12 +132,6 @@ def render_report(db: Session, p: Principal, inv: Inventory, lang: str) -> str:
     missing += [[r["resource_name"], ", ".join(r["missing_inputs"]), r["summary_fa" if fa else "summary_en"]]
                 for r in blocked]
     section("s11", _table(["Item", "Missing", "Why"], missing) if missing else f"<p>{_t('none', lang)}</p>")
-    handoffs = {r["pendar_handoff"]["service_id"]: r["pendar_handoff"] for r in recs if r.get("pendar_handoff")}
-    if summary and summary.get("pendar_handoff"):
-        handoffs[summary["pendar_handoff"]["service_id"]] = summary["pendar_handoff"]
-    section("s12", f"<p class='muted'>{_t('handoff_note', lang)}</p><ul>" + "".join(
-        f"<li><b>{escape(h['name_fa' if fa else 'name_en'])}</b> — {escape(h['reason'])}</li>"
-        for h in handoffs.values()) + "</ul>")
     footer = (f"<footer>{_t('generated', lang)} {quote.id if quote else '—'} · catalog {quote.catalog_version if quote else '—'}"
               f" · engine {quote.deterministic_engine_version if quote else '—'}</footer>")
     direction = "rtl" if fa else "ltr"

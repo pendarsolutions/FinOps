@@ -62,7 +62,7 @@ def test_rec002_never_from_allocation_alone(snapshot):
     out = recommend([r], snapshot)
     assert by(out, "REC-002", status="actionable") == []
     blocked = [x for x in out if x.evidence.get("blocked_rule") == "REC-002"]
-    assert blocked and blocked[0].pendar_handoff.service_id == "infrastructure_audit_observability"
+    assert blocked
 
 
 def test_rec002_high_usage_no_downsize(snapshot):
@@ -79,7 +79,6 @@ def test_rec003_migration_payback(recs):
     # 2 engineer-days x 2 instances x 4000000
     assert r.one_time_migration_cost_toman == D(16000000)
     assert r.payback_months == D("16.33")
-    assert r.pendar_handoff.service_id == "pendar_cloud_migration"
     assert r.evidence["constraints"] and all(c["passed"] for c in r.evidence["constraints"])
     assert r.evidence["differences"]
 

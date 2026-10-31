@@ -800,13 +800,6 @@ li,
   border-block-end: 1px solid var(--border);
   padding-block: 0.4rem;
 }
-.handoff {
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  font-size: 0.85rem;
-}
 .assumptions {
   margin: 0.3rem 0;
   padding-inline-start: 1.1rem;

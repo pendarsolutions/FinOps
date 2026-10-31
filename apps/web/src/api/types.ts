@@ -277,13 +277,6 @@ export interface CompareResponse {
 
 // ------------------------------------------------------------------ recommendations
 
-export interface Handoff {
-  service_id: string;
-  name_en: string;
-  name_fa: string;
-  reason: string;
-}
-
 export interface Recommendation {
   id: string;
   key: string;
@@ -320,7 +313,6 @@ export interface Recommendation {
     candidate_label?: string;
     fit_score?: Dec;
   };
-  pendar_handoff: Handoff | null;
   status: string;
   created_at: string;
 }
@@ -332,7 +324,6 @@ export interface RecSummary {
   method: string;
   actionable_count: number;
   cannot_determine_count: number;
-  pendar_handoff: Handoff | null;
 }
 
 export interface RecsResponse {

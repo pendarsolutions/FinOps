@@ -260,8 +260,6 @@ const dict = {
   migrationCost: ["هزینه یک‌باره مهاجرت", "One-time migration cost"],
   payback: ["بازگشت سرمایه (ماه)", "Payback (months)"],
   otherEvidence: ["سایر شواهد", "Other evidence"],
-  handoffNote: ["یادداشت اختیاری — خدمات پندار", "Optional note — Pendar services"],
-  handoffExplain: ["این یک پیشنهاد خدمات اختیاری است و در محاسبه صرفه‌جویی اثری ندارد.", "This is an optional service suggestion and does not affect any saving figure."],
   noOpps: ["هنوز تحلیلی وجود ندارد. «اجرای تحلیل» را بزنید.", "No analysis yet. Press “Run analysis”."],
   counts: ["تعداد", "Counts"],
   // compare

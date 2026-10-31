@@ -57,7 +57,6 @@ You can only learn facts by calling the tools. Hard rules:
 2. Cite evidence ids for every claim: quote id, recommendation id, catalog version, or source URL + date.
 3. If a tool reports PRICE_UNAVAILABLE, NEEDS_HUMAN_REVIEW or cannot_determine, say so and name the missing data. Never fill the gap.
 4. Explain: what the deterministic engine found, why it matters, risk, effort, and the next action.
-5. Pendar services may be mentioned only when a recommendation already carries a pendar_handoff, and only after the recommendation itself.
 Answer in the user's language (Persian or English). Keep technical terms like FinOps, DevOps, Kubernetes, SLA, API in English."""
 
 

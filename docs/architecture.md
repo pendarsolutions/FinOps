@@ -46,7 +46,7 @@ published as an open-source CLI/library.
 - **Quotes**: `price_quotes` is immutable (ORM hook + trigger) and stores the inventory snapshot,
   catalog version hash, policy version, engine version, full breakdown, assumptions, and a content hash.
 - **Recommendations**: grouped by `analysis_id`, each with rule id, costs, saving, %, migration cost,
-  payback, risk, effort, confidence, price dates, missing inputs, evidence JSON, optional Pendar handoff.
+  payback, risk, effort, confidence, price dates, missing inputs, evidence JSON.
 - **Money**: `Money` column type = `NUMERIC(24,4)` on Postgres; on SQLite (tests/dev) it is stored as
   TEXT so it never round-trips through float. Every money field name carries its unit (`*_toman`).
   The API encodes all Decimals as exact strings.

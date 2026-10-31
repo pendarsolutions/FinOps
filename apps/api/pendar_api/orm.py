@@ -313,7 +313,6 @@ class RecommendationRow(Base):
     price_dates: Mapped[list[str]] = mapped_column(JSONType, default=list)
     missing_inputs: Mapped[list[str]] = mapped_column(JSONType, default=list)
     evidence: Mapped[dict[str, Any]] = mapped_column(JSONType)
-    pendar_handoff: Mapped[dict[str, Any] | None] = mapped_column(JSONType)
     status: Mapped[str] = mapped_column(String(20), default="proposed")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 

@@ -15,8 +15,7 @@
       "applies_when": "environment is non-production AND resource is billed monthly AND active_hours_per_month is known and below hours_per_month AND provider publishes an hourly rate for the same SKU",
       "requires": ["environment", "active_hours_per_month", "hourly_price_toman"],
       "risk": "low",
-      "effort": "low",
-      "pendar_service": null
+      "effort": "low"
     },
     {
       "rule_id": "REC-002",
@@ -33,8 +32,7 @@
       },
       "never_from_allocation_alone": true,
       "risk": "medium",
-      "effort": "low",
-      "pendar_service": null
+      "effort": "low"
     },
     {
       "rule_id": "REC-003",
@@ -48,8 +46,7 @@
         "migration_effort_note": "Engineer-days per migrated resource instance. Migration cost = days x organisation engineer_day_rate_toman. If the organisation has not set a day rate, payback is reported as UNKNOWN_MIGRATION_COST instead of being guessed."
       },
       "risk": "medium",
-      "effort": "medium",
-      "pendar_service": "pendar_cloud_migration"
+      "effort": "medium"
     },
     {
       "rule_id": "REC-004",
@@ -59,8 +56,7 @@
       "applies_when": "provider publishes both hourly and monthly rates for the SKU AND the other cadence is cheaper for the stated runtime. Unverified term discounts are listed as information only, with no saving number.",
       "requires": ["active_hours_per_month"],
       "risk": "low",
-      "effort": "low",
-      "pendar_service": null
+      "effort": "low"
     },
     {
       "rule_id": "REC-005",
@@ -69,19 +65,7 @@
       "title_fa": "هنوز قابل تعیین نیست - داده ناقص",
       "applies_when": "a rule above could apply but a required input is missing (metrics, runtime, traffic, migration day rate) or the price is unavailable",
       "risk": "none",
-      "effort": "low",
-      "pendar_service": "infrastructure_audit_observability"
+      "effort": "low"
     }
-  ],
-  "pendar_services": {
-    "pendar_cloud_migration": {"en": "Pendar Cloud Migration", "fa": "مهاجرت ابری پندار"},
-    "pendar_cost_cut": {"en": "Pendar Cost Cut", "fa": "کاهش هزینه پندار"},
-    "infrastructure_audit_observability": {"en": "Infrastructure Audit / Observability setup", "fa": "ممیزی زیرساخت / راه‌اندازی Monitoring"},
-    "helm_workload_tuning": {"en": "Helm & workload tuning", "fa": "تنظیم Helm و workload"},
-    "backup_dr": {"en": "Backup & DR", "fa": "Backup و DR"}
-  },
-  "handoff_policy": {
-    "note": "Handoffs are secondary, transparent, and never change which recommendation is produced or its numbers.",
-    "cost_cut_min_total_monthly_saving_toman": "5000000"
-  }
+  ]
 }

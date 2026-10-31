@@ -7,7 +7,6 @@ import { useI18n } from "../lib/i18n";
 import { useProviderName } from "../lib/hooks";
 import { useSession } from "../lib/session";
 import { Badge, Button, Card, Date_, Empty, ErrorBox, FreshnessBadge, Loading, Money, Num, Pct, PriceUnavailableBadge, ToneBadge } from "../components/ui";
-import { HandoffNote } from "./Opportunities";
 
 export function EmptyWorkspace() {
   const { t } = useI18n();
@@ -242,7 +241,6 @@ export function OverviewPage() {
         </div>
       </Card>
 
-      {d.summary?.pendar_handoff && <HandoffNote h={d.summary.pendar_handoff} />}
       {d.quote && (
         <p className="muted small" dir="ltr">
           quote {d.quote.id} · {d.quote.catalog_version} · {d.quote.engine_version} <Badge>{d.quote.complete ? t("complete") : t("incomplete")}</Badge>
