@@ -1,68 +1,172 @@
-# FinOps agent — Iran MVP
+<div align="center">
 
-FinOps advisor for Iranian small businesses: describe or upload your infrastructure, confirm it, and
-get exact, source-dated costs, equivalent-provider comparisons and evidence-backed savings across
-ArvanCloud, Liara, Server.ir and IranServer (plus seeded Chabokan, ParsPack, MobinHost, Abrha).
+# FinOps agent
 
-**Rule zero: the AI never calculates a price or saving.** All numbers come from the tested
-deterministic engine in `packages/pricing_engine` and `packages/recommendation_engine`. Missing data
-returns `PRICE_UNAVAILABLE`, never an estimate.
+**Know what your Iranian servers really cost, and where you can safely pay less.**
+
+Open-source cost management for startups and small teams using Iranian cloud and VPS providers.
+
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB.svg)
+![Status: early](https://img.shields.io/badge/status-early-orange.svg)
+
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Providers](#supported-providers) · [Roadmap](#roadmap) · [فارسی](#فارسی)
+
+</div>
+
+---
+
+## Why FinOps agent?
+
+Iranian providers price their services in very different ways: per component, per plan, per hour or per
+30 days, each with its own traffic rules. Comparing them by hand is slow, and it's easy to get wrong.
+
+FinOps agent turns a description of your infrastructure into exact costs, a like-for-like comparison and
+savings you can check yourself. You don't need Terraform, tagging or cloud credentials.
+
+- 🧮 **Numbers you can trust.** Every price and saving comes from tested code, and the AI never calculates one.
+- 🔍 **Nothing is guessed.** A missing price shows as `PRICE_UNAVAILABLE`, never as an estimate.
+- 📅 **Every price has a source.** Each one links to the provider's page and shows its date, and old prices are kept.
+- ✅ **You stay in control.** You confirm your infrastructure before anything is priced.
+- ⚖️ **Honest comparisons.** Differences in CPU, disk, traffic and datacenter are always shown.
+- 🔌 **Works offline.** The AI features are optional, and the app runs without any external AI service.
+- 🇮🇷 **Built for Iran.** Toman and Rial, Jalali price dates, and a right-to-left Persian interface, with English too.
 
 ## Quick start
 
+You need [Docker](https://docs.docker.com/get-docker/) with Compose.
+
 ```bash
-cp .env.example .env        # defaults work for local dev
-make dev                    # docker compose: postgres 16, redis, api, worker, beat, web
-open http://localhost:8080  # login: demo@finops-agent.local / demo-password-1 → "Load demo workspace"
+git clone https://github.com/theparsakhezli/FinOps_agent.git
+cd FinOps_agent
+cp .env.example .env
+docker compose up --build
 ```
 
-Without Docker (SQLite, Python 3.12+, Node 20+):
+Open <http://localhost:8080> and sign in with the demo account, then choose **Load demo workspace**:
+
+```text
+demo@finops-agent.local / demo-password-1
+```
+
+> The demo account exists only in development mode, and the default setup is reachable only from your own
+> machine. To put it on a server, follow the [production guide](docs/runbook.md#staging--production).
+
+<details>
+<summary><b>Run without Docker</b> (SQLite, Python 3.12+, Node 20+)</summary>
 
 ```bash
 make install
 make api      # http://localhost:8000/docs
-make web      # http://localhost:5173
+make web      # http://localhost:5173 (in a second terminal)
 ```
 
-On Windows without `make`, use the same targets via `.\scripts\finops.ps1 <target>`.
+On Windows without `make`, use `.\scripts\finops.ps1 <target>` with the same target names.
 
-Other commands: `make seed-pricing` (idempotent import of `data/seeds`), `make sync-prices` (fetch
-official pages → normalize → guardrails → versioned prices), `make test`, `make lint`.
+</details>
 
 ## How it works
 
-1. **Input** — guided builder, chat (Persian/English), or invoice upload (PDF/CSV).
-2. **Review** — editable table with confidence, missing fields and "I don't know"; analysis stays
-   disabled until every row is confirmed.
-3. **Quote** — immutable, tied to the catalog version, policy version and engine version; every line
-   cites its catalog row, source URL and price date.
-4. **Compare** — hard constraints → fit score → exact cost → explicit differences;
-   `NEEDS_HUMAN_REVIEW` when confidence is low. Iran-only unless the user opts in.
-5. **Recommend** — hourly scheduling, metrics-based downsizing, migration with payback, billing cadence,
-   and explicit "cannot determine yet".
-6. **Explain** — AI advisor calls the same tools; a numeric guard rejects any unsupported number.
-7. **Report** — bilingual downloadable HTML (fa/en).
-
-## Repository
-
-```
-apps/api        FastAPI service (auth, catalog store, inventory, analysis, advisor, reports)
-apps/worker     Celery nightly sync + invoice retention
-apps/web        React + TypeScript + Vite (fa RTL default, en)
-packages/       pricing_engine, recommendation_engine, provider_adapters, ai_gateway,
-                invoice_parser, shared_types  (framework-free)
-data/seeds      build-pack dataset + authored policy files
-migrations      Alembic (incl. Postgres immutability triggers)
-tests/          pricing, providers (real saved pages), recommendations, ai, api
-docs/           architecture, pricing-model, provider-adapters, ai-safety, runbook
+```mermaid
+flowchart LR
+    A["Describe it<br/>builder, chat or invoice"] --> B["Review and confirm<br/>your infrastructure"]
+    B --> C["Exact monthly cost<br/>with sources and dates"]
+    C --> D["Compare providers<br/>and see the differences"]
+    D --> E["Savings with risk,<br/>effort and evidence"]
+    E --> F["Downloadable report<br/>in Persian or English"]
 ```
 
-Read next: [docs/architecture.md](docs/architecture.md) · [docs/pricing-model.md](docs/pricing-model.md) ·
-[docs/provider-adapters.md](docs/provider-adapters.md) · [docs/ai-safety.md](docs/ai-safety.md) ·
-[docs/runbook.md](docs/runbook.md) (production deployment) · [CHANGELOG.md](CHANGELOG.md) (status)
+1. **Describe your setup** with the guided builder, a chat message in Persian or English, or a PDF or CSV invoice.
+2. **Confirm it.** An editable table shows anything uncertain, and analysis stays locked until you confirm.
+3. **See your costs.** Each quote is saved permanently, with the catalog version and source of every line.
+4. **Compare providers.** Plans must pass hard requirements before they count as equivalent. Low-confidence
+   matches are marked `NEEDS_HUMAN_REVIEW`.
+5. **Act on savings.** Recommendations cover scheduling, downsizing, migration payback and billing period, and
+   say clearly when there isn't enough data to decide.
+
+## Supported providers
+
+| Provider | Prices in the catalog | Automatic price updates |
+|---|---|---|
+| Liara | ✅ Exact | ✅ Scraper |
+| Server.ir | ✅ Exact | ✅ Scraper |
+| IranServer | ✅ Exact (General Purpose plans) | ✅ Scraper |
+| ArvanCloud | ✅ Exact | ⚠️ Blocked by the site's bot protection, so prices age visibly |
+| Chabokan | ✅ Exact | 🚧 In progress |
+| MobinHost | ✅ Exact | 🚧 In progress |
+| ParsPack | ℹ️ Starting price only, never used for savings | ❌ |
+| Abrha | ℹ️ Starting price only, never used for savings | ❌ |
+
+Scrapers check official pages every night. If a page can't be read, or prices move too sharply, nothing is
+applied and the problem shows up in the app.
+
+Spotted a wrong price? [Report it](../../issues/new?template=wrong-price.md).
 
 ## Configuration
 
-See `.env.example`. Notable: `FINOPS_AI_PROVIDER=offline|anthropic` (offline = no external calls;
-anthropic uses Claude `claude-opus-5-5`), `FINOPS_INVOICE_RETENTION_DAYS`, `FINOPS_SYNC_MODE`.
-Staging/prod refuse to start without `FINOPS_JWT_SECRET` and `FINOPS_CREDENTIALS_KEY`.
+Settings live in `.env`, and [`.env.example`](.env.example) lists all of them. These are the main ones:
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `FINOPS_ENV` | `dev` | `dev`, `staging` or `prod`. Production won't start with default secrets. |
+| `FINOPS_AI_PROVIDER` | `offline` | `offline` makes no external calls. `anthropic` uses Claude, if it's available to you. |
+| `FINOPS_ALLOW_REGISTRATION` | `false` | Open sign-up. The first account can always register, and admins add the rest. |
+| `FINOPS_INVOICE_RETENTION_DAYS` | `30` | How long uploaded invoices are kept before deletion. |
+
+## Project layout
+
+```text
+apps/api        FastAPI service: auth, catalog, inventory, analysis, reports
+apps/worker     Scheduled price updates and invoice cleanup
+apps/web        React and TypeScript dashboard
+packages/       Pricing, recommendations, scrapers, AI and invoice parsing, independent of the web framework
+data/seeds      Starting price catalog and engine rules
+docs/           Architecture, pricing model, scrapers, AI safety and operations
+```
+
+## Roadmap
+
+- [x] Exact pricing engine with price history
+- [x] Provider comparison and evidence-backed recommendations
+- [x] Chat and invoice input, and reports in Persian and English
+- [ ] Scrapers for Chabokan and MobinHost
+- [ ] One-command installer for a single server
+- [ ] Read-only monitoring of all your servers from one installation
+- [ ] Server dashboard with real usage, wasted spend and renewal dates
+- [ ] Price change alerts by email and Bale
+- [ ] Shared, signed price catalog, so each installation doesn't have to scrape
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Pricing model](docs/pricing-model.md)
+- [Provider scrapers](docs/provider-adapters.md)
+- [AI safety](docs/ai-safety.md)
+- [Operations and production](docs/runbook.md)
+
+## Contributing
+
+Contributions are welcome, especially new provider scrapers and price corrections. Please read
+[CONTRIBUTING.md](CONTRIBUTING.md) first, and report security problems as described in [SECURITY.md](SECURITY.md).
+
+## License
+
+[Apache License 2.0](LICENSE)
+
+---
+
+<div dir="rtl">
+
+## فارسی
+
+**FinOps agent** یک ابزار متن‌باز برای مدیریت هزینه زیرساخت است، مخصوص استارتاپ‌ها و تیم‌های کوچکی که از ارائه‌دهندگان ابری و VPS ایرانی استفاده می‌کنند.
+
+زیرساخت خود را با فرم، چت یا فاکتور وارد می‌کنید، آن را تأیید می‌کنید و هزینه دقیق، مقایسه ارائه‌دهندگان و پیشنهادهای صرفه‌جویی را همراه با منبع و تاریخ قیمت می‌بینید.
+
+- همه قیمت‌ها و صرفه‌جویی‌ها با کد آزموده‌شده محاسبه می‌شوند و هوش مصنوعی هیچ عددی را محاسبه نمی‌کند.
+- اگر قیمتی موجود نباشد، به‌جای حدس زدن، نبود آن را نشان می‌دهیم.
+- برنامه بدون سرویس خارجی هوش مصنوعی هم کار می‌کند.
+
+برای شروع، بخش [Quick start](#quick-start) را دنبال کنید.
+
+</div>
