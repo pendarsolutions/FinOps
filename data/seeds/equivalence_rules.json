@@ -1,0 +1,60 @@
+{
+  "version": "2026-10-04.1",
+  "authored": true,
+  "note": "Authored deterministic equivalence policy (the build-pack file was not present). No prices. A cheaper machine is not automatically equivalent: candidates must pass every hard constraint, then are scored, then priced by the pricing engine.",
+  "default_scope": {
+    "region_countries": ["IR"],
+    "allow_outside_iran": false,
+    "outside_iran_note": "Moving workloads outside Iran is only evaluated when the user explicitly enables it per comparison."
+  },
+  "compatible_service_types": {
+    "compute_vm": ["compute_vm"],
+    "paas": ["paas"],
+    "dbaas": ["dbaas"],
+    "object_storage": ["object_storage"]
+  },
+  "hard_constraints": [
+    {"id": "HC-CPU", "field": "cpu_cores", "op": "candidate_gte_source", "description": "Candidate must have at least the source vCPU count."},
+    {"id": "HC-RAM", "field": "ram_gb", "op": "candidate_gte_source", "description": "Candidate must have at least the source RAM."},
+    {"id": "HC-DISK", "field": "storage_gb", "op": "candidate_gte_source", "description": "Fixed SKUs must include at least the source disk; extra-disk prices are not in the seed."},
+    {"id": "HC-AVAIL", "field": "availability", "op": "equals", "value": "available", "description": "Sold-out / unavailable SKUs are never recommended."},
+    {"id": "HC-EXACT", "field": "pricing_model", "op": "exact_eligible", "description": "starting_price and calculator_snapshot rows cannot back an exact saving."},
+    {"id": "HC-REGION", "field": "region_country", "op": "in_scope", "description": "Iran-only unless the user enables outside-Iran comparison."},
+    {"id": "HC-DEDICATED", "field": "cpu_shared", "op": "no_dedicated_to_shared", "description": "A dedicated/optimized-core source cannot be matched by a shared-CPU candidate."},
+    {"id": "HC-PRICEABLE", "field": "monthly_total_toman", "op": "exact_price_available", "description": "Candidate must be priceable exactly for the source workload (e.g. traffic above an included quota with unknown overage fails)."}
+  ],
+  "weights": {
+    "cpu": "0.25",
+    "ram": "0.25",
+    "storage": "0.15",
+    "cpu_class": "0.15",
+    "traffic": "0.10",
+    "datacenter": "0.05",
+    "billing_cadence": "0.05"
+  },
+  "scoring": {
+    "capacity": "score = source / candidate (1.0 when identical, lower when the candidate is oversized).",
+    "cpu_class": {"match": "1", "unknown": "0.5", "upgrade": "1"},
+    "traffic": {"known_and_covered": "1", "direction_unverified": "0.6"},
+    "datacenter": {"same_or_unspecified": "1", "different": "0.7"},
+    "billing_cadence": {"supports_required": "1", "not_supported": "0.5"}
+  },
+  "confidence_thresholds": {
+    "high": "0.85",
+    "medium": "0.70"
+  },
+  "confidence_caps": [
+    {"when": "cpu_class_unknown", "max": "medium"},
+    {"when": "traffic_direction_unverified", "max": "medium"}
+  ],
+  "low_confidence_label": "NEEDS_HUMAN_REVIEW",
+  "storage_type_map": {
+    "note": "Used only when synthesizing ArvanCloud component configurations for comparison. Recorded as an assumption on the candidate.",
+    "ssd": "hot_ssd",
+    "nvme": "hot_ssd",
+    "hdd": "eco",
+    "default": "hot_ssd"
+  },
+  "arvan_candidate_classes": ["basic", "standard", "premium"],
+  "max_candidates": 10
+}

@@ -1,0 +1,87 @@
+{
+  "version": "2026-10-04.1",
+  "authored": true,
+  "note": "Authored deterministic recommendation rules (the build-pack file was not present). No prices. Every saving is computed by the pricing engine from catalog rows; thresholds below only decide whether a computed saving is worth surfacing.",
+  "global": {
+    "min_monthly_saving_toman": "50000",
+    "min_saving_percent": "3"
+  },
+  "rules": [
+    {
+      "rule_id": "REC-001",
+      "type": "non_prod_hourly_schedule",
+      "title_en": "Bill non-production workload hourly for its actual runtime",
+      "title_fa": "محاسبه ساعتی برای محیط غیرعملیاتی بر اساس زمان واقعی استفاده",
+      "applies_when": "environment is non-production AND resource is billed monthly AND active_hours_per_month is known and below hours_per_month AND provider publishes an hourly rate for the same SKU",
+      "requires": ["environment", "active_hours_per_month", "hourly_price_toman"],
+      "risk": "low",
+      "effort": "low",
+      "pendar_service": null
+    },
+    {
+      "rule_id": "REC-002",
+      "type": "fixed_sku_downsize",
+      "title_en": "Downsize to a smaller plan (usage evidence present)",
+      "title_fa": "کوچک‌سازی پلن بر اساس شواهد مصرف",
+      "applies_when": "usage metrics exist with enough observation days AND p95 utilisation leaves room AND a smaller available SKU in the same provider family covers p95 demand plus headroom",
+      "requires": ["metrics.p95_cpu_percent", "metrics.p95_ram_percent", "metrics.observation_days"],
+      "params": {
+        "min_observation_days": 14,
+        "headroom_factor": "1.30",
+        "max_p95_cpu_percent": "50",
+        "max_p95_ram_percent": "60"
+      },
+      "never_from_allocation_alone": true,
+      "risk": "medium",
+      "effort": "low",
+      "pendar_service": null
+    },
+    {
+      "rule_id": "REC-003",
+      "type": "cross_provider_migration",
+      "title_en": "Move to an equivalent plan at another Iranian provider",
+      "title_fa": "مهاجرت به پلن معادل در ارائه‌دهنده ایرانی دیگر",
+      "applies_when": "equivalence engine returns a candidate with confidence high or medium AND its exact monthly cost is lower",
+      "params": {
+        "min_confidence": "medium",
+        "migration_effort_days": {"compute_vm": "2", "paas": "1", "dbaas": "3", "object_storage": "1"},
+        "migration_effort_note": "Engineer-days per migrated resource instance. Migration cost = days x organisation engineer_day_rate_toman. If the organisation has not set a day rate, payback is reported as UNKNOWN_MIGRATION_COST instead of being guessed."
+      },
+      "risk": "medium",
+      "effort": "medium",
+      "pendar_service": "pendar_cloud_migration"
+    },
+    {
+      "rule_id": "REC-004",
+      "type": "billing_cadence",
+      "title_en": "Switch between hourly and monthly billing",
+      "title_fa": "تغییر بین صورتحساب ساعتی و ماهانه",
+      "applies_when": "provider publishes both hourly and monthly rates for the SKU AND the other cadence is cheaper for the stated runtime. Unverified term discounts are listed as information only, with no saving number.",
+      "requires": ["active_hours_per_month"],
+      "risk": "low",
+      "effort": "low",
+      "pendar_service": null
+    },
+    {
+      "rule_id": "REC-005",
+      "type": "cannot_determine",
+      "title_en": "Cannot determine yet - data missing",
+      "title_fa": "هنوز قابل تعیین نیست - داده ناقص",
+      "applies_when": "a rule above could apply but a required input is missing (metrics, runtime, traffic, migration day rate) or the price is unavailable",
+      "risk": "none",
+      "effort": "low",
+      "pendar_service": "infrastructure_audit_observability"
+    }
+  ],
+  "pendar_services": {
+    "pendar_cloud_migration": {"en": "Pendar Cloud Migration", "fa": "مهاجرت ابری پندار"},
+    "pendar_cost_cut": {"en": "Pendar Cost Cut", "fa": "کاهش هزینه پندار"},
+    "infrastructure_audit_observability": {"en": "Infrastructure Audit / Observability setup", "fa": "ممیزی زیرساخت / راه‌اندازی Monitoring"},
+    "helm_workload_tuning": {"en": "Helm & workload tuning", "fa": "تنظیم Helm و workload"},
+    "backup_dr": {"en": "Backup & DR", "fa": "Backup و DR"}
+  },
+  "handoff_policy": {
+    "note": "Handoffs are secondary, transparent, and never change which recommendation is produced or its numbers.",
+    "cost_cut_min_total_monthly_saving_toman": "5000000"
+  }
+}

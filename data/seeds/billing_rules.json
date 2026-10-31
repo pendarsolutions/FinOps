@@ -1,0 +1,86 @@
+[
+  {
+    "rule_id": "liara-iaas-network",
+    "provider_id": "liara",
+    "scope": "iaas",
+    "rule_type": "network_and_ip",
+    "status": "active",
+    "logic": {
+      "upload_toman_per_gb": 0,
+      "download_toman_per_gb": 2500,
+      "ipv4_monthly_toman": 200000,
+      "ipv4_hourly_toman": 277
+    },
+    "source_url": "https://liara.ir/pricing/",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "rule_id": "serverir-discounts",
+    "provider_id": "serverir",
+    "scope": "iran_vps",
+    "rule_type": "term_discount",
+    "status": "needs_checkout_verification",
+    "logic": {
+      "3_month_percent": 5,
+      "6_month_percent": 7,
+      "12_month_percent": 10
+    },
+    "source_url": "https://server.ir/vps/iran/",
+    "retrieved_at": "2026-10-04",
+    "notes": "Iran VPS page showed 5% for 3 months while the generic VPS page showed 6%; do not auto-apply until verified at checkout."
+  },
+  {
+    "rule_id": "serverir-vat",
+    "provider_id": "serverir",
+    "scope": "invoice",
+    "rule_type": "tax",
+    "status": "active",
+    "logic": {
+      "vat_percent": 10
+    },
+    "source_url": "https://server.ir/vps/iran/",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "rule_id": "chabokan-flexible-billing",
+    "provider_id": "chabokan",
+    "scope": "cloud_server",
+    "rule_type": "billing_periods",
+    "status": "active",
+    "logic": {
+      "supported": [
+        "hourly",
+        "daily",
+        "monthly",
+        "custom/longer_term"
+      ]
+    },
+    "source_url": "https://chabokan.net/products/cloudserver/",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "rule_id": "parspack-daily-payg",
+    "provider_id": "parspack",
+    "scope": "cloud_server",
+    "rule_type": "billing_period",
+    "status": "active",
+    "logic": {
+      "billing": "daily deduction",
+      "resource_scaling": "dynamic"
+    },
+    "source_url": "https://parspack.com/cloud-server",
+    "retrieved_at": "2026-10-04"
+  },
+  {
+    "rule_id": "arvan-pricing-date",
+    "provider_id": "arvancloud",
+    "scope": "catalog",
+    "rule_type": "source_version",
+    "status": "active",
+    "logic": {
+      "official_price_date_jalali": "1405-03-30"
+    },
+    "source_url": "https://www.arvancloud.ir/fa/pricing/all",
+    "retrieved_at": "2026-10-04"
+  }
+]

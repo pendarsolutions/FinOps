@@ -1,0 +1,97 @@
+{
+  "policy_version": "2026-10-04.1",
+  "authored": true,
+  "note": "Authored engine policy. Contains NO prices. Every value here is either a documented calculation convention or an explicit statement of what the seed dataset cannot support. Changing this file changes deterministic results, so it is versioned and its version is recorded on every quote.",
+  "hours_per_month": {
+    "value": 720,
+    "evidence": "Liara publishes both rates: IAAS-JUPITER 2048/h x 720 = 1,474,560 vs 1,475,000/month; IAAS-IPV4 277/h x 720 = 199,440 vs 200,000/month. 720 h (30 days) is the only month length consistent with both.",
+    "applies_to": ["liara", "chabokan"]
+  },
+  "days_per_month": {
+    "value": 30,
+    "evidence": "Consistent with hours_per_month=720. Used only to express Chabokan 30-day plans as monthly; recorded as an assumption on every affected quote."
+  },
+  "rounding": {
+    "mode": "none",
+    "note": "No provider in the seed documents its invoice rounding rule. The engine keeps exact Decimal values; only the UI rounds for display. Add a per-provider rule here once an invoice proves the boundary."
+  },
+  "providers": {
+    "arvancloud": {
+      "strategy": "component",
+      "exact_eligible": true,
+      "hourly_proration_supported": false,
+      "hourly_proration_note": "Seed only contains monthly component rates; no official hourly/proration rule is in the dataset. Scheduled runtime is priced as a full month and flagged.",
+      "ipv4_first_per_resource": true,
+      "ipv4_note": "IR-IPV4-FIRST is applied to the first IPv4 of each server, IR-IPV4-EXTRA to every additional IPv4 on that server.",
+      "traffic_direction_map": {"download": "outbound", "upload": "inbound"},
+      "traffic_direction_verified": false,
+      "traffic_direction_note": "Resource 'download' = traffic leaving the server towards users. Mapped literally to the catalog's 'outbound' rows; catalog 'inbound' tiers are applied to 'upload'. Direction semantics on the Arvan page are not verified - every quote that prices Arvan traffic carries this assumption.",
+      "tier_mode": "graduated",
+      "tier_note": "Each tier price applies only to the GB that fall inside that tier (graduated), not to the whole volume (volume pricing).",
+      "cpu_class_semantics": {"basic": "unknown", "standard": "unknown", "premium": "unknown"},
+      "tax_rule": null
+    },
+    "liara": {
+      "strategy": "liara_plan",
+      "exact_eligible": true,
+      "runtime_policy": "hourly_when_explicitly_limited",
+      "runtime_policy_note": "If the resource's billing_mode is 'hourly' (runtime explicitly limited), price = hourly rate x active hours. Otherwise the monthly plan price. The engine never silently picks the cheaper of the two; the recommendation engine (REC-004) compares them.",
+      "traffic_direction_map": {"download": "download", "upload": "upload"},
+      "traffic_direction_verified": true,
+      "network_rule_id": "liara-iaas-network",
+      "ipv4_scope": ["compute_vm"],
+      "tax_rule": null
+    },
+    "serverir": {
+      "strategy": "fixed_sku",
+      "exact_eligible": true,
+      "included_traffic_direction": "download",
+      "overage_price_known": false,
+      "ipv4_included": "unverified",
+      "tax_rule": "serverir-vat",
+      "term_discount_rule": "serverir-discounts"
+    },
+    "iranserver": {
+      "strategy": "fixed_sku",
+      "exact_eligible": true,
+      "included_traffic_direction": "unspecified",
+      "overage_price_known": false,
+      "ipv4_included": "unverified",
+      "tax_rule": null
+    },
+    "mobinhost": {
+      "strategy": "fixed_sku",
+      "exact_eligible": true,
+      "included_traffic_direction": "unspecified",
+      "overage_price_known": false,
+      "ipv4_included": "unverified",
+      "tax_rule": null
+    },
+    "chabokan": {
+      "strategy": "fixed_sku",
+      "exact_eligible": true,
+      "period_conversion": "30_days_equals_month",
+      "included_traffic_direction": "unspecified",
+      "overage_price_known": false,
+      "ipv4_included": "unverified",
+      "tax_rule": null
+    },
+    "parspack": {
+      "strategy": "discovery_only",
+      "exact_eligible": false,
+      "reason": "Only a calculator_snapshot with unselected location/datacenter/OS. Exact pricing requires the ParsPack Cloud Server API adapter."
+    },
+    "abrha": {
+      "strategy": "discovery_only",
+      "exact_eligible": false,
+      "reason": "Only an advertised starting daily price with no bound configuration."
+    }
+  },
+  "exact_pricing_models": ["component_rate", "tiered_meter", "fixed_sku", "fixed_sku_hourly_monthly", "fixed_sku_flexible_period"],
+  "discovery_only_pricing_models": ["calculator_snapshot", "starting_price"],
+  "freshness": {
+    "warn_after_days": 14,
+    "stale_after_days": 45
+  },
+  "non_production_environments": ["dev", "development", "test", "testing", "staging", "qa", "sandbox", "ci"]
+}

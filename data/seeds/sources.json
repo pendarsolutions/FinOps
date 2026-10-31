@@ -1,0 +1,78 @@
+{
+  "generated_from": "iran_finops_dataset.json",
+  "note": "Derived source registry: one entry per (provider, official URL) referenced by catalog rows and billing rules. The original build-pack sources.json was not present.",
+  "sources": [
+    {
+      "provider_id": "arvancloud",
+      "source_url": "https://www.arvancloud.ir/fa/pricing/all",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": "1405-03-30",
+      "catalog_item_count": 50
+    },
+    {
+      "provider_id": "liara",
+      "source_url": "https://liara.ir/pricing/",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 24
+    },
+    {
+      "provider_id": "iranserver",
+      "source_url": "https://www.iranserver.com/vps/iran/",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 5
+    },
+    {
+      "provider_id": "serverir",
+      "source_url": "https://server.ir/vps/iran/",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 25
+    },
+    {
+      "provider_id": "chabokan",
+      "source_url": "https://chabokan.net/products/cloudserver/",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 9
+    },
+    {
+      "provider_id": "parspack",
+      "source_url": "https://parspack.com/cloud-server",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 1
+    },
+    {
+      "provider_id": "abrha",
+      "source_url": "https://abrha.com/cloud-server/",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 1
+    },
+    {
+      "provider_id": "mobinhost",
+      "source_url": "https://www.mobinhost.com/economic-vps/",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 6
+    },
+    {
+      "provider_id": "mobinhost",
+      "source_url": "https://www.mobinhost.com/iran-vds/",
+      "source_kind": "official",
+      "retrieved_at": "2026-10-04",
+      "provider_price_date": null,
+      "catalog_item_count": 2
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+[
+  {
+    "provider_id": "arvancloud",
+    "name_en": "ArvanCloud",
+    "name_fa": "ابر آروان",
+    "website": "https://www.arvancloud.ir/",
+    "official_pricing_url": "https://www.arvancloud.ir/fa/pricing/all",
+    "country": "IR",
+    "provider_type": [
+      "iaas",
+      "dbaas",
+      "object_storage",
+      "gpu",
+      "cdn"
+    ],
+    "pricing_model": "resource_metered",
+    "public_catalog_quality": "high",
+    "api_status": "verified",
+    "automation_surfaces": [
+      "API",
+      "CLI",
+      "SDK",
+      "Terraform"
+    ],
+    "recommended_mvp_priority": 1,
+    "integration_strategy": "official pricing sync + read-only API connector later",
+    "notes": "Best first adapter for deterministic resource-level pricing."
+  },
+  {
+    "provider_id": "liara",
+    "name_en": "Liara",
+    "name_fa": "لیارا",
+    "website": "https://liara.ir/",
+    "official_pricing_url": "https://liara.ir/pricing/",
+    "country": "IR",
+    "provider_type": [
+      "iaas",
+      "paas",
+      "dbaas",
+      "object_storage"
+    ],
+    "pricing_model": "fixed_sku_hourly_monthly",
+    "public_catalog_quality": "high",
+    "api_status": "not_verified",
+    "automation_surfaces": [
+      "CLI"
+    ],
+    "recommended_mvp_priority": 2,
+    "integration_strategy": "official pricing sync; billing/inventory connector after API verification",
+    "notes": "Clean hourly/monthly SKUs; useful for schedule-vs-always-on optimization."
+  },
+  {
+    "provider_id": "serverir",
+    "name_en": "Server.ir",
+    "name_fa": "سرور.آی‌آر",
+    "website": "https://server.ir/",
+    "official_pricing_url": "https://server.ir/vps/iran/",
+    "country": "IR",
+    "provider_type": [
+      "vps",
+      "hourly_vps"
+    ],
+    "pricing_model": "fixed_sku",
+    "public_catalog_quality": "high",
+    "api_status": "not_verified",
+    "automation_surfaces": [
+      "cloud_dashboard"
+    ],
+    "recommended_mvp_priority": 3,
+    "integration_strategy": "official page sync; customer invoice import first; API later if documented",
+    "notes": "Strong fixed-SKU comparison case across Iranian datacenters."
+  },
+  {
+    "provider_id": "iranserver",
+    "name_en": "IranServer",
+    "name_fa": "ایران‌سرور",
+    "website": "https://www.iranserver.com/",
+    "official_pricing_url": "https://www.iranserver.com/vps/iran/",
+    "country": "IR",
+    "provider_type": [
+      "vps",
+      "cloud_vm"
+    ],
+    "pricing_model": "fixed_sku",
+    "public_catalog_quality": "medium",
+    "api_status": "not_verified",
+    "automation_surfaces": [
+      "customer_hub"
+    ],
+    "recommended_mvp_priority": 4,
+    "integration_strategy": "official page sync + invoice import; API only after verification",
+    "notes": "Public crawler exposes general-purpose plans reliably; other families are dynamic."
+  },
+  {
+    "provider_id": "chabokan",
+    "name_en": "Chabokan",
+    "name_fa": "چابکان",
+    "website": "https://chabokan.net/",
+    "official_pricing_url": "https://chabokan.net/products/cloudserver/",
+    "country": "IR",
+    "provider_type": [
+      "iaas",
+      "paas",
+      "dbaas",
+      "object_storage"
+    ],
+    "pricing_model": "fixed_sku_flexible_period",
+    "public_catalog_quality": "medium",
+    "api_status": "not_verified",
+    "automation_surfaces": [
+      "docs",
+      "hub"
+    ],
+    "recommended_mvp_priority": 5,
+    "integration_strategy": "official public plan scraper + invoice import; later authenticated connector",
+    "notes": "Plan catalog is large and dynamic; seed only currently visible official rows."
+  },
+  {
+    "provider_id": "parspack",
+    "name_en": "ParsPack",
+    "name_fa": "پارس‌پک",
+    "website": "https://parspack.com/",
+    "official_pricing_url": "https://parspack.com/cloud-server",
+    "country": "IR",
+    "provider_type": [
+      "iaas",
+      "paas",
+      "object_storage",
+      "database_cluster"
+    ],
+    "pricing_model": "configurator_payg_daily",
+    "public_catalog_quality": "medium",
+    "api_status": "verified",
+    "automation_surfaces": [
+      "Cloud Server API",
+      "docs"
+    ],
+    "recommended_mvp_priority": 6,
+    "integration_strategy": "prefer official API over HTML configurator for complete catalog",
+    "notes": "Public page exposes a default calculator snapshot, not a full static SKU matrix."
+  },
+  {
+    "provider_id": "mobinhost",
+    "name_en": "MobinHost",
+    "name_fa": "مبین‌هاست",
+    "website": "https://www.mobinhost.com/",
+    "official_pricing_url": "https://www.mobinhost.com/economic-vps/",
+    "country": "IR",
+    "provider_type": [
+      "vps",
+      "vds",
+      "dedicated"
+    ],
+    "pricing_model": "fixed_sku",
+    "public_catalog_quality": "high",
+    "api_status": "not_verified",
+    "automation_surfaces": [
+      "customer_panel"
+    ],
+    "recommended_mvp_priority": 7,
+    "integration_strategy": "official page sync + invoice import",
+    "notes": "Availability changes are important: some SKUs are explicitly sold out."
+  },
+  {
+    "provider_id": "abrha",
+    "name_en": "Abrha",
+    "name_fa": "ابرها",
+    "website": "https://abrha.com/",
+    "official_pricing_url": "https://abrha.com/cloud-server/",
+    "country": "IR",
+    "provider_type": [
+      "cloud_vm",
+      "vps"
+    ],
+    "pricing_model": "daily_starting_price",
+    "public_catalog_quality": "low",
+    "api_status": "not_verified",
+    "automation_surfaces": [
+      "customer_panel"
+    ],
+    "recommended_mvp_priority": 8,
+    "integration_strategy": "store only official starting-price snapshot until full plan source is available",
+    "notes": "Do not extrapolate component prices from the starting-price card."
+  }
+]

@@ -1,0 +1,77 @@
+# Local/dev stack: `make dev` (or `docker compose up --build`) -> http://localhost:8080
+# Staging/prod: docker compose -f docker-compose.yml -f deploy/compose.prod.yml --env-file .env up -d
+name: pendar-finops
+
+x-app-env: &app-env
+  PENDAR_ENV: ${PENDAR_ENV:-dev}
+  PENDAR_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pendar}:${POSTGRES_PASSWORD:-pendar-dev-password}@postgres:5432/${POSTGRES_DB:-pendar}
+  PENDAR_REDIS_URL: redis://redis:6379/0
+  PENDAR_SYNC_MODE: celery
+  PENDAR_JWT_SECRET: ${PENDAR_JWT_SECRET:-dev-only-change-me-not-for-production-use}
+  PENDAR_CREDENTIALS_KEY: ${PENDAR_CREDENTIALS_KEY:-}
+  PENDAR_AI_PROVIDER: ${PENDAR_AI_PROVIDER:-offline}
+  PENDAR_AI_MODEL: ${PENDAR_AI_MODEL:-claude-opus-5-5}
+  PENDAR_ANTHROPIC_API_KEY: ${PENDAR_ANTHROPIC_API_KEY:-}
+  PENDAR_STORAGE_DIR: /app/var/uploads
+  PENDAR_INVOICE_RETENTION_DAYS: ${PENDAR_INVOICE_RETENTION_DAYS:-30}
+  PENDAR_CORS_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pendar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pendar-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-pendar}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pendar}"]
+      interval: 5s
+      retries: 20
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build: .
+    command: ["api"]
+    environment: *app-env
+    volumes: [uploads:/app/var/uploads]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
+      interval: 10s
+      retries: 30
+    ports: ["8000:8000"]
+
+  worker:
+    build: .
+    command: ["worker"]
+    environment: *app-env
+    volumes: [uploads:/app/var/uploads]
+    depends_on:
+      api: {condition: service_healthy}
+
+  beat:
+    build: .
+    command: ["beat"]
+    environment: *app-env
+    depends_on:
+      api: {condition: service_healthy}
+
+  web:
+    build: ./apps/web
+    depends_on:
+      api: {condition: service_healthy}
+    ports: ["8080:80"]
+
+volumes:
+  pgdata:
+  uploads:

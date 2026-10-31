@@ -1,0 +1,94 @@
+{
+  "authored": true,
+  "note": "Development/demo fixture (the build-pack file was not present). Specs reference real seed SKUs; the organisation day rate is a clearly labelled SAMPLE input, not a market price.",
+  "name": "Demo startup — Tehran",
+  "organization_settings": {
+    "engineer_day_rate_toman": "4000000",
+    "engineer_day_rate_label": "SAMPLE value entered for the demo workspace"
+  },
+  "resources": [
+    {
+      "external_ref": "web-prod",
+      "name": "web-prod",
+      "environment": "production",
+      "service_type": "compute_vm",
+      "provider_id": "serverir",
+      "sku": "IRAT3024",
+      "datacenter": "Asiatech",
+      "quantity": "2",
+      "cpu_cores": "2",
+      "ram_gb": "4",
+      "storage_gb": "30",
+      "expected_monthly_download_gb": "150",
+      "expected_monthly_upload_gb": "20",
+      "requires_public_ipv4": true,
+      "billing_mode": "monthly"
+    },
+    {
+      "external_ref": "staging-app",
+      "name": "staging-app",
+      "environment": "staging",
+      "service_type": "compute_vm",
+      "provider_id": "liara",
+      "sku": "IAAS-SATURN",
+      "quantity": "1",
+      "cpu_cores": "2",
+      "ram_gb": "4",
+      "storage_gb": "40",
+      "expected_monthly_download_gb": "10",
+      "expected_monthly_upload_gb": "5",
+      "active_hours_per_month": "220",
+      "requires_public_ipv4": true,
+      "billing_mode": "monthly"
+    },
+    {
+      "external_ref": "db-prod",
+      "name": "db-prod",
+      "environment": "production",
+      "service_type": "dbaas",
+      "provider_id": "arvancloud",
+      "resource_class": "standard",
+      "quantity": "1",
+      "cpu_cores": "2",
+      "ram_gb": "4",
+      "storage_gb": "100",
+      "storage_type": "ssd",
+      "requires_public_ipv4": false,
+      "billing_mode": "monthly"
+    },
+    {
+      "external_ref": "backups",
+      "name": "backups",
+      "environment": "production",
+      "service_type": "object_storage",
+      "provider_id": "arvancloud",
+      "storage_type": "object_standard",
+      "quantity": "1",
+      "storage_gb": "800",
+      "billing_mode": "monthly"
+    },
+    {
+      "external_ref": "ci-runner",
+      "name": "ci-runner",
+      "environment": "ci",
+      "service_type": "compute_vm",
+      "provider_id": "iranserver",
+      "sku": "NGP-large80",
+      "quantity": "1",
+      "cpu_cores": "4",
+      "ram_gb": "16",
+      "storage_gb": "80",
+      "expected_monthly_download_gb": "100",
+      "expected_monthly_upload_gb": "50",
+      "requires_public_ipv4": true,
+      "billing_mode": "monthly",
+      "metrics": {
+        "p95_cpu_percent": "18",
+        "p95_ram_percent": "22",
+        "disk_used_gb": "24",
+        "observation_days": 30,
+        "source": "sample monitoring export"
+      }
+    }
+  ]
+}

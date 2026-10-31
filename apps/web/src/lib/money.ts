@@ -1,0 +1,114 @@
+/**
+ * Display-only formatting of exact decimal strings.
+ *
+ * The backend sends money as exact decimal strings in Toman (e.g. "20574439"). The UI never converts
+ * money through a JS Number and never does arithmetic on it: these helpers only re-group the digits
+ * of the string and (in Persian) swap the digit glyphs.
+ */
+import type { Lang } from "./i18n";
+
+export type Decimalish = string | number | null | undefined;
+
+const FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+const DECIMAL_RE = /^([+-]?)(\d*)(?:\.(\d*))?$/;
+
+export function toPersianDigits(s: string): string {
+  return s.replace(/[0-9]/g, (d) => FA_DIGITS[Number(d)]);
+}
+
+export function localizeDigits(s: string, lang: Lang): string {
+  return lang === "fa" ? toPersianDigits(s) : s;
+}
+
+/** Normalize a decimal string: trims, drops trailing fractional zeros. Returns null when not a plain decimal. */
+function parts(value: Decimalish): { sign: string; int: string; frac: string } | null {
+  if (value === null || value === undefined || value === "") return null;
+  // Numbers only ever reach here if the API sent a JSON number; stringify without arithmetic.
+  const s = typeof value === "number" ? String(value) : value.trim();
+  const m = DECIMAL_RE.exec(s);
+  if (!m || (m[2] === "" && (m[3] ?? "") === "")) return null;
+  const int = m[2].replace(/^0+(?=\d)/, "") || "0";
+  const frac = (m[3] ?? "").replace(/0+$/, "");
+  const sign = m[1] === "-" && (int !== "0" || frac !== "") ? "-" : "";
+  return { sign, int, frac };
+}
+
+function group(int: string, sep: string): string {
+  let out = "";
+  for (let i = 0; i < int.length; i++) {
+    const fromEnd = int.length - i;
+    out += int[i];
+    if (fromEnd > 1 && fromEnd % 3 === 1) out += sep;
+  }
+  return out;
+}
+
+/** Format a decimal string for display with thousand separators. Unknown input is returned unchanged. */
+export function formatDecimal(value: Decimalish, lang: Lang, opts: { maxFraction?: number } = {}): string {
+  const p = parts(value);
+  if (!p) return value === null || value === undefined ? "—" : String(value);
+  let frac = p.frac;
+  if (opts.maxFraction !== undefined && frac.length > opts.maxFraction) {
+    // Display truncation only (no rounding arithmetic) and only used for non-money ratios like fit scores.
+    frac = frac.slice(0, opts.maxFraction).replace(/0+$/, "");
+  }
+  if (lang === "fa") {
+    const s = p.sign + group(p.int, "٬") + (frac ? "٫" + frac : "");
+    return toPersianDigits(s);
+  }
+  return p.sign + group(p.int, ",") + (frac ? "." + frac : "");
+}
+
+export function formatPercent(value: Decimalish, lang: Lang): string {
+  if (value === null || value === undefined) return "—";
+  return lang === "fa" ? formatDecimal(value, lang) + "٪" : formatDecimal(value, lang) + "%";
+}
+
+export function currencyLabel(lang: Lang): string {
+  return lang === "fa" ? "تومان" : "Toman";
+}
+
+/** "20,574,439 Toman" / "۲۰٬۵۷۴٬۴۳۹ تومان"; null stays null so callers render PRICE_UNAVAILABLE. */
+export function formatToman(value: Decimalish, lang: Lang): string | null {
+  if (value === null || value === undefined) return null;
+  return `${formatDecimal(value, lang)} ${currencyLabel(lang)}`;
+}
+
+/**
+ * Bar-length ratio for the distribution lists. Presentation-only: the result sets a CSS width and is
+ * never displayed or used as an amount. Compares integer digit strings at a fixed precision.
+ */
+export function visualShare(value: Decimalish, max: Decimalish): number {
+  const a = parts(value);
+  const b = parts(max);
+  if (!a || !b || b.int === "0" || a.sign) return 0;
+  const lenDiff = b.int.length - a.int.length;
+  if (lenDiff > 6) return 0;
+  const head = (s: string) => parseInt(s.slice(0, 9).padEnd(9, "0"), 10);
+  const ratio = head(a.int) / head(b.int) / Math.pow(10, lenDiff);
+  return Math.max(0, Math.min(1, ratio));
+}
+
+/**
+ * Exact ordering of two decimal strings (for sorting only — no arithmetic, no floats).
+ * Missing / unparseable values sort after every number.
+ */
+export function compareDecimal(a: Decimalish, b: Decimalish): number {
+  const x = parts(a);
+  const y = parts(b);
+  if (!x || !y) return x ? -1 : y ? 1 : 0;
+  if (x.sign !== y.sign) return x.sign ? -1 : 1;
+  const flip = x.sign ? -1 : 1;
+  if (x.int.length !== y.int.length) return (x.int.length < y.int.length ? -1 : 1) * flip;
+  if (x.int !== y.int) return (x.int < y.int ? -1 : 1) * flip;
+  const n = Math.max(x.frac.length, y.frac.length);
+  const fx = x.frac.padEnd(n, "0");
+  const fy = y.frac.padEnd(n, "0");
+  return fx === fy ? 0 : (fx < fy ? -1 : 1) * flip;
+}
+
+export function formatDate(iso: string | null | undefined, lang: Lang): string {
+  if (!iso) return "—";
+  const s = iso.length > 10 && iso[10] === "T" ? iso.slice(0, 16).replace("T", " ") : iso;
+  return localizeDigits(s, lang);
+}
