@@ -1,5 +1,5 @@
 [project]
-name = "pendar-finops"
+name = "finops-agent"
 version = "0.1.0"
 description = "Iran-first AI-assisted FinOps platform with a deterministic pricing core"
 requires-python = ">=3.12"
@@ -20,4 +20,4 @@ select = ["E4", "E7", "E9", "F", "I", "B"]
 ignore = ["B008", "E741"]  # Depends() defaults are idiomatic FastAPI; `l` = line item
 
 [tool.ruff.lint.isort]
-known-first-party = ["pricing_engine", "recommendation_engine", "provider_adapters", "ai_gateway", "invoice_parser", "shared_types", "pendar_api", "pendar_worker", "tests"]
+known-first-party = ["pricing_engine", "recommendation_engine", "provider_adapters", "ai_gateway", "invoice_parser", "shared_types", "finops_api", "finops_worker", "tests"]

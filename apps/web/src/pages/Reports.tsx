@@ -21,7 +21,7 @@ function ReportsInner({ inv }: { inv: InventoryView }) {
   const m = useMutation({
     mutationFn: async (lang: "fa" | "en") => {
       const blob = await api.report(inv.id, lang);
-      saveBlob(blob, `pendar-finops-${inv.id.slice(0, 8)}-${lang}.html`);
+      saveBlob(blob, `finops-agent-${inv.id.slice(0, 8)}-${lang}.html`);
     },
   });
   return (

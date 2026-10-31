@@ -1,4 +1,4 @@
-"""Operational CLI: `python -m pendar_api.cli <command>`."""
+"""Operational CLI: `python -m finops_api.cli <command>`."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def cmd_migrate(_: argparse.Namespace) -> None:
 
 def cmd_create_all(_: argparse.Namespace) -> None:
     """Dev/test shortcut for SQLite. Postgres environments use `migrate`."""
-    import pendar_api.orm  # noqa: F401
+    import finops_api.orm  # noqa: F401
 
     Base.metadata.create_all(get_engine())
     print("tables created")
@@ -86,13 +86,13 @@ def cmd_purge_uploads(_: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(prog="pendar")
+    ap = argparse.ArgumentParser(prog="finops")
     sub = ap.add_subparsers(required=True)
     sub.add_parser("migrate").set_defaults(fn=cmd_migrate)
     sub.add_parser("create-all").set_defaults(fn=cmd_create_all)
     sub.add_parser("seed-pricing").set_defaults(fn=cmd_seed_pricing)
     d = sub.add_parser("seed-demo-user")
-    d.add_argument("--email", default="demo@pendar.local")
+    d.add_argument("--email", default="demo@finops-agent.local")
     d.add_argument("--password", default="demo-password-1")
     d.set_defaults(fn=cmd_seed_demo_user)
     s = sub.add_parser("sync-prices")

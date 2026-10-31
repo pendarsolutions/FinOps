@@ -1,4 +1,4 @@
-/** Types mirroring the Pendar API responses. Money and quantities are exact decimal strings. */
+/** Types mirroring the FinOps agent API responses. Money and quantities are exact decimal strings. */
 
 export type Dec = string;
 export type Role = "viewer" | "analyst" | "admin" | "owner";

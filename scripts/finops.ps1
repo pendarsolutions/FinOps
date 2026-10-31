@@ -1,5 +1,5 @@
 # Windows equivalent of the Makefile targets.
-#   .\scripts\pendar.ps1 dev | install | seed-pricing | seed-demo | sync-prices | test | lint | api | web
+#   .\scripts\finops.ps1 dev | install | seed-pricing | seed-demo | sync-prices | test | lint | api | web
 param([Parameter(Mandatory = $true)][string]$Target)
 
 $ErrorActionPreference = "Stop"
@@ -8,7 +8,7 @@ Set-Location $root
 $env:PYTHONPATH = "packages;apps/api;apps/worker"
 $py = Join-Path $root ".venv\Scripts\python.exe"
 
-function Cli([string[]]$a) { & $py -m pendar_api.cli @a; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
+function Cli([string[]]$a) { & $py -m finops_api.cli @a; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
 
 switch ($Target) {
   "dev"          { docker compose up --build }
@@ -20,7 +20,7 @@ switch ($Target) {
   "purge-uploads"{ Cli @("purge-uploads") }
   "test"         { & $py -m pytest -q; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Push-Location apps/web; npm run typecheck; Pop-Location }
   "lint"         { & $py -m ruff check packages apps/api apps/worker tests }
-  "api"          { Cli @("migrate"); Cli @("seed-pricing"); Cli @("seed-demo-user"); & $py -m uvicorn pendar_api.main:app --reload --port 8000 }
+  "api"          { Cli @("migrate"); Cli @("seed-pricing"); Cli @("seed-demo-user"); & $py -m uvicorn finops_api.main:app --reload --port 8000 }
   "web"          { Push-Location apps/web; npm run dev; Pop-Location }
   default        { Write-Error "unknown target $Target" }
 }

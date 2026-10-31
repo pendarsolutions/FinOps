@@ -1,4 +1,4 @@
-"""Pendar deterministic pricing engine.
+"""Deterministic pricing engine.
 
 Pure library: no web framework, no database, no LLM. Every financial number the product shows
 is produced here (or in recommendation_engine, which calls into here).

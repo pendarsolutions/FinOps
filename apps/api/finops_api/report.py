@@ -13,7 +13,7 @@ from .security import Principal
 from .services import latest_analysis, latest_quote, rec_view, resources_of, run_recommendations, snapshot
 
 T = {
-    "title": ("گزارش FinOps پندار", "Pendar FinOps report"),
+    "title": ("گزارش FinOps agent", "FinOps agent report"),
     "s1": ("۱. خلاصه مدیریتی", "1. Executive summary"),
     "s2": ("۲. فهرست منابع تأییدشده", "2. Confirmed inventory"),
     "s3": ("۳. هزینه ماهانه فعلی", "3. Current monthly cost"),

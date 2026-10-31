@@ -18,7 +18,7 @@ import type {
   SyncRun,
 } from "./types";
 
-const TOKEN_KEY = "pendar.session";
+const TOKEN_KEY = "finops.session";
 
 export function loadSession(): Session | null {
   try {
@@ -44,7 +44,7 @@ export class ApiError extends Error {
   }
 }
 
-export const UNAUTHORIZED_EVENT = "pendar:unauthorized";
+export const UNAUTHORIZED_EVENT = "finops:unauthorized";
 
 async function request<T>(method: string, path: string, body?: unknown, raw = false): Promise<T> {
   const headers: Record<string, string> = { Accept: raw ? "*/*" : "application/json" };

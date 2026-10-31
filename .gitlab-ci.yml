@@ -22,15 +22,15 @@ postgres-migration:
     - name: postgres:16-alpine
       alias: postgres
   variables:
-    POSTGRES_USER: pendar
-    POSTGRES_PASSWORD: pendar
-    POSTGRES_DB: pendar
-    PENDAR_DATABASE_URL: postgresql+psycopg://pendar:pendar@postgres:5432/pendar
+    POSTGRES_USER: finops
+    POSTGRES_PASSWORD: finops
+    POSTGRES_DB: finops
+    FINOPS_DATABASE_URL: postgresql+psycopg://finops:finops@postgres:5432/finops
   script:
     - pip install -r requirements.txt
-    - python -m pendar_api.cli migrate
-    - python -m pendar_api.cli seed-pricing
-    - python -m pendar_api.cli seed-pricing   # idempotency check
+    - python -m finops_api.cli migrate
+    - python -m finops_api.cli seed-pricing
+    - python -m finops_api.cli seed-pricing   # idempotency check
     - alembic check
 
 web:

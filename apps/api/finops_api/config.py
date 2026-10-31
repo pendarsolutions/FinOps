@@ -10,10 +10,10 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="PENDAR_", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", env_prefix="FINOPS_", extra="ignore")
 
     env: Literal["dev", "test", "staging", "prod"] = "dev"
-    database_url: str = f"sqlite:///{(ROOT / 'var' / 'pendar-dev.db').as_posix()}"
+    database_url: str = f"sqlite:///{(ROOT / 'var' / 'finops-dev.db').as_posix()}"
     redis_url: str | None = None
     jwt_secret: str = "dev-only-change-me-not-for-production-use"
     jwt_ttl_minutes: int = 720
@@ -45,7 +45,7 @@ def get_settings() -> Settings:
     s = Settings()
     if s.is_prod:
         if s.jwt_secret.startswith("dev-only-change-me") or len(s.jwt_secret) < 32:
-            raise RuntimeError("PENDAR_JWT_SECRET must be set in staging/prod")
+            raise RuntimeError("FINOPS_JWT_SECRET must be set in staging/prod")
         if not s.credentials_key:
-            raise RuntimeError("PENDAR_CREDENTIALS_KEY must be set in staging/prod")
+            raise RuntimeError("FINOPS_CREDENTIALS_KEY must be set in staging/prod")
     return s

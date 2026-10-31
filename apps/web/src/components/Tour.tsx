@@ -26,7 +26,7 @@ const STEPS: Step[] = [
   { target: "help", title: "tourHelpT", body: "tourHelpB" },
 ];
 
-const KEY = "pendar.tour.v1.";
+const KEY = "finops.tour.v1.";
 
 type TourApi = { start: () => void; maybeAutoStart: (userId: string) => void };
 const Ctx = createContext<TourApi>({ start: () => {}, maybeAutoStart: () => {} });

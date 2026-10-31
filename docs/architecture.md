@@ -74,7 +74,7 @@ Their `version` / `policy_version` is recorded on every quote, so changes are tr
   `viewer < analyst < admin < owner` (`require("analyst")` etc.).
 - Provider credentials: Fernet-encrypted at rest, read-only enforced, only a 4-char hint is returned.
 - Uploads: extension + magic-byte validation, size cap, private storage outside the web root, HMAC-signed
-  expiring download URLs, retention purge (`PENDAR_INVOICE_RETENTION_DAYS`), redaction before anything
+  expiring download URLs, retention purge (`FINOPS_INVOICE_RETENTION_DAYS`), redaction before anything
   is stored in inventory metadata or AI logs.
 - AI endpoints rate limited per user (Redis-backed when configured). Prompts/inputs stored in
   `ai_runs` are redacted.

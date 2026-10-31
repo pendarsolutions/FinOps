@@ -122,7 +122,7 @@ def trigger_sync(provider_id: str, db: Session = Depends(get_db), p: Principal =
     if db.get(ProviderRow, provider_id) is None:
         raise HTTPException(404, "unknown provider")
     if get_settings().sync_mode == "celery":
-        from pendar_worker.tasks import sync_provider
+        from finops_worker.tasks import sync_provider
 
         task = sync_provider.delay(provider_id, f"user:{p.user.id}")
         audit(db, p, "catalog.sync.enqueue", "provider", provider_id, {"task_id": task.id})

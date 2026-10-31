@@ -1,5 +1,5 @@
-# Staging/production override. Requires a filled .env (see .env.example); PENDAR_ENV=staging|prod.
-# The api refuses to start without PENDAR_JWT_SECRET (>=32 chars) and PENDAR_CREDENTIALS_KEY.
+# Staging/production override. Requires a filled .env (see .env.example); FINOPS_ENV=staging|prod.
+# The api refuses to start without FINOPS_JWT_SECRET (>=32 chars) and FINOPS_CREDENTIALS_KEY.
 services:
   postgres:
     ports: !reset []
@@ -10,8 +10,8 @@ services:
     ports: !reset []
     restart: unless-stopped
     environment:
-      PENDAR_CORS_ORIGINS: ${PENDAR_CORS_ORIGINS:?set PENDAR_CORS_ORIGINS}
-      PENDAR_ALLOW_DEV_SEED_USER: "false"
+      FINOPS_CORS_ORIGINS: ${FINOPS_CORS_ORIGINS:?set FINOPS_CORS_ORIGINS}
+      FINOPS_ALLOW_DEV_SEED_USER: "false"
   worker:
     restart: unless-stopped
   beat:

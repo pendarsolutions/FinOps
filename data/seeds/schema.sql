@@ -1,4 +1,4 @@
--- Pendar FinOps MVP schema (PostgreSQL 16+)
+-- FinOps agent MVP schema (PostgreSQL 16+)
 -- Money is stored as integer TOMAN where possible. Never use float for money.
 -- Chabokan snapshot has a fractional Toman hourly storage rate; store raw provider values in NUMERIC.
 

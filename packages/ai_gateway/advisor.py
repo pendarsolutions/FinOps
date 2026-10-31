@@ -50,7 +50,7 @@ TOOLS: list[dict[str, Any]] = [
 for _t in TOOLS:
     _t["strict"] = True
 
-SYSTEM = """You are Pendar's FinOps advisor for Iranian small businesses.
+SYSTEM = """You are a FinOps advisor for Iranian small businesses.
 
 You can only learn facts by calling the tools. Hard rules:
 1. If a number is not returned by a tool, do not state it. Never add, subtract, multiply, average, convert currency or compute a saving or percentage yourself - quote the tool's numbers exactly, in Toman (تومان) unless the tool gave Rial.
