@@ -18,7 +18,7 @@ import httpx
 from pricing_engine.catalog import derive_attributes
 from pricing_engine.models import CatalogItem
 
-USER_AGENT = "PendarFinOpsBot/0.1 (+https://pendar.example/finops; price transparency)"
+USER_AGENT = "FinOpsAgentBot/0.1 (price transparency)"
 
 PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩٫", "01234567890123456789.")
 

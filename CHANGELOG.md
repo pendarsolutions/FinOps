@@ -19,7 +19,7 @@ Guided builder API, review/confirmation gate with required-field rules per prici
 
 ### Phase 3 — Comparison + recommendations ✅
 Equivalence engine (hard constraints, weighted fit, confidence caps, explicit differences, Iran-only
-default), REC-001..005, non-double-counted avoidable spend, optional Pendar handoffs.
+default), REC-001..005, non-double-counted avoidable spend.
 
 ### Phase 4 — AI ✅
 Chat → InventoryDraft (Claude structured output, or deterministic fa/en parser offline), invoice

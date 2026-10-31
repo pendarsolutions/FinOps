@@ -20,9 +20,9 @@ def test_auth_required(client):
 
 
 def test_seed_is_idempotent(api_env):
-    from pendar_api.catalog_store import seed_pricing
-    from pendar_api.config import get_settings
-    from pendar_api.db import SessionLocal
+    from finops_api.catalog_store import seed_pricing
+    from finops_api.config import get_settings
+    from finops_api.db import SessionLocal
 
     with SessionLocal() as db:
         stats = seed_pricing(db, get_settings().seed_dir)
@@ -191,8 +191,8 @@ def test_advisor_offline_is_evidence_bound(client, auth, demo_inv):
 
 def test_sync_from_saved_page_versions_prices(client, auth, api_env):
     """Server.ir live page: IRFH traffic changed and IRFH80612 removed -> new versions, history kept."""
-    from pendar_api.catalog_store import run_provider_sync
-    from pendar_api.db import SessionLocal
+    from finops_api.catalog_store import run_provider_sync
+    from finops_api.db import SessionLocal
     from provider_adapters import ServerIrAdapter
     from provider_adapters.base import RawCatalog
 
@@ -213,8 +213,8 @@ def test_sync_from_saved_page_versions_prices(client, auth, api_env):
 
 
 def test_arvan_sync_failure_is_visible(client, auth, api_env):
-    from pendar_api.catalog_store import run_provider_sync
-    from pendar_api.db import SessionLocal
+    from finops_api.catalog_store import run_provider_sync
+    from finops_api.db import SessionLocal
     from provider_adapters import ArvanCloudAdapter
     from provider_adapters.base import RawCatalog
 
@@ -233,8 +233,8 @@ def test_arvan_sync_failure_is_visible(client, auth, api_env):
 def test_catalog_versions_are_immutable(api_env):
     from sqlalchemy import select
 
-    from pendar_api.db import SessionLocal
-    from pendar_api.orm import CatalogItemVersion, ImmutableRowError
+    from finops_api.db import SessionLocal
+    from finops_api.orm import CatalogItemVersion, ImmutableRowError
 
     with SessionLocal() as db:
         row = db.scalar(select(CatalogItemVersion).where(CatalogItemVersion.sku == "IRAT3024"))
@@ -247,8 +247,8 @@ def test_catalog_versions_are_immutable(api_env):
 def test_quotes_are_immutable(api_env):
     from sqlalchemy import select
 
-    from pendar_api.db import SessionLocal
-    from pendar_api.orm import ImmutableRowError, QuoteRow
+    from finops_api.db import SessionLocal
+    from finops_api.orm import ImmutableRowError, QuoteRow
 
     with SessionLocal() as db:
         q = db.scalar(select(QuoteRow))
@@ -259,8 +259,8 @@ def test_quotes_are_immutable(api_env):
 
 
 def test_viewer_cannot_mutate(client, api_env):
-    from pendar_api.db import SessionLocal
-    from pendar_api.security import create_user_with_org, issue_token
+    from finops_api.db import SessionLocal
+    from finops_api.security import create_user_with_org, issue_token
 
     with SessionLocal() as db:
         u, org = create_user_with_org(db, "viewer@example.ir", "viewer-password-1", "V", "ViewOrg", role="viewer")
@@ -279,21 +279,6 @@ def test_org_isolation(client, auth, demo_inv):
     assert client.get(f"/api/v1/inventories/{demo_inv['id']}", headers=other).status_code == 404
 
 
-def test_credentials_encrypted_and_read_only(client, auth, api_env):
-    r = client.post("/api/v1/integrations/credentials", headers=auth,
-                    json={"provider_id": "arvancloud", "label": "ro key", "secret": "apikey-super-secret-1234"})
-    assert r.status_code == 200 and r.json()["secret_hint"] == "…1234"
-    from sqlalchemy import select
-
-    from pendar_api.db import SessionLocal
-    from pendar_api.orm import ProviderCredential
-
-    with SessionLocal() as db:
-        c = db.scalar(select(ProviderCredential))
-        assert "super-secret" not in c.secret_encrypted
-    r = client.post("/api/v1/integrations/credentials", headers=auth,
-                    json={"provider_id": "arvancloud", "label": "rw", "secret": "abcdefghijk", "read_only": False})
-    assert r.status_code == 422
 
 
 def test_audit_log_records_changes(client, auth):

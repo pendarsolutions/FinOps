@@ -4,7 +4,7 @@ export type Lang = "fa" | "en";
 
 /** [fa, en]. Technical terms (FinOps, SKU, IPv4, API...) stay in English inside Persian text. */
 const dict = {
-  appName: ["پندار FinOps", "Pendar FinOps"],
+  appName: ["FinOps agent", "FinOps agent"],
   // nav
   navOverview: ["نمای کلی", "Overview"],
   navInfrastructure: ["زیرساخت", "Infrastructure"],
@@ -25,9 +25,12 @@ const dict = {
   passwordHint: ["حداقل ۱۰ کاراکتر", "At least 10 characters"],
   yourName: ["نام شما", "Your name"],
   orgName: ["نام سازمان", "Organization name"],
+  registrationClosed: ["ثبت‌نام در این نصب بسته است؛ از مدیر بخواهید شما را اضافه کند.", "Registration is closed on this installation. Ask an admin to add you."],
+  members: ["اعضا", "Members"],
+  addMember: ["افزودن عضو", "Add member"],
   noAccount: ["حساب ندارید؟ ثبت‌نام کنید", "No account? Register"],
   haveAccount: ["حساب دارید؟ وارد شوید", "Have an account? Sign in"],
-  demoHint: ["کاربر آزمایشی توسعه: demo@pendar.local / demo-password-1", "Dev demo user: demo@pendar.local / demo-password-1"],
+  demoHint: ["کاربر آزمایشی توسعه: demo@finops-agent.local / demo-password-1", "Dev demo user: demo@finops-agent.local / demo-password-1"],
   tagline: ["مدیریت هزینه ابری با قیمت‌های دقیق ارائه‌دهندگان ایرانی", "Cloud cost management with exact Iranian provider prices"],
   // shell
   inventory: ["موجودی زیرساخت", "Inventory"],
@@ -79,7 +82,7 @@ const dict = {
   topOpps: ["۳ فرصت برتر", "Top 3 opportunities"],
   viewAll: ["مشاهده همه", "View all"],
   emptyTitle: ["با معرفی زیرساخت شروع کنید", "Start by describing your infrastructure"],
-  emptyBody: ["پندار پیش از هر محاسبه‌ای، جدول زیرساخت شما را برای تأیید نشان می‌دهد.", "Pendar always shows your infrastructure table for confirmation before any pricing."],
+  emptyBody: ["FinOps agent پیش از هر محاسبه‌ای، جدول زیرساخت شما را برای تأیید نشان می‌دهد.", "FinOps agent always shows your infrastructure table for confirmation before any pricing."],
   loadDemo: ["بارگذاری فضای نمونه", "Load demo workspace"],
   describeChat: ["توصیف در چت", "Describe in chat"],
   uploadInvoice: ["بارگذاری صورتحساب", "Upload invoice"],
@@ -260,8 +263,6 @@ const dict = {
   migrationCost: ["هزینه یک‌باره مهاجرت", "One-time migration cost"],
   payback: ["بازگشت سرمایه (ماه)", "Payback (months)"],
   otherEvidence: ["سایر شواهد", "Other evidence"],
-  handoffNote: ["یادداشت اختیاری — خدمات پندار", "Optional note — Pendar services"],
-  handoffExplain: ["این یک پیشنهاد خدمات اختیاری است و در محاسبه صرفه‌جویی اثری ندارد.", "This is an optional service suggestion and does not affect any saving figure."],
   noOpps: ["هنوز تحلیلی وجود ندارد. «اجرای تحلیل» را بزنید.", "No analysis yet. Press “Run analysis”."],
   counts: ["تعداد", "Counts"],
   // compare
@@ -316,12 +317,8 @@ const dict = {
   syncNow: ["همگام‌سازی اکنون", "Sync now"],
   approve: ["تأیید اقلام قرنطینه‌شده", "Approve quarantined"],
   adminOnly: ["فقط مدیر", "Admin only"],
-  inventoryConnectors: ["اتصال‌دهنده‌های حساب (فقط‌خواندنی)", "Account connectors (read-only)"],
-  credentials: ["اعتبارنامه‌ها", "Credentials"],
   label: ["برچسب", "Label"],
-  secret: ["کلید / توکن فقط‌خواندنی", "Read-only key / token"],
   readOnly: ["فقط‌خواندنی", "Read-only"],
-  addCredential: ["ذخیره رمزگذاری‌شده", "Store encrypted"],
   status: ["وضعیت", "Status"],
   started: ["شروع", "Started"],
   seen: ["دیده‌شده", "Seen"],
@@ -330,7 +327,7 @@ const dict = {
   noRuns: ["هنوز همگام‌سازی‌ای اجرا نشده است.", "No sync runs yet."],
   // settings
   dayRate: ["نرخ روزانه مهندس (تومان)", "Engineer day rate (Toman)"],
-  dayRateHelp: ["برای محاسبه هزینه یک‌باره مهاجرت و دوره بازگشت سرمایه لازم است. فقط رقم وارد کنید؛ پندار هیچ نرخ بازاری را فرض نمی‌کند.", "Needed to compute one-time migration cost and payback. Digits only; Pendar never assumes a market rate."],
+  dayRateHelp: ["برای محاسبه هزینه یک‌باره مهاجرت و دوره بازگشت سرمایه لازم است. فقط رقم وارد کنید؛ FinOps agent هیچ نرخ بازاری را فرض نمی‌کند.", "Needed to compute one-time migration cost and payback. Digits only; FinOps agent never assumes a market rate."],
   digitsOnly: ["فقط رقم (مثلاً 4000000)", "Digits only (e.g. 4000000)"],
   saved: ["ذخیره شد", "Saved"],
   auditLog: ["گزارش ممیزی (Audit log)", "Audit log"],
@@ -414,7 +411,7 @@ const dict = {
   lpT4: ["تفاوت‌ها را برای ارزان‌تر نشان دادن پنهان نمی‌کنیم", "Hide differences to make a cheaper plan look better"],
   lpFinalTitle: ["اولین تحلیل را در چند دقیقه ببینید", "See your first analysis in minutes"],
   lpFinalBody: ["فضای کاری دمو را بارگذاری کنید یا زیرساخت خودتان را توضیح دهید.", "Load the demo workspace or describe your own infrastructure."],
-  lpFooter: ["پندار — Cloud Migration، DevOps و FinOps", "Pendar — Cloud Migration, DevOps & FinOps"],
+  lpFooter: ["FinOps agent — شفافیت هزینه زیرساخت در ایران", "FinOps agent — infrastructure cost transparency for Iran"],
   // ---- tour
   tourHelp: ["راهنما", "Guide"],
   tourRestart: ["نمایش دوباره راهنمای معرفی", "Replay the product tour"],
@@ -423,7 +420,7 @@ const dict = {
   tourSkip: ["رد کردن", "Skip"],
   tourDone: ["شروع کنیم", "Let's start"],
   tourStepOf: ["گام", "Step"],
-  tourWelcomeT: ["به پندار FinOps خوش آمدید", "Welcome to Pendar FinOps"],
+  tourWelcomeT: ["به FinOps agent خوش آمدید", "Welcome to FinOps agent"],
   tourWelcomeB: [
     "در یک دقیقه بخش‌های اصلی را معرفی می‌کنیم. اصل اول: همه اعداد مالی از موتور قطعی می‌آیند، نه از هوش مصنوعی.",
     "A one-minute tour of the main parts. Rule one: every financial number comes from the deterministic engine, never from AI.",
@@ -496,7 +493,7 @@ interface I18n {
 }
 
 const Ctx = createContext<I18n | null>(null);
-const LANG_KEY = "pendar.lang";
+const LANG_KEY = "finops.lang";
 
 function initialLang(): Lang {
   try {

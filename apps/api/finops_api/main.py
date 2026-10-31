@@ -16,13 +16,13 @@ from .routers import analysis, auth, catalog, integrations, inventories
 # Money must never become a binary float on the wire: encode every Decimal as an exact string.
 fastapi.encoders.ENCODERS_BY_TYPE[Decimal] = lambda d: format(d.normalize(), "f")
 
-log = logging.getLogger("pendar.api")
+log = logging.getLogger("finops.api")
 
 
 def create_app() -> FastAPI:
     configure_logging()
     s = get_settings()
-    app = FastAPI(title="Pendar FinOps API", version="0.1.0",
+    app = FastAPI(title="FinOps agent API", version="0.1.0",
                   description="Iran-first FinOps. All prices/savings come from the deterministic engine; "
                               "money fields are exact decimal strings in Toman.")
     app.add_middleware(CORSMiddleware, allow_origins=s.cors_origins, allow_credentials=False,

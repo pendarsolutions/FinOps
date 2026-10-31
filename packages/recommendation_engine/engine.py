@@ -28,13 +28,6 @@ class OrgSettings(BaseModel):
     engineer_day_rate_toman: OptDec = None
 
 
-class Handoff(BaseModel):
-    service_id: str
-    name_en: str
-    name_fa: str
-    reason: str
-
-
 class Recommendation(BaseModel):
     key: str
     rule_id: str
@@ -60,7 +53,6 @@ class Recommendation(BaseModel):
     summary_en: str
     summary_fa: str
     evidence: dict[str, Any]
-    pendar_handoff: Handoff | None = None
 
 
 def _rules(snapshot: CatalogSnapshot) -> dict[str, dict[str, Any]]:
@@ -94,13 +86,6 @@ def _worth_it(snapshot: CatalogSnapshot, saving: Decimal, current: Decimal) -> b
     return current > 0 and saving * 100 / current >= Decimal(str(g["min_saving_percent"]))
 
 
-def _handoff(snapshot: CatalogSnapshot, service_id: str | None, reason: str) -> Handoff | None:
-    if not service_id:
-        return None
-    svc = snapshot.recommendation_rules["pendar_services"][service_id]
-    return Handoff(service_id=service_id, name_en=svc["en"], name_fa=svc["fa"], reason=reason)
-
-
 def _priced_rec(snapshot: CatalogSnapshot, rule: dict[str, Any], r: Resource, current: PriceBreakdown,
                 cand: PriceBreakdown, confidence: str, summary_en: str, summary_fa: str, evidence: dict[str, Any],
                 **extra: Any) -> Recommendation:
@@ -119,7 +104,7 @@ def _priced_rec(snapshot: CatalogSnapshot, rule: dict[str, Any], r: Resource, cu
 
 
 def _cannot(snapshot: CatalogSnapshot, r: Resource | None, blocked_rule: str, missing: list[str], why_en: str,
-            why_fa: str, handoff_reason: str | None = None) -> Recommendation:
+            why_fa: str) -> Recommendation:
     rule = _rules(snapshot)["REC-005"]
     return Recommendation(
         key=_key("REC-005", blocked_rule, r.id if r else "-", ",".join(missing)), rule_id="REC-005", type=rule["type"],
@@ -127,7 +112,6 @@ def _cannot(snapshot: CatalogSnapshot, r: Resource | None, blocked_rule: str, mi
         resource_id=r.id if r else None, resource_name=r.name if r else None, provider_id=r.provider_id if r else None,
         risk=rule["risk"], effort=rule["effort"], confidence="n/a", missing_inputs=missing, summary_en=why_en,
         summary_fa=why_fa, evidence={"blocked_rule": blocked_rule, "missing_inputs": missing},
-        pendar_handoff=_handoff(snapshot, rule.get("pendar_service"), handoff_reason) if handoff_reason else None,
     )
 
 
@@ -245,8 +229,7 @@ def _downsize(snapshot: CatalogSnapshot, r: Resource, current: PriceBreakdown, c
     if missing:
         return [_cannot(snapshot, r, "REC-002", missing,
                         "Rightsizing needs usage evidence (p95 CPU/RAM over enough days). Allocation alone is not used.",
-                        "کوچک‌سازی نیازمند شواهد مصرف (p95 پردازنده/حافظه در بازه کافی) است؛ تخصیص منابع به‌تنهایی ملاک نیست.",
-                        handoff_reason="No usage telemetry: an observation/monitoring setup is needed before rightsizing.")]
+                        "کوچک‌سازی نیازمند شواهد مصرف (p95 پردازنده/حافظه در بازه کافی) است؛ تخصیص منابع به‌تنهایی ملاک نیست.")]
     if m.p95_cpu_percent > Decimal(p["max_p95_cpu_percent"]) or m.p95_ram_percent > Decimal(p["max_p95_ram_percent"]):
         return []
     if current.status != PriceStatus.EXACT:
@@ -350,8 +333,6 @@ def _migration(snapshot: CatalogSnapshot, r: Resource, current: PriceBreakdown, 
          "engineer_day_rate_toman": str(org.engineer_day_rate_toman) if org.engineer_day_rate_toman is not None else None,
          "alternatives_considered": len(eq.candidates) + len(eq.rejected)},
         one_time_migration_cost_toman=migration_cost, payback_months=payback, payback_status=payback_status,
-        pendar_handoff=_handoff(snapshot, rule.get("pendar_service"),
-                                "Cross-provider move: optional implementation help. Does not change the numbers above."),
     )]
 
 
@@ -395,9 +376,6 @@ def summarize(recs: list[Recommendation], current_total_toman: Decimal | None, s
             best[x.resource_id] = x
     avoidable = sum((x.monthly_saving_toman for x in best.values()), Decimal(0))
     pct = (avoidable * 100 / current_total_toman).quantize(PCT) if current_total_toman else None
-    threshold = Decimal(str(snapshot.recommendation_rules["handoff_policy"]["cost_cut_min_total_monthly_saving_toman"]))
-    handoff = _handoff(snapshot, "pendar_cost_cut", "Large total saving identified; optional hands-on implementation.") \
-        if avoidable >= threshold else None
     return {
         "avoidable_monthly_toman": avoidable,
         "potential_saving_percent": pct,
@@ -405,5 +383,4 @@ def summarize(recs: list[Recommendation], current_total_toman: Decimal | None, s
         "method": "Per resource, only the largest actionable saving is counted; alternatives for the same resource are not added.",
         "actionable_count": sum(1 for x in recs if x.status == "actionable"),
         "cannot_determine_count": sum(1 for x in recs if x.status == "cannot_determine"),
-        "pendar_handoff": handoff.model_dump() if handoff else None,
     }

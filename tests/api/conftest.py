@@ -5,19 +5,21 @@ import pytest
 
 @pytest.fixture(scope="session")
 def api_env(tmp_path_factory):
-    tmp = tmp_path_factory.mktemp("pendar")
-    os.environ["PENDAR_DATABASE_URL"] = f"sqlite:///{(tmp / 'test.db').as_posix()}"
-    os.environ["PENDAR_STORAGE_DIR"] = str(tmp / "uploads")
-    os.environ["PENDAR_ENV"] = "test"
-    os.environ["PENDAR_AI_PROVIDER"] = "offline"
-    os.environ["PENDAR_SYNC_MODE"] = "inline"
-    from pendar_api.config import get_settings
-    from pendar_api.db import Base, SessionLocal, get_engine, reset_engine
+    tmp = tmp_path_factory.mktemp("finops")
+    os.environ["FINOPS_DATABASE_URL"] = f"sqlite:///{(tmp / 'test.db').as_posix()}"
+    os.environ["FINOPS_STORAGE_DIR"] = str(tmp / "uploads")
+    os.environ["FINOPS_ENV"] = "test"
+    os.environ["FINOPS_AI_PROVIDER"] = "offline"
+    os.environ["FINOPS_SYNC_MODE"] = "inline"
+    os.environ["FINOPS_ALLOW_REGISTRATION"] = "true"
+    os.environ["FINOPS_LOGIN_RATE_LIMIT_PER_MINUTE"] = "1000"
+    from finops_api.config import get_settings
+    from finops_api.db import Base, SessionLocal, get_engine, reset_engine
 
     get_settings.cache_clear()
     reset_engine()
-    import pendar_api.orm  # noqa: F401
-    from pendar_api.catalog_store import seed_pricing
+    import finops_api.orm  # noqa: F401
+    from finops_api.catalog_store import seed_pricing
 
     Base.metadata.create_all(get_engine())
     with SessionLocal() as db:
@@ -30,7 +32,7 @@ def api_env(tmp_path_factory):
 def client(api_env):
     from fastapi.testclient import TestClient
 
-    from pendar_api.main import create_app
+    from finops_api.main import create_app
 
     return TestClient(create_app())
 

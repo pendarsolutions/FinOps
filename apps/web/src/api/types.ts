@@ -1,4 +1,4 @@
-/** Types mirroring the Pendar API responses. Money and quantities are exact decimal strings. */
+/** Types mirroring the FinOps agent API responses. Money and quantities are exact decimal strings. */
 
 export type Dec = string;
 export type Role = "viewer" | "analyst" | "admin" | "owner";
@@ -277,13 +277,6 @@ export interface CompareResponse {
 
 // ------------------------------------------------------------------ recommendations
 
-export interface Handoff {
-  service_id: string;
-  name_en: string;
-  name_fa: string;
-  reason: string;
-}
-
 export interface Recommendation {
   id: string;
   key: string;
@@ -320,7 +313,6 @@ export interface Recommendation {
     candidate_label?: string;
     fit_score?: Dec;
   };
-  pendar_handoff: Handoff | null;
   status: string;
   created_at: string;
 }
@@ -332,7 +324,6 @@ export interface RecSummary {
   method: string;
   actionable_count: number;
   cannot_determine_count: number;
-  pendar_handoff: Handoff | null;
 }
 
 export interface RecsResponse {
@@ -443,8 +434,6 @@ export interface ProviderInfo {
 
 export interface Integrations {
   price_adapters: { provider_id: string; status: string; note: string | null }[];
-  inventory_connectors: { status: string; note: string };
-  credentials: { id: string; provider_id: string; label: string; read_only: boolean; secret_hint: string; created_at: string }[];
 }
 
 export interface OrgSettings {
@@ -470,4 +459,11 @@ export interface AdvisorAnswer {
   guard: { ok: boolean; unsupported_numbers?: string[]; numbers_checked?: number } & Record<string, unknown>;
   tool_calls: { tool: string; input: unknown; error: string | null }[];
   ai_run_id: string;
+}
+
+export interface Member {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
 }

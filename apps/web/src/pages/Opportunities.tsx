@@ -1,24 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { ComponentLine, ConstraintResult, Difference, Handoff, InventoryView, Recommendation } from "../api/types";
+import type { ComponentLine, ConstraintResult, Difference, InventoryView, Recommendation } from "../api/types";
 import { useI18n } from "../lib/i18n";
 import { ConfirmedInventory } from "../components/Guard";
 import { Badge, Button, Card, Drawer, ErrorBox, LinesTable, Loading, Money, Num, Pct, ToneBadge } from "../components/ui";
 import { BeforeAfter, RankedBars } from "../components/viz";
-
-export function HandoffNote({ h }: { h: Handoff }) {
-  const { t, pick } = useI18n();
-  return (
-    <aside className="handoff" aria-label={t("handoffNote")}>
-      <small className="muted">{t("handoffNote")}</small>
-      <div>
-        <strong>{pick(h.name_fa, h.name_en)}</strong> — <span className="small">{h.reason}</span>
-      </div>
-      <small className="muted">{t("handoffExplain")}</small>
-    </aside>
-  );
-}
 
 const VERDICT: Record<string, { mark: string; key: "vBetter" | "vWorse" | "vSame" | "vDifferent" | "vUnknown" }> = {
   better: { mark: "▲", key: "vBetter" },
@@ -225,7 +212,6 @@ function Plan({ id }: { id: string }) {
         </>
       )}
       <Evidence r={r} />
-      {r.pendar_handoff && <HandoffNote h={r.pendar_handoff} />}
     </div>
   );
 }
@@ -269,11 +255,6 @@ function OppCard({ r, counted, onPlan }: { r: Recommendation; counted: boolean; 
       <div className="row gap">
         <Button onClick={onPlan}>{t("viewPlan")}</Button>
       </div>
-      {r.pendar_handoff && (
-        <small className="muted">
-          {t("handoffNote")}: {pick(r.pendar_handoff.name_fa, r.pendar_handoff.name_en)}
-        </small>
-      )}
     </article>
   );
 }
@@ -393,7 +374,6 @@ function OppsInner({ inv }: { inv: InventoryView }) {
             </Card>
           )}
 
-          {d.summary.pendar_handoff && <HandoffNote h={d.summary.pendar_handoff} />}
           <p className="muted small" dir="ltr">
             analysis {d.analysis_id} · quote {d.quote_id}
           </p>

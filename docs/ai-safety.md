@@ -32,11 +32,11 @@ template).
 
 ## Model configuration
 
-- `PENDAR_AI_PROVIDER=offline` (default): deterministic Persian/English parser and templated advisor.
+- `FINOPS_AI_PROVIDER=offline` (default): deterministic Persian/English parser and templated advisor.
   No external calls — appropriate where the LLM API is unreachable from Iranian infrastructure or
   data must not leave the network.
-- `PENDAR_AI_PROVIDER=anthropic`: Claude via the official SDK, model `claude-opus-5-5` (override with
-  `PENDAR_AI_MODEL`), effort `medium`, server-side refusal fallback (`fallbacks: "default"`, beta
+- `FINOPS_AI_PROVIDER=anthropic`: Claude via the official SDK, model `claude-opus-5-5` (override with
+  `FINOPS_AI_MODEL`), effort `medium`, server-side refusal fallback (`fallbacks: "default"`, beta
   `server-side-fallback-2026-07-01`). Refusals and API errors fall back to the offline path and are
   recorded in run metadata.
 - The offline parser never turns "business hours" into a number; it asks.

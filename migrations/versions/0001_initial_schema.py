@@ -8,7 +8,7 @@ Create Date: 2026-10-04 02:07:09.999498
 from typing import Sequence, Union
 
 from alembic import op
-import pendar_api.db
+import finops_api.db
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
@@ -165,20 +165,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['provider_id'], ['providers.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('provider_credentials',
-    sa.Column('id', sa.String(length=36), nullable=False),
-    sa.Column('organization_id', sa.String(length=36), nullable=False),
-    sa.Column('provider_id', sa.String(length=50), nullable=False),
-    sa.Column('label', sa.String(length=200), nullable=False),
-    sa.Column('read_only', sa.Boolean(), nullable=False),
-    sa.Column('secret_encrypted', sa.Text(), nullable=False),
-    sa.Column('secret_hint', sa.String(length=20), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ),
-    sa.ForeignKeyConstraint(['provider_id'], ['providers.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('uploads',
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('organization_id', sa.String(length=36), nullable=False),
@@ -207,24 +193,24 @@ def upgrade() -> None:
     sa.Column('region', sa.String(length=100), nullable=True),
     sa.Column('datacenter', sa.String(length=200), nullable=True),
     sa.Column('resource_class', sa.String(length=50), nullable=True),
-    sa.Column('cpu_cores', pendar_api.db.Money(), nullable=True),
+    sa.Column('cpu_cores', finops_api.db.Money(), nullable=True),
     sa.Column('cpu_unit', sa.String(length=20), nullable=True),
     sa.Column('cpu_shared', sa.Boolean(), nullable=True),
-    sa.Column('ram_gb', pendar_api.db.Money(), nullable=True),
-    sa.Column('storage_gb', pendar_api.db.Money(), nullable=True),
+    sa.Column('ram_gb', finops_api.db.Money(), nullable=True),
+    sa.Column('storage_gb', finops_api.db.Money(), nullable=True),
     sa.Column('storage_type', sa.String(length=50), nullable=True),
     sa.Column('gpu_model', sa.String(length=100), nullable=True),
-    sa.Column('gpu_count', pendar_api.db.Money(), nullable=True),
-    sa.Column('included_traffic_gb', pendar_api.db.Money(), nullable=True),
+    sa.Column('gpu_count', finops_api.db.Money(), nullable=True),
+    sa.Column('included_traffic_gb', finops_api.db.Money(), nullable=True),
     sa.Column('traffic_direction', sa.String(length=20), nullable=True),
     sa.Column('bandwidth', sa.String(length=50), nullable=True),
     sa.Column('billing_period', sa.String(length=20), nullable=True),
-    sa.Column('price_toman', pendar_api.db.Money(), nullable=True),
-    sa.Column('hourly_price_toman', pendar_api.db.Money(), nullable=True),
-    sa.Column('daily_price_toman', pendar_api.db.Money(), nullable=True),
+    sa.Column('price_toman', finops_api.db.Money(), nullable=True),
+    sa.Column('hourly_price_toman', finops_api.db.Money(), nullable=True),
+    sa.Column('daily_price_toman', finops_api.db.Money(), nullable=True),
     sa.Column('unit', sa.String(length=50), nullable=True),
-    sa.Column('tier_min', pendar_api.db.Money(), nullable=True),
-    sa.Column('tier_max', pendar_api.db.Money(), nullable=True),
+    sa.Column('tier_min', finops_api.db.Money(), nullable=True),
+    sa.Column('tier_max', finops_api.db.Money(), nullable=True),
     sa.Column('tier_unit', sa.String(length=10), nullable=True),
     sa.Column('availability', sa.String(length=20), nullable=False),
     sa.Column('confidence', sa.String(length=20), nullable=False),
@@ -261,19 +247,19 @@ def upgrade() -> None:
     sa.Column('resource_class', sa.String(length=50), nullable=True),
     sa.Column('region', sa.String(length=100), nullable=True),
     sa.Column('datacenter', sa.String(length=200), nullable=True),
-    sa.Column('quantity', pendar_api.db.Money(), nullable=True),
-    sa.Column('cpu_cores', pendar_api.db.Money(), nullable=True),
+    sa.Column('quantity', finops_api.db.Money(), nullable=True),
+    sa.Column('cpu_cores', finops_api.db.Money(), nullable=True),
     sa.Column('cpu_shared', sa.Boolean(), nullable=True),
-    sa.Column('ram_gb', pendar_api.db.Money(), nullable=True),
-    sa.Column('storage_gb', pendar_api.db.Money(), nullable=True),
+    sa.Column('ram_gb', finops_api.db.Money(), nullable=True),
+    sa.Column('storage_gb', finops_api.db.Money(), nullable=True),
     sa.Column('storage_type', sa.String(length=50), nullable=True),
     sa.Column('gpu_model', sa.String(length=100), nullable=True),
-    sa.Column('gpu_count', pendar_api.db.Money(), nullable=True),
-    sa.Column('expected_monthly_download_gb', pendar_api.db.Money(), nullable=True),
-    sa.Column('expected_monthly_upload_gb', pendar_api.db.Money(), nullable=True),
-    sa.Column('active_hours_per_month', pendar_api.db.Money(), nullable=True),
+    sa.Column('gpu_count', finops_api.db.Money(), nullable=True),
+    sa.Column('expected_monthly_download_gb', finops_api.db.Money(), nullable=True),
+    sa.Column('expected_monthly_upload_gb', finops_api.db.Money(), nullable=True),
+    sa.Column('active_hours_per_month', finops_api.db.Money(), nullable=True),
     sa.Column('requires_public_ipv4', sa.Boolean(), nullable=True),
-    sa.Column('ipv4_count', pendar_api.db.Money(), nullable=True),
+    sa.Column('ipv4_count', finops_api.db.Money(), nullable=True),
     sa.Column('billing_mode', sa.String(length=10), nullable=True),
     sa.Column('metrics', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=True),
     sa.Column('field_confidence', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=False),
@@ -298,9 +284,9 @@ def upgrade() -> None:
     sa.Column('catalog_snapshot_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('complete', sa.Boolean(), nullable=False),
     sa.Column('include_tax', sa.Boolean(), nullable=False),
-    sa.Column('total_toman', pendar_api.db.Money(), nullable=True),
-    sa.Column('priced_subtotal_toman', pendar_api.db.Money(), nullable=False),
-    sa.Column('total_tax_toman', pendar_api.db.Money(), nullable=True),
+    sa.Column('total_toman', finops_api.db.Money(), nullable=True),
+    sa.Column('priced_subtotal_toman', finops_api.db.Money(), nullable=False),
+    sa.Column('total_tax_toman', finops_api.db.Money(), nullable=True),
     sa.Column('content', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=False),
     sa.Column('content_hash', sa.String(length=64), nullable=False),
     sa.Column('created_by', sa.String(length=36), nullable=True),
@@ -330,12 +316,12 @@ def upgrade() -> None:
     sa.Column('title_fa', sa.String(length=300), nullable=False),
     sa.Column('summary_en', sa.Text(), nullable=False),
     sa.Column('summary_fa', sa.Text(), nullable=False),
-    sa.Column('current_cost_toman', pendar_api.db.Money(), nullable=True),
-    sa.Column('candidate_cost_toman', pendar_api.db.Money(), nullable=True),
-    sa.Column('monthly_saving_toman', pendar_api.db.Money(), nullable=True),
-    sa.Column('monthly_saving_percent', pendar_api.db.Money(), nullable=True),
-    sa.Column('one_time_migration_cost_toman', pendar_api.db.Money(), nullable=True),
-    sa.Column('payback_months', pendar_api.db.Money(), nullable=True),
+    sa.Column('current_cost_toman', finops_api.db.Money(), nullable=True),
+    sa.Column('candidate_cost_toman', finops_api.db.Money(), nullable=True),
+    sa.Column('monthly_saving_toman', finops_api.db.Money(), nullable=True),
+    sa.Column('monthly_saving_percent', finops_api.db.Money(), nullable=True),
+    sa.Column('one_time_migration_cost_toman', finops_api.db.Money(), nullable=True),
+    sa.Column('payback_months', finops_api.db.Money(), nullable=True),
     sa.Column('payback_status', sa.String(length=40), nullable=True),
     sa.Column('risk_level', sa.String(length=20), nullable=False),
     sa.Column('effort_level', sa.String(length=20), nullable=True),
@@ -343,7 +329,6 @@ def upgrade() -> None:
     sa.Column('price_dates', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=False),
     sa.Column('missing_inputs', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=False),
     sa.Column('evidence', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=False),
-    sa.Column('pendar_handoff', sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), 'postgresql'), nullable=True),
     sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['inventory_id'], ['inventories.id'], ),
@@ -361,7 +346,7 @@ def upgrade() -> None:
     if op.get_bind().dialect.name == "postgresql":
         # Price history and quotes are immutable at the database level too.
         op.execute("""
-CREATE OR REPLACE FUNCTION pendar_catalog_version_guard() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION finops_catalog_version_guard() RETURNS trigger AS $$
 BEGIN
   IF OLD.valid_to IS NOT NULL OR NEW.valid_to IS NULL
      OR (to_jsonb(NEW) - 'valid_to') IS DISTINCT FROM (to_jsonb(OLD) - 'valid_to') THEN
@@ -370,10 +355,10 @@ BEGIN
   RETURN NEW;
 END $$ LANGUAGE plpgsql;
 CREATE TRIGGER catalog_version_immutable BEFORE UPDATE ON catalog_item_versions
-  FOR EACH ROW EXECUTE FUNCTION pendar_catalog_version_guard();
-CREATE OR REPLACE FUNCTION pendar_quote_guard() RETURNS trigger AS $$
+  FOR EACH ROW EXECUTE FUNCTION finops_catalog_version_guard();
+CREATE OR REPLACE FUNCTION finops_quote_guard() RETURNS trigger AS $$
 BEGIN RAISE EXCEPTION 'price_quotes rows are immutable'; END $$ LANGUAGE plpgsql;
-CREATE TRIGGER quote_immutable BEFORE UPDATE ON price_quotes FOR EACH ROW EXECUTE FUNCTION pendar_quote_guard();
+CREATE TRIGGER quote_immutable BEFORE UPDATE ON price_quotes FOR EACH ROW EXECUTE FUNCTION finops_quote_guard();
 """)
 
 
@@ -381,7 +366,7 @@ def downgrade() -> None:
     if op.get_bind().dialect.name == "postgresql":
         op.execute("DROP TRIGGER IF EXISTS catalog_version_immutable ON catalog_item_versions; "
                    "DROP TRIGGER IF EXISTS quote_immutable ON price_quotes; "
-                   "DROP FUNCTION IF EXISTS pendar_catalog_version_guard(); DROP FUNCTION IF EXISTS pendar_quote_guard();")
+                   "DROP FUNCTION IF EXISTS finops_catalog_version_guard(); DROP FUNCTION IF EXISTS finops_quote_guard();")
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
     with op.batch_alter_table('recommendations', schema=None) as batch_op:
@@ -407,7 +392,6 @@ def downgrade() -> None:
 
     op.drop_table('catalog_item_versions')
     op.drop_table('uploads')
-    op.drop_table('provider_credentials')
     op.drop_table('price_sync_runs')
     op.drop_table('price_sources')
     op.drop_table('memberships')

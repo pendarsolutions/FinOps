@@ -56,7 +56,7 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
         </Button>
         <div className="brand">
           <span className="logo" aria-hidden>
-            P
+            F
           </span>
           <span>{t("appName")}</span>
         </div>

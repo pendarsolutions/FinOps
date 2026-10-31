@@ -3,9 +3,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-import pendar_api.orm  # noqa: F401  (registers tables)
-from pendar_api.config import get_settings
-from pendar_api.db import Base
+import finops_api.orm  # noqa: F401  (registers tables)
+from finops_api.config import get_settings
+from finops_api.db import Base
 
 config = context.config
 if config.config_file_name is not None:

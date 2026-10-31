@@ -17,7 +17,7 @@ interface SessionCtx {
 }
 
 const Ctx = createContext<SessionCtx | null>(null);
-const ACTIVE_KEY = "pendar.activeInventory";
+const ACTIVE_KEY = "finops.activeInventory";
 
 function readActive(): string | null {
   try {

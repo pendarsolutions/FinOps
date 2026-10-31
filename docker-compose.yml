@@ -1,34 +1,35 @@
-# Local/dev stack: `make dev` (or `docker compose up --build`) -> http://localhost:8080
+# Local/dev stack, reachable from this machine only: `make dev` (or `docker compose up --build`) -> http://localhost:8080
 # Staging/prod: docker compose -f docker-compose.yml -f deploy/compose.prod.yml --env-file .env up -d
-name: pendar-finops
+name: finops-agent
 
 x-app-env: &app-env
-  PENDAR_ENV: ${PENDAR_ENV:-dev}
-  PENDAR_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pendar}:${POSTGRES_PASSWORD:-pendar-dev-password}@postgres:5432/${POSTGRES_DB:-pendar}
-  PENDAR_REDIS_URL: redis://redis:6379/0
-  PENDAR_SYNC_MODE: celery
-  PENDAR_JWT_SECRET: ${PENDAR_JWT_SECRET:-dev-only-change-me-not-for-production-use}
-  PENDAR_CREDENTIALS_KEY: ${PENDAR_CREDENTIALS_KEY:-}
-  PENDAR_AI_PROVIDER: ${PENDAR_AI_PROVIDER:-offline}
-  PENDAR_AI_MODEL: ${PENDAR_AI_MODEL:-claude-opus-5-5}
-  PENDAR_ANTHROPIC_API_KEY: ${PENDAR_ANTHROPIC_API_KEY:-}
-  PENDAR_STORAGE_DIR: /app/var/uploads
-  PENDAR_INVOICE_RETENTION_DAYS: ${PENDAR_INVOICE_RETENTION_DAYS:-30}
-  PENDAR_CORS_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
+  FINOPS_ENV: ${FINOPS_ENV:-dev}
+  FINOPS_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-finops}:${POSTGRES_PASSWORD:-finops-dev-password}@postgres:5432/${POSTGRES_DB:-finops}
+  FINOPS_REDIS_URL: redis://redis:6379/0
+  FINOPS_SYNC_MODE: celery
+  FINOPS_JWT_SECRET: ${FINOPS_JWT_SECRET:-dev-only-change-me-not-for-production-use}
+  FINOPS_CREDENTIALS_KEY: ${FINOPS_CREDENTIALS_KEY:-}
+  FINOPS_ALLOW_REGISTRATION: ${FINOPS_ALLOW_REGISTRATION:-true}
+  FINOPS_AI_PROVIDER: ${FINOPS_AI_PROVIDER:-offline}
+  FINOPS_AI_MODEL: ${FINOPS_AI_MODEL:-claude-opus-5-5}
+  FINOPS_ANTHROPIC_API_KEY: ${FINOPS_ANTHROPIC_API_KEY:-}
+  FINOPS_STORAGE_DIR: /app/var/uploads
+  FINOPS_INVOICE_RETENTION_DAYS: ${FINOPS_INVOICE_RETENTION_DAYS:-30}
+  FINOPS_CORS_ORIGINS: '["http://localhost:8080","http://localhost:5173"]'
 
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-pendar}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pendar-dev-password}
-      POSTGRES_DB: ${POSTGRES_DB:-pendar}
+      POSTGRES_USER: ${POSTGRES_USER:-finops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finops-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-finops}
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pendar}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finops}"]
       interval: 5s
       retries: 20
-    ports: ["5432:5432"]
+    ports: ["127.0.0.1:5432:5432"]
 
   redis:
     image: redis:7-alpine
@@ -49,7 +50,7 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
       interval: 10s
       retries: 30
-    ports: ["8000:8000"]
+    ports: ["127.0.0.1:8000:8000"]
 
   worker:
     build: .
@@ -70,7 +71,7 @@ services:
     build: ./apps/web
     depends_on:
       api: {condition: service_healthy}
-    ports: ["8080:80"]
+    ports: ["127.0.0.1:8080:80"]
 
 volumes:
   pgdata:

@@ -216,7 +216,6 @@ def run_recommendations(db: Session, p: Principal, inv: Inventory) -> dict[str, 
             one_time_migration_cost_toman=x.one_time_migration_cost_toman, payback_months=x.payback_months,
             payback_status=x.payback_status, risk_level=x.risk, effort_level=x.effort, confidence=x.confidence,
             price_dates=x.price_dates, missing_inputs=x.missing_inputs, evidence=x.evidence,
-            pendar_handoff=x.pendar_handoff.model_dump() if x.pendar_handoff else None,
         )
         db.add(row)
         stored.append(row)
@@ -237,7 +236,7 @@ def rec_view(r: RecommendationRow) -> dict[str, Any]:
         "provider_id", "recommendation_type", "result_status", "title_en", "title_fa", "summary_en", "summary_fa",
         "current_cost_toman", "candidate_cost_toman", "monthly_saving_toman", "monthly_saving_percent",
         "one_time_migration_cost_toman", "payback_months", "payback_status", "risk_level", "effort_level",
-        "confidence", "price_dates", "missing_inputs", "evidence", "pendar_handoff", "status", "created_at")}
+        "confidence", "price_dates", "missing_inputs", "evidence", "status", "created_at")}
 
 
 def latest_analysis(db: Session, inv: Inventory) -> list[RecommendationRow]:

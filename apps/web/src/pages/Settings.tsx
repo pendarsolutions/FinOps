@@ -95,6 +95,8 @@ export function SettingsPage() {
         )}
       </Card>
 
+      {isAdmin && <MembersCard />}
+
       <Card title={t("auditLog")}>
         {!isAdmin ? (
           <p className="muted">{t("errForbidden")} ({t("adminOnly")})</p>
@@ -133,5 +135,56 @@ export function SettingsPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+function MembersCard() {
+  const { t } = useI18n();
+  const qc = useQueryClient();
+  const members = useQuery({ queryKey: ["members"], queryFn: api.members });
+  const empty = { email: "", password: "", name: "", role: "viewer" };
+  const [form, setForm] = useState(empty);
+  const add = useMutation({
+    mutationFn: () => api.addMember(form),
+    onSuccess: () => {
+      setForm(empty);
+      qc.invalidateQueries({ queryKey: ["members"] });
+    },
+  });
+  return (
+    <Card title={t("members")}>
+      <ul>
+        {members.data?.map((m) => (
+          <li key={m.id}>
+            <bdi dir="ltr">{m.email}</bdi> · <small className="muted">{m.role}</small>
+          </li>
+        ))}
+      </ul>
+      <form
+        className="form-grid"
+        onSubmit={(e) => {
+          e.preventDefault();
+          add.mutate();
+        }}
+      >
+        <Field label={t("email")} htmlFor="m-email">
+          <input id="m-email" type="email" dir="ltr" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </Field>
+        <Field label={t("password")} htmlFor="m-pass" hint={t("passwordHint")}>
+          <input id="m-pass" type="password" dir="ltr" autoComplete="new-password" required minLength={10} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+        </Field>
+        <Field label={t("role")} htmlFor="m-role">
+          <select id="m-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <option value="viewer">viewer</option>
+            <option value="analyst">analyst</option>
+            <option value="admin">admin</option>
+          </select>
+        </Field>
+        <Button type="submit" variant="primary" busy={add.isPending}>
+          {t("addMember")}
+        </Button>
+      </form>
+      <ErrorBox error={add.error} />
+    </Card>
   );
 }

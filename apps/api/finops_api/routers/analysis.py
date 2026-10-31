@@ -171,7 +171,7 @@ def report(inventory_id: str, lang: str = "fa", db: Session = Depends(get_db),
     html = render_report(db, p, inv, lang if lang in ("fa", "en") else "fa")
     audit(db, p, "report.generate", "inventory", inv.id, {"lang": lang})
     db.commit()
-    return HTMLResponse(html, headers={"Content-Disposition": f'attachment; filename="pendar-finops-{inv.id[:8]}-{lang}.html"'})
+    return HTMLResponse(html, headers={"Content-Disposition": f'attachment; filename="finops-agent-{inv.id[:8]}-{lang}.html"'})
 
 
 # --------------------------------------------------------------------------- advisor

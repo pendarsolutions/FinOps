@@ -21,22 +21,22 @@ install:
 	python -m venv .venv && $(PY) -m pip install -r requirements-dev.txt
 	cd apps/web && npm install
 
-## Database / catalog (uses PENDAR_DATABASE_URL; defaults to var/pendar-dev.db SQLite)
+## Database / catalog (uses FINOPS_DATABASE_URL; defaults to var/finops-dev.db SQLite)
 migrate:
-	$(PY) -m pendar_api.cli migrate
+	$(PY) -m finops_api.cli migrate
 
 seed-pricing: migrate
-	$(PY) -m pendar_api.cli seed-pricing
+	$(PY) -m finops_api.cli seed-pricing
 
 seed-demo: seed-pricing
-	$(PY) -m pendar_api.cli seed-demo-user
+	$(PY) -m finops_api.cli seed-demo-user
 
 ## Fetch official provider pages, normalize, guard, version (nightly in the worker)
 sync-prices:
-	$(PY) -m pendar_api.cli sync-prices
+	$(PY) -m finops_api.cli sync-prices
 
 purge-uploads:
-	$(PY) -m pendar_api.cli purge-uploads
+	$(PY) -m finops_api.cli purge-uploads
 
 test:
 	$(PY) -m pytest -q
@@ -47,7 +47,7 @@ lint:
 
 ## Without Docker: API on :8000 and Vite on :5173 (run in two terminals)
 api: seed-demo
-	$(PY) -m uvicorn pendar_api.main:app --reload --port 8000
+	$(PY) -m uvicorn finops_api.main:app --reload --port 8000
 
 web:
 	cd apps/web && npm run dev

@@ -1,4 +1,4 @@
-# Pendar FinOps — Iran MVP
+# FinOps agent — Iran MVP
 
 FinOps advisor for Iranian small businesses: describe or upload your infrastructure, confirm it, and
 get exact, source-dated costs, equivalent-provider comparisons and evidence-backed savings across
@@ -13,7 +13,7 @@ returns `PRICE_UNAVAILABLE`, never an estimate.
 ```bash
 cp .env.example .env        # defaults work for local dev
 make dev                    # docker compose: postgres 16, redis, api, worker, beat, web
-open http://localhost:8080  # login: demo@pendar.local / demo-password-1 → "Load demo workspace"
+open http://localhost:8080  # login: demo@finops-agent.local / demo-password-1 → "Load demo workspace"
 ```
 
 Without Docker (SQLite, Python 3.12+, Node 20+):
@@ -24,7 +24,7 @@ make api      # http://localhost:8000/docs
 make web      # http://localhost:5173
 ```
 
-On Windows without `make`, use the same targets via `.\scripts\pendar.ps1 <target>`.
+On Windows without `make`, use the same targets via `.\scripts\finops.ps1 <target>`.
 
 Other commands: `make seed-pricing` (idempotent import of `data/seeds`), `make sync-prices` (fetch
 official pages → normalize → guardrails → versioned prices), `make test`, `make lint`.
@@ -63,6 +63,6 @@ Read next: [docs/architecture.md](docs/architecture.md) · [docs/pricing-model.m
 
 ## Configuration
 
-See `.env.example`. Notable: `PENDAR_AI_PROVIDER=offline|anthropic` (offline = no external calls;
-anthropic uses Claude `claude-opus-5-5`), `PENDAR_INVOICE_RETENTION_DAYS`, `PENDAR_SYNC_MODE`.
-Staging/prod refuse to start without `PENDAR_JWT_SECRET` and `PENDAR_CREDENTIALS_KEY`.
+See `.env.example`. Notable: `FINOPS_AI_PROVIDER=offline|anthropic` (offline = no external calls;
+anthropic uses Claude `claude-opus-5-5`), `FINOPS_INVOICE_RETENTION_DAYS`, `FINOPS_SYNC_MODE`.
+Staging/prod refuse to start without `FINOPS_JWT_SECRET` and `FINOPS_CREDENTIALS_KEY`.
