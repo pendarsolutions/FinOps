@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -10,7 +10,17 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..db import get_db
 from ..orm import AuditLog, CatalogItemVersion, Membership, Organization, User
-from ..security import Principal, audit, create_user_with_org, current_principal, issue_token, require, verify_password
+from ..platform import limiter
+from ..security import (
+    Principal,
+    audit,
+    create_user_with_org,
+    current_principal,
+    hash_password,
+    issue_token,
+    require,
+    verify_password,
+)
 
 router = APIRouter(tags=["auth"])
 
@@ -34,8 +44,25 @@ def _session(user: User, org: Organization, role: str) -> dict[str, Any]:
             "organization": {"id": org.id, "name": org.name}, "role": role}
 
 
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _registration_open(db: Session) -> bool:
+    return get_settings().allow_registration or db.scalar(select(User.id).limit(1)) is None
+
+
+@router.get("/api/v1/auth/status")
+def auth_status(db: Session = Depends(get_db)):
+    """Public: lets the sign-in page show only what applies to this installation."""
+    return {"registration_open": _registration_open(db), "demo_user": get_settings().env == "dev"}
+
+
 @router.post("/api/v1/auth/register")
-def register(body: RegisterIn, db: Session = Depends(get_db)):
+def register(body: RegisterIn, request: Request, db: Session = Depends(get_db)):
+    limiter().check(f"register:{_client_ip(request)}", get_settings().login_rate_limit_per_minute)
+    if not _registration_open(db):
+        raise HTTPException(403, "registration is closed; ask an admin to add you")
     if db.scalar(select(User).where(User.email == body.email.lower())):
         raise HTTPException(409, "email already registered")
     user, org = create_user_with_org(db, body.email, body.password, body.name, body.organization_name)
@@ -46,7 +73,9 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
 
 
 @router.post("/api/v1/auth/login")
-def login(body: LoginIn, db: Session = Depends(get_db)):
+def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
+    limiter().check(f"login:{_client_ip(request)}:{body.email.lower().strip()}",
+                    get_settings().login_rate_limit_per_minute)
     user = db.scalar(select(User).where(User.email == body.email.lower().strip()))
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(401, "invalid email or password")
@@ -63,6 +92,37 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
 def me(p: Principal = Depends(current_principal)):
     return {"user": {"id": p.user.id, "email": p.user.email, "name": p.user.name, "locale": p.user.locale},
             "organization": {"id": p.org.id, "name": p.org.name, "settings": p.org.settings}, "role": p.role}
+
+
+# --------------------------------------------------------------------------- members
+
+
+class MemberIn(BaseModel):
+    email: str = Field(min_length=3, max_length=320, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=10, max_length=200)
+    name: str = ""
+    role: Literal["viewer", "analyst", "admin"] = "viewer"
+
+
+@router.get("/api/v1/members")
+def list_members(db: Session = Depends(get_db), p: Principal = Depends(require("admin"))):
+    rows = db.execute(select(User, Membership.role).join(Membership, Membership.user_id == User.id)
+                      .where(Membership.organization_id == p.org.id).order_by(User.email))
+    return [{"id": u.id, "email": u.email, "name": u.name, "role": role} for u, role in rows]
+
+
+@router.post("/api/v1/members")
+def add_member(body: MemberIn, db: Session = Depends(get_db), p: Principal = Depends(require("admin"))):
+    email = body.email.lower().strip()
+    if db.scalar(select(User).where(User.email == email)):
+        raise HTTPException(409, "email already registered")
+    user = User(email=email, password_hash=hash_password(body.password), name=body.name)
+    db.add(user)
+    db.flush()
+    db.add(Membership(user_id=user.id, organization_id=p.org.id, role=body.role))
+    audit(db, p, "member.add", "user", user.id, {"role": body.role})
+    db.commit()
+    return {"id": user.id, "email": user.email, "name": user.name, "role": body.role}
 
 
 # --------------------------------------------------------------------------- org settings + audit

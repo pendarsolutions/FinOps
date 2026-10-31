@@ -45,7 +45,7 @@ def cmd_seed_pricing(_: argparse.Namespace) -> None:
 
 def cmd_seed_demo_user(args: argparse.Namespace) -> None:
     s = get_settings()
-    if s.is_prod and not s.allow_dev_seed_user:
+    if s.is_prod:
         sys.exit("refusing to create the demo user in staging/prod")
     with SessionLocal() as db:
         if db.scalar(select(User).where(User.email == args.email)):

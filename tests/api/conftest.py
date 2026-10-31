@@ -11,6 +11,8 @@ def api_env(tmp_path_factory):
     os.environ["FINOPS_ENV"] = "test"
     os.environ["FINOPS_AI_PROVIDER"] = "offline"
     os.environ["FINOPS_SYNC_MODE"] = "inline"
+    os.environ["FINOPS_ALLOW_REGISTRATION"] = "true"
+    os.environ["FINOPS_LOGIN_RATE_LIMIT_PER_MINUTE"] = "1000"
     from finops_api.config import get_settings
     from finops_api.db import Base, SessionLocal, get_engine, reset_engine
 

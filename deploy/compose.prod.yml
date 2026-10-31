@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       FINOPS_CORS_ORIGINS: ${FINOPS_CORS_ORIGINS:?set FINOPS_CORS_ORIGINS}
-      FINOPS_ALLOW_DEV_SEED_USER: "false"
+      FINOPS_ALLOW_REGISTRATION: "false"
   worker:
     restart: unless-stopped
   beat:

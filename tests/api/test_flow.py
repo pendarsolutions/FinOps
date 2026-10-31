@@ -279,21 +279,6 @@ def test_org_isolation(client, auth, demo_inv):
     assert client.get(f"/api/v1/inventories/{demo_inv['id']}", headers=other).status_code == 404
 
 
-def test_credentials_encrypted_and_read_only(client, auth, api_env):
-    r = client.post("/api/v1/integrations/credentials", headers=auth,
-                    json={"provider_id": "arvancloud", "label": "ro key", "secret": "apikey-super-secret-1234"})
-    assert r.status_code == 200 and r.json()["secret_hint"] == "…1234"
-    from sqlalchemy import select
-
-    from finops_api.db import SessionLocal
-    from finops_api.orm import ProviderCredential
-
-    with SessionLocal() as db:
-        c = db.scalar(select(ProviderCredential))
-        assert "super-secret" not in c.secret_encrypted
-    r = client.post("/api/v1/integrations/credentials", headers=auth,
-                    json={"provider_id": "arvancloud", "label": "rw", "secret": "abcdefghijk", "read_only": False})
-    assert r.status_code == 422
 
 
 def test_audit_log_records_changes(client, auth):

@@ -360,16 +360,3 @@ class Upload(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     delete_after: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-
-class ProviderCredential(Base):
-    __tablename__ = "provider_credentials"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"))
-    provider_id: Mapped[str] = mapped_column(ForeignKey("providers.id"))
-    label: Mapped[str] = mapped_column(String(200))
-    read_only: Mapped[bool] = mapped_column(Boolean, default=True)
-    secret_encrypted: Mapped[str] = mapped_column(Text)
-    secret_hint: Mapped[str] = mapped_column(String(20))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

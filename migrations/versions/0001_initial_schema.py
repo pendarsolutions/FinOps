@@ -165,20 +165,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['provider_id'], ['providers.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('provider_credentials',
-    sa.Column('id', sa.String(length=36), nullable=False),
-    sa.Column('organization_id', sa.String(length=36), nullable=False),
-    sa.Column('provider_id', sa.String(length=50), nullable=False),
-    sa.Column('label', sa.String(length=200), nullable=False),
-    sa.Column('read_only', sa.Boolean(), nullable=False),
-    sa.Column('secret_encrypted', sa.Text(), nullable=False),
-    sa.Column('secret_hint', sa.String(length=20), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ),
-    sa.ForeignKeyConstraint(['provider_id'], ['providers.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('uploads',
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('organization_id', sa.String(length=36), nullable=False),
@@ -406,7 +392,6 @@ def downgrade() -> None:
 
     op.drop_table('catalog_item_versions')
     op.drop_table('uploads')
-    op.drop_table('provider_credentials')
     op.drop_table('price_sync_runs')
     op.drop_table('price_sources')
     op.drop_table('memberships')

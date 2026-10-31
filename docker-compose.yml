@@ -1,4 +1,4 @@
-# Local/dev stack: `make dev` (or `docker compose up --build`) -> http://localhost:8080
+# Local/dev stack, reachable from this machine only: `make dev` (or `docker compose up --build`) -> http://localhost:8080
 # Staging/prod: docker compose -f docker-compose.yml -f deploy/compose.prod.yml --env-file .env up -d
 name: finops-agent
 
@@ -9,6 +9,7 @@ x-app-env: &app-env
   FINOPS_SYNC_MODE: celery
   FINOPS_JWT_SECRET: ${FINOPS_JWT_SECRET:-dev-only-change-me-not-for-production-use}
   FINOPS_CREDENTIALS_KEY: ${FINOPS_CREDENTIALS_KEY:-}
+  FINOPS_ALLOW_REGISTRATION: ${FINOPS_ALLOW_REGISTRATION:-true}
   FINOPS_AI_PROVIDER: ${FINOPS_AI_PROVIDER:-offline}
   FINOPS_AI_MODEL: ${FINOPS_AI_MODEL:-claude-opus-5-5}
   FINOPS_ANTHROPIC_API_KEY: ${FINOPS_ANTHROPIC_API_KEY:-}
@@ -28,7 +29,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finops}"]
       interval: 5s
       retries: 20
-    ports: ["5432:5432"]
+    ports: ["127.0.0.1:5432:5432"]
 
   redis:
     image: redis:7-alpine
@@ -49,7 +50,7 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
       interval: 10s
       retries: 30
-    ports: ["8000:8000"]
+    ports: ["127.0.0.1:8000:8000"]
 
   worker:
     build: .
@@ -70,7 +71,7 @@ services:
     build: ./apps/web
     depends_on:
       api: {condition: service_healthy}
-    ports: ["8080:80"]
+    ports: ["127.0.0.1:8080:80"]
 
 volumes:
   pgdata:

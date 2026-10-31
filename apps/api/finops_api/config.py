@@ -33,7 +33,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     ai_rate_limit_per_minute: int = 20
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
-    allow_dev_seed_user: bool = True
+    #: open sign-up. The first account can always register; later users are added by an admin.
+    allow_registration: bool = False
+    login_rate_limit_per_minute: int = 10
 
     @property
     def is_prod(self) -> bool:
@@ -48,4 +50,6 @@ def get_settings() -> Settings:
             raise RuntimeError("FINOPS_JWT_SECRET must be set in staging/prod")
         if not s.credentials_key:
             raise RuntimeError("FINOPS_CREDENTIALS_KEY must be set in staging/prod")
+        if "finops-dev-password" in s.database_url:
+            raise RuntimeError("POSTGRES_PASSWORD must be changed from the development default in staging/prod")
     return s

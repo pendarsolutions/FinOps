@@ -434,8 +434,6 @@ export interface ProviderInfo {
 
 export interface Integrations {
   price_adapters: { provider_id: string; status: string; note: string | null }[];
-  inventory_connectors: { status: string; note: string };
-  credentials: { id: string; provider_id: string; label: string; read_only: boolean; secret_hint: string; created_at: string }[];
 }
 
 export interface OrgSettings {
@@ -461,4 +459,11 @@ export interface AdvisorAnswer {
   guard: { ok: boolean; unsupported_numbers?: string[]; numbers_checked?: number } & Record<string, unknown>;
   tool_calls: { tool: string; input: unknown; error: string | null }[];
   ai_run_id: string;
+}
+
+export interface Member {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
 }

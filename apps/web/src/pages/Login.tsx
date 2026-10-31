@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useI18n } from "../lib/i18n";
 import { useSession } from "../lib/session";
@@ -16,6 +16,8 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [org, setOrg] = useState("");
+  const status = useQuery({ queryKey: ["authStatus"], queryFn: api.authStatus });
+  const closed = mode === "register" && status.data?.registration_open === false;
 
   const m = useMutation({
     mutationFn: () =>
@@ -39,7 +41,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
         <div className="row between">
           <Link to="/welcome" className="brand brand-link">
             <span className="logo" aria-hidden>
-              P
+              F
             </span>
             <span>{t("appName")}</span>
           </Link>
@@ -75,11 +77,12 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
           </>
         )}
         <ErrorBox error={m.error} />
-        <Button type="submit" variant="primary" busy={m.isPending}>
+        {closed && <p className="alert alert-bad">{t("registrationClosed")}</p>}
+        <Button type="submit" variant="primary" busy={m.isPending} disabled={closed}>
           {mode === "login" ? t("login") : t("register")}
         </Button>
         <Link to={mode === "login" ? "/register" : "/login"}>{mode === "login" ? t("noAccount") : t("haveAccount")}</Link>
-        {mode === "login" && <small className="muted" dir="ltr">{t("demoHint")}</small>}
+        {mode === "login" && status.data?.demo_user && <small className="muted" dir="ltr">{t("demoHint")}</small>}
       </form>
     </div>
   );

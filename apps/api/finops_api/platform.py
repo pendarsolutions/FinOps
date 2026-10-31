@@ -80,7 +80,7 @@ class RateLimiter:
                 n = self._redis.incr(bucket)
                 self._redis.expire(bucket, window_s)
                 if n > limit:
-                    raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "AI rate limit exceeded")
+                    raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "rate limit exceeded")
                 return
             except HTTPException:
                 raise
@@ -92,7 +92,7 @@ class RateLimiter:
             while q and now - q[0] > window_s:
                 q.popleft()
             if len(q) >= limit:
-                raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "AI rate limit exceeded")
+                raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "rate limit exceeded")
             q.append(now)
 
 

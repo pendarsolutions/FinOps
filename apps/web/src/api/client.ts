@@ -6,6 +6,7 @@ import type {
   Integrations,
   InventorySummary,
   InventoryView,
+  Member,
   OrgSettings,
   Overview,
   ProviderInfo,
@@ -85,6 +86,7 @@ const post = <T>(p: string, b: unknown = {}) => request<T>("POST", p, b);
 const V = "/api/v1";
 
 export const api = {
+  authStatus: () => get<{ registration_open: boolean; demo_user: boolean }>(`${V}/auth/status`),
   login: (email: string, password: string) => post<Session>(`${V}/auth/login`, { email, password }),
   register: (b: { email: string; password: string; name: string; organization_name: string }) =>
     post<Session>(`${V}/auth/register`, b),
@@ -140,9 +142,9 @@ export const api = {
   syncRuns: () => get<SyncRun[]>(`${V}/admin/sync-runs`),
   syncProvider: (pid: string) => post<SyncRun | { queued: boolean; task_id: string }>(`${V}/admin/providers/${pid}/sync`),
   approveRun: (runId: string) => post<SyncRun>(`${V}/admin/sync-runs/${runId}/approve`),
-  addCredential: (b: { provider_id: string; label: string; secret: string; read_only: boolean }) =>
-    post<{ id: string }>(`${V}/integrations/credentials`, b),
-  deleteCredential: (cid: string) => request<{ deleted: string }>("DELETE", `${V}/integrations/credentials/${cid}`),
+
+  members: () => get<Member[]>(`${V}/members`),
+  addMember: (b: { email: string; password: string; name: string; role: string }) => post<Member>(`${V}/members`, b),
 
   settings: () => get<OrgSettings>(`${V}/settings`),
   putSettings: (b: { engineer_day_rate_toman?: string | null; default_language?: string | null }) =>
