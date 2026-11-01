@@ -10,24 +10,26 @@ from .base import (
     SourceBlockedError,
     natural_key,
 )
+from .chabokan import ChabokanAdapter
 from .iranserver import IranServerAdapter
 from .liara import LiaraAdapter
+from .mobinhost import MobinHostAdapter
 from .serverir import ServerIrAdapter
 from .sync import SyncPlan, plan_sync
 
-#: First-wave adapters with live parsers. Second-wave providers (chabokan, parspack, mobinhost, abrha)
-#: have no live parser yet: their seed snapshot stays active and syncs report 'not_implemented'.
+#: Adapters with live parsers. ParsPack and Abrha publish only a starting price, so their seed snapshot
+#: stays discovery-only and syncs report 'not_implemented'.
 ADAPTERS: dict[str, type] = {
     "arvancloud": ArvanCloudAdapter,
     "liara": LiaraAdapter,
     "serverir": ServerIrAdapter,
     "iranserver": IranServerAdapter,
+    "chabokan": ChabokanAdapter,
+    "mobinhost": MobinHostAdapter,
 }
 
 SECOND_WAVE_STATUS = {
-    "chabokan": "Public plan list is large and dynamic; seed rows only. Next: official plan scraper.",
     "parspack": "Use the documented ParsPack Cloud Server API for an exact dynamic catalog (not the HTML configurator).",
-    "mobinhost": "Server-rendered plan pages; parser not yet written. Seed rows only.",
     "abrha": "Only a starting price is public; needs an authenticated/full source.",
 }
 
@@ -38,7 +40,7 @@ def get_adapter(provider_id: str):
 
 
 __all__ = [
-    "ADAPTERS", "SECOND_WAVE_STATUS", "AdapterHealth", "ArvanCloudAdapter", "InventoryConnector", "IranServerAdapter",
-    "LiaraAdapter", "ParseError", "ProviderAdapter", "RawCatalog", "ServerIrAdapter", "SourceBlockedError",
+    "ADAPTERS", "SECOND_WAVE_STATUS", "AdapterHealth", "ArvanCloudAdapter", "ChabokanAdapter", "InventoryConnector", "IranServerAdapter",
+    "LiaraAdapter", "MobinHostAdapter", "ParseError", "ProviderAdapter", "RawCatalog", "ServerIrAdapter", "SourceBlockedError",
     "SyncPlan", "get_adapter", "natural_key", "plan_sync",
 ]
