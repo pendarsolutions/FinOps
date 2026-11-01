@@ -1,0 +1,102 @@
+# Used by install.sh. Runs prebuilt images only: nothing is built on the server.
+name: finops-agent
+
+x-app: &app
+  image: ${FINOPS_APP_IMAGE}
+  restart: unless-stopped
+  environment: &app-env
+    FINOPS_ENV: prod
+    FINOPS_DATABASE_URL: postgresql+psycopg://finops:${POSTGRES_PASSWORD}@postgres:5432/finops
+    FINOPS_REDIS_URL: redis://redis:6379/0
+    FINOPS_SYNC_MODE: celery
+    FINOPS_JWT_SECRET: ${FINOPS_JWT_SECRET}
+    FINOPS_CREDENTIALS_KEY: ${FINOPS_CREDENTIALS_KEY}
+    FINOPS_CORS_ORIGINS: ${FINOPS_CORS_ORIGINS}
+    FINOPS_ALLOW_REGISTRATION: "false"
+    FINOPS_AI_PROVIDER: ${FINOPS_AI_PROVIDER:-offline}
+    FINOPS_ANTHROPIC_API_KEY: ${FINOPS_ANTHROPIC_API_KEY:-}
+    FINOPS_STORAGE_DIR: /app/var/uploads
+    FINOPS_INVOICE_RETENTION_DAYS: ${FINOPS_INVOICE_RETENTION_DAYS:-30}
+    FINOPS_COLLECTOR_SOURCE_IP: ${FINOPS_COLLECTOR_SOURCE_IP:-}
+    FINOPS_CATALOG_URL: ${FINOPS_CATALOG_URL:-}
+    FINOPS_CATALOG_PUBLIC_KEY: ${FINOPS_CATALOG_PUBLIC_KEY:-}
+    FINOPS_CATALOG_PUBLISH_DIR: ${FINOPS_CATALOG_PUBLISH_DIR:-}
+    FINOPS_CATALOG_SIGNING_KEY: ${FINOPS_CATALOG_SIGNING_KEY:-}
+    FINOPS_SMTP_HOST: ${FINOPS_SMTP_HOST:-}
+    FINOPS_SMTP_PORT: ${FINOPS_SMTP_PORT:-587}
+    FINOPS_SMTP_USER: ${FINOPS_SMTP_USER:-}
+    FINOPS_SMTP_PASSWORD: ${FINOPS_SMTP_PASSWORD:-}
+    FINOPS_ALERT_EMAIL_TO: ${FINOPS_ALERT_EMAIL_TO:-}
+    FINOPS_BALE_BOT_TOKEN: ${FINOPS_BALE_BOT_TOKEN:-}
+    FINOPS_BALE_CHAT_ID: ${FINOPS_BALE_CHAT_ID:-}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: finops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: finops
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finops"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  api:
+    <<: *app
+    command: ["api"]
+    volumes: [uploads:/app/var/uploads]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
+      interval: 10s
+      retries: 30
+
+  worker:
+    <<: *app
+    command: ["worker"]
+    volumes: [uploads:/app/var/uploads, catalog:/app/var/catalog]
+    depends_on:
+      api: {condition: service_healthy}
+
+  beat:
+    <<: *app
+    command: ["beat"]
+    depends_on:
+      api: {condition: service_healthy}
+
+  web:
+    image: ${FINOPS_WEB_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      api: {condition: service_healthy}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - catalog:/srv/catalog:ro
+
+volumes:
+  pgdata:
+  uploads:
+  catalog:
+  caddy_data:
+  caddy_config:

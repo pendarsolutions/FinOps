@@ -9,3 +9,4 @@ var/
 node_modules/
 apps/web/dist/
 *.db
+finops-agent-*.tar.gz
