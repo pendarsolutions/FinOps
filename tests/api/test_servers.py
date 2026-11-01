@@ -208,3 +208,15 @@ def test_renewal_alert_days(server, client, auth, monkeypatch):
     with SessionLocal() as db:
         alerts.renewal_alerts(db)
     assert any("Renewal in 3" in s for s in sent)
+
+
+def test_component_priced_provider_needs_class_and_disk_type(client, auth, server):
+    r = client.patch(f"/api/v1/servers/{server['id']}", headers=auth, json={"provider_id": "arvancloud", "sku": None,
+                     "download_gb_override": "10", "upload_gb_override": "5"})
+    assert r.json()["cost_status"] == "PRICE_UNAVAILABLE"
+    rows = client.get("/api/v1/catalog?provider_id=arvancloud", headers=auth).json()
+    cls = next(i["resource_class"] for i in rows if i["service_type"] == "compute_component")
+    storage = next(i["storage_type"] for i in rows if i["service_type"] == "storage_component")
+    r = client.patch(f"/api/v1/servers/{server['id']}", headers=auth, json={"resource_class": cls, "storage_type": storage})
+    assert r.json()["cost_status"] == "EXACT", r.text
+    assert D(r.json()["monthly_total_toman"]) > 0

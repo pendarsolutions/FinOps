@@ -135,6 +135,15 @@ function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => voi
   });
   const [traffic, setTraffic] = useState({ download: "", upload: "" });
   const d: ServerDetail | undefined = q.data;
+  const providerId = d?.provider_id ?? null;
+  const rows = useQuery({
+    queryKey: ["catalog", providerId],
+    queryFn: () => api.catalog({ provider_id: providerId! }),
+    enabled: !!providerId,
+  });
+  const plans = rows.data?.filter((i) => i.service_type === "compute_vm" && i.sku) ?? [];
+  const classes = [...new Set(rows.data?.filter((i) => i.service_type === "compute_component").map((i) => i.resource_class).filter(Boolean))] as string[];
+  const storageTypes = [...new Set(rows.data?.filter((i) => i.service_type === "storage_component").map((i) => i.storage_type).filter(Boolean))] as string[];
 
   return (
     <Drawer open onClose={onClose} wide title={d?.name ?? ""}>
@@ -189,10 +198,45 @@ function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => voi
                 <input id="s-renew" type="date" dir="ltr" disabled={!canEdit} value={d.renewal_date ?? ""} onChange={(e) => patch.mutate({ renewal_date: e.target.value || null })} />
               </Field>
             </div>
-            {d.sku && (
-              <p>
-                {t("srvPlan")}: <code dir="ltr">{d.sku}</code>
-              </p>
+            {d.provider_id && (
+              <div className="form-grid">
+                {plans.length > 0 && (
+                  <Field label={t("srvPlan")} htmlFor="s-plan">
+                    <select id="s-plan" dir="ltr" disabled={!canEdit} value={d.sku ?? ""} onChange={(e) => patch.mutate({ sku: e.target.value || null })}>
+                      <option value="">—</option>
+                      {plans.map((p) => (
+                        <option key={p.id} value={p.sku ?? ""}>
+                          {p.sku}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+                {classes.length > 0 && (
+                  <Field label={t("srvClass")} htmlFor="s-class">
+                    <select id="s-class" dir="ltr" disabled={!canEdit} value={d.resource_class ?? ""} onChange={(e) => patch.mutate({ resource_class: e.target.value || null })}>
+                      <option value="">—</option>
+                      {classes.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+                {storageTypes.length > 0 && (
+                  <Field label={t("srvStorage")} htmlFor="s-storage">
+                    <select id="s-storage" dir="ltr" disabled={!canEdit} value={d.storage_type ?? ""} onChange={(e) => patch.mutate({ storage_type: e.target.value || null })}>
+                      <option value="">—</option>
+                      {storageTypes.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+              </div>
             )}
             <h3>{t("srvSuggest")}</h3>
             <p className="muted small">{t("srvSuggestHelp")}</p>
@@ -336,7 +380,9 @@ export function ServersPage() {
                 </div>
                 <div className="stat">
                   <span className="stat-label">{t("srvOnlineCount")}</span>
-                  <Num v={String(d.summary.online)} /> / <Num v={String(d.summary.total)} />
+                  <span>
+                    <Num v={String(d.summary.online)} /> / <Num v={String(d.summary.total)} />
+                  </span>
                 </div>
                 <div className="stat">
                   <span className="stat-label">{t("srvNotPriced")}</span>

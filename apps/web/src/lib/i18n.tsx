@@ -43,6 +43,8 @@ const dict = {
   srvRenewsIn: ["تمدید", "Renews"],
   srvEnv: ["محیط", "Environment"],
   srvPlan: ["پلن", "Plan"],
+  srvClass: ["کلاس سرور", "Server class"],
+  srvStorage: ["نوع دیسک", "Disk type"],
   srvSuggest: ["پلن‌های هم‌مشخصات", "Plans with matching specs"],
   srvSuggestHelp: ["سرور نمی‌تواند بگوید روی کدام پلن است. پلن درست را خودتان انتخاب کنید.", "A server can't tell us which plan it's on, so choose the right one yourself."],
   srvSetPlan: ["انتخاب", "Choose"],
