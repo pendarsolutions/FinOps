@@ -79,7 +79,7 @@ def test_reads_output_and_returns_server_identity(ssh_server):
     result = collect("127.0.0.1", port, private, None)
     assert result.output == OUTPUT
     assert result.host_key == identity
-    assert handler.commands == ["collect"]
+    assert handler.commands == [b"collect"]
 
 
 def test_known_identity_is_accepted(ssh_server):

@@ -10,6 +10,7 @@ import { TooltipLayer } from "./viz";
 
 const NAV: { to: string; key: TKey; tour: string }[] = [
   { to: "/", key: "navOverview", tour: "nav-overview" },
+  { to: "/servers", key: "navServers", tour: "nav-servers" },
   { to: "/infrastructure", key: "navInfrastructure", tour: "nav-infrastructure" },
   { to: "/costs", key: "navCosts", tour: "nav-costs" },
   { to: "/opportunities", key: "navOpportunities", tour: "nav-opportunities" },

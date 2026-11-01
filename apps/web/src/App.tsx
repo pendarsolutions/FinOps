@@ -6,6 +6,7 @@ import { LoginPage } from "./pages/Login";
 import { LandingPage } from "./pages/Landing";
 import { OverviewPage } from "./pages/Overview";
 import { InfrastructurePage } from "./pages/Infrastructure";
+import { ServersPage } from "./pages/Servers";
 import { CostsPage } from "./pages/Costs";
 import { OpportunitiesPage } from "./pages/Opportunities";
 import { ComparePage } from "./pages/Compare";
@@ -39,6 +40,7 @@ export function App() {
         }
       >
         <Route index element={<OverviewPage />} />
+        <Route path="servers" element={<ServersPage />} />
         <Route path="infrastructure" element={<InfrastructurePage />} />
         <Route path="costs" element={<CostsPage />} />
         <Route path="opportunities" element={<OpportunitiesPage />} />

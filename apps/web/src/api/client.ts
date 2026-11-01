@@ -15,6 +15,9 @@ import type {
   Recommendation,
   RecsResponse,
   ResourceDraft,
+  ServerDetail,
+  ServersResponse,
+  ServerView,
   Session,
   SyncRun,
 } from "./types";
@@ -137,6 +140,16 @@ export const api = {
     return get<CatalogItem[]>(`${V}/catalog${s ? `?${s}` : ""}`);
   },
   catalogHistory: (itemId: string) => get<CatalogItem[]>(`${V}/catalog/${itemId}/history`),
+
+  servers: () => get<ServersResponse>(`${V}/servers`),
+  server: (id: string) => get<ServerDetail>(`${V}/servers/${id}`),
+  enrollCommand: () => get<{ command: string; removal_command: string }>(`${V}/servers/enroll-command`),
+  addServer: (b: { name: string; host: string; port: number }) => post<ServerView>(`${V}/servers`, b),
+  patchServer: (id: string, b: Record<string, unknown>) => request<ServerView>("PATCH", `${V}/servers/${id}`, b),
+  checkServer: (id: string) => post<ServerView>(`${V}/servers/${id}/check`),
+  trustServer: (id: string) => post<ServerView>(`${V}/servers/${id}/trust-new-identity`),
+  deleteServer: (id: string) => request<{ removal_command: string }>("DELETE", `${V}/servers/${id}`),
+  serversToInventory: () => post<{ id: string }>(`${V}/servers/inventory`),
 
   integrations: () => get<Integrations>(`${V}/integrations`),
   syncRuns: () => get<SyncRun[]>(`${V}/admin/sync-runs`),

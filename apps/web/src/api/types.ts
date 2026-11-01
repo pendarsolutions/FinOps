@@ -467,3 +467,72 @@ export interface Member {
   name: string;
   role: string;
 }
+
+// ------------------------------------------------------------------ monitored servers
+
+export interface ServerUsage {
+  p95_cpu_percent?: string | null;
+  p95_ram_percent?: string | null;
+  disk_used_gb?: string | null;
+  observation_days?: number;
+  monthly_download_gb?: string | null;
+  monthly_upload_gb?: string | null;
+  traffic_projected?: boolean;
+}
+
+export interface ServerView {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  status: "pending" | "online" | "unreachable" | "host_key_changed";
+  last_seen_at: string | null;
+  last_error: string | null;
+  hostname: string | null;
+  os: string | null;
+  cpu_cores: number | null;
+  mem_total_kb: number | null;
+  disk_total_kb: number | null;
+  usage: ServerUsage;
+  environment: string | null;
+  provider_id: string | null;
+  sku: string | null;
+  resource_class: string | null;
+  storage_type: string | null;
+  download_gb_override: string | null;
+  upload_gb_override: string | null;
+  renewal_date: string | null;
+  priced: boolean;
+  cost_status: string;
+  monthly_total_toman: string | null;
+  avoidable_monthly_toman: string | null;
+}
+
+export interface PlanSuggestion {
+  provider_id: string;
+  sku: string;
+  name: string;
+  price_toman: string;
+  cpu_cores: string | null;
+  ram_gb: string | null;
+  storage_gb: string | null;
+  datacenter: string | null;
+}
+
+export interface ServerDetail extends ServerView {
+  breakdown: { components: ComponentLine[]; assumptions: string[]; unavailable: { component: string; reason: string }[] } | null;
+  recommendations: Recommendation[];
+  suggestions: PlanSuggestion[];
+}
+
+export interface ServersResponse {
+  servers: ServerView[];
+  summary: {
+    total: number;
+    online: number;
+    exact_priced: number;
+    not_priced: number;
+    monthly_total_toman: string;
+    avoidable_monthly_toman: string;
+  };
+}
