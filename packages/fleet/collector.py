@@ -215,8 +215,10 @@ echo "FinOps agent: this server is ready. The collector is read-only and has no 
 
 def enroll_command(public_key: str, source_ip: str | None = None) -> str:
     encoded = base64.b64encode(enroll_script(public_key, source_ip).encode()).decode()
-    return f"echo {encoded} | base64 -d | sudo sh"
+    # root logins on small VPSes often have no sudo installed
+    return f'echo {encoded} | base64 -d | if [ "$(id -u)" = 0 ]; then sh; else sudo sh; fi'
 
 
 def removal_command() -> str:
-    return f"sudo userdel -r {COLLECTOR_USER}; sudo rm -rf {COLLECT_PATH.rsplit('/', 1)[0]}"
+    steps = f"userdel -r {COLLECTOR_USER}; rm -rf {COLLECT_PATH.rsplit('/', 1)[0]}"
+    return f'if [ "$(id -u)" = 0 ]; then {steps}; else sudo sh -c "{steps}"; fi'

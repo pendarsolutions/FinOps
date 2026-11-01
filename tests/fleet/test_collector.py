@@ -118,7 +118,7 @@ def test_enroll_command_decodes_to_the_script():
     cmd = enroll_command(PUB)
     encoded = cmd.split()[1]
     assert base64.b64decode(encoded).decode() == enroll_script(PUB)
-    assert cmd.endswith("| base64 -d | sudo sh")
+    assert 'base64 -d | if [ "$(id -u)" = 0 ]; then sh; else sudo sh; fi' in cmd
 
 
 def test_empty_source_ip_means_no_limit():
