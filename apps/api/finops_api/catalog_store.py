@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from pricing_engine.catalog import CatalogSnapshot, load_json, normalize_seed_item
 from pricing_engine.models import BillingRule, CatalogItem, Provider
-from provider_adapters import SECOND_WAVE_STATUS, get_adapter, natural_key, plan_sync
+from provider_adapters import SECOND_WAVE_STATUS, ManualPriceAdapter, ParseError, get_adapter, natural_key, plan_sync
 from provider_adapters.base import RawCatalog
 from provider_adapters.sync import signature
 
@@ -67,7 +67,8 @@ def current_versions(db: Session, provider_id: str | None = None) -> list[Catalo
 
 
 def seed_pricing(db: Session, seed_dir: Path) -> dict[str, int]:
-    """Idempotent: re-running with an unchanged seed inserts nothing."""
+    """Idempotent: re-running with an unchanged seed inserts nothing. A seed never overrides prices that were
+    updated (or rows removed) after its snapshot date, because this runs on every API start."""
     bundle = load_json(seed_dir / "iran_finops_dataset.json")
     snap_at = datetime.fromisoformat(bundle["metadata"]["snapshot_date"]).replace(tzinfo=UTC)
     stats = {"providers": 0, "items_inserted": 0, "items_unchanged": 0, "items_versioned": 0, "rules_inserted": 0}
@@ -84,9 +85,15 @@ def seed_pricing(db: Session, seed_dir: Path) -> dict[str, int]:
             stats["providers"] += 1
     db.flush()
     current = {r.item_id: r for r in current_versions(db)}
+    latest: dict[str, datetime] = {}
+    for item_id, valid_from in db.execute(select(CatalogItemVersion.item_id, CatalogItemVersion.valid_from)):
+        latest[item_id] = max(latest.get(item_id, _aware(valid_from)), _aware(valid_from))
     sources: dict[tuple[str, str], PriceSource] = {}
     for raw in bundle["catalog_items"]:
         item = normalize_seed_item(raw, snap_at)
+        if item.id in latest and latest[item.id] > snap_at:
+            stats["items_unchanged"] += 1
+            continue
         key = (item.provider_id, item.source_url or "")
         if key not in sources:
             sources[key] = _source(db, item.provider_id, item.source_url or "", "official", snap_at,
@@ -156,11 +163,11 @@ def _aware(dt: datetime) -> datetime:
 
 
 def run_provider_sync(db: Session, provider_id: str, *, triggered_by: str, raw: RawCatalog | None = None,
-                      stale_after_days: int = 45, today: date | None = None) -> PriceSyncRun:
+                      stale_after_days: int = 45, today: date | None = None, adapter: Any = None) -> PriceSyncRun:
     run = PriceSyncRun(provider_id=provider_id, status="running", triggered_by=triggered_by)
     db.add(run)
     db.flush()
-    adapter = get_adapter(provider_id)
+    adapter = adapter or get_adapter(provider_id)
     if adapter is None:
         run.status = "not_implemented"
         run.error = SECOND_WAVE_STATUS.get(provider_id, "no adapter registered")
@@ -192,6 +199,20 @@ def run_provider_sync(db: Session, provider_id: str, *, triggered_by: str, raw: 
     run.finished_at = now()
     db.commit()
     return run
+
+
+def import_manual_prices(db: Session, provider_id: str, content: str, triggered_by: str) -> PriceSyncRun:
+    """Apply a reviewed price file. Same guardrails and versioning as a scrape."""
+    adapter = ManualPriceAdapter(provider_id, [row_to_item(r) for r in current_versions(db, provider_id)])
+    try:
+        raw = adapter.load(content)
+    except ParseError as exc:
+        run = PriceSyncRun(provider_id=provider_id, status="failed", triggered_by=triggered_by, error=str(exc),
+                           finished_at=now())
+        db.add(run)
+        db.commit()
+        return run
+    return run_provider_sync(db, provider_id, triggered_by=triggered_by, raw=raw, adapter=adapter)
 
 
 def _apply_changes(db: Session, changes, at: datetime, source_id: int | None) -> None:
