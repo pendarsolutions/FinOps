@@ -13,7 +13,9 @@ from celery.schedules import crontab
 from sqlalchemy import select
 
 from finops_api.alerts import renewal_alerts, sync_alert
+from finops_api.catalog_feed import publish_if_configured, pull
 from finops_api.catalog_store import run_provider_sync
+from finops_api.config import get_settings
 from finops_api.db import SessionLocal
 from finops_api.fleet_service import collect_all, purge_samples
 from finops_api.orm import ProviderRow
@@ -49,9 +51,15 @@ def sync_provider(provider_id: str, triggered_by: str = "schedule") -> dict:
 
 @app.task(name="finops_worker.tasks.sync_all")
 def sync_all() -> list[dict]:
+    if get_settings().catalog_url:
+        with SessionLocal() as db:
+            return [{"catalog": pull(db)}]
     with SessionLocal() as db:
         ids = [p.id for p in db.scalars(select(ProviderRow))]
-    return [sync_provider(pid, "schedule") for pid in ids]
+    results = [sync_provider(pid, "schedule") for pid in ids]
+    with SessionLocal() as db:
+        publish_if_configured(db)
+    return results
 
 
 @app.task(name="finops_worker.tasks.purge_uploads")

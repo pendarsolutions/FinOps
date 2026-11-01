@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     ai_model: str = "claude-opus-5-5"
     anthropic_api_key: str | None = None
     ai_rate_limit_per_minute: int = 20
+    #: signed price catalog. Consumer: set url + public key and this installation stops scraping.
+    catalog_url: str | None = None
+    catalog_public_key: str | None = None
+    #: publisher: scrape as usual and write a signed catalog here after each run
+    catalog_publish_dir: Path | None = None
+    catalog_signing_key: str | None = None
     #: optional: the collector key on each server then only works from this address
     collector_source_ip: str | None = None
     #: alerts (both optional)

@@ -82,6 +82,34 @@ def cmd_price_import(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_catalog_keygen(_: argparse.Namespace) -> None:
+    from provider_adapters import generate_signing_key
+
+    private, public = generate_signing_key()
+    print(f"FINOPS_CATALOG_SIGNING_KEY={private}   # publisher only; keep this secret")
+    print(f"FINOPS_CATALOG_PUBLIC_KEY={public}")
+
+
+def cmd_catalog_publish(args: argparse.Namespace) -> None:
+    from .catalog_feed import publish
+
+    s = get_settings()
+    out = Path(args.out) if args.out else s.catalog_publish_dir
+    if not out or not s.catalog_signing_key:
+        sys.exit("needs FINOPS_CATALOG_SIGNING_KEY and --out (or FINOPS_CATALOG_PUBLISH_DIR)")
+    with SessionLocal() as db:
+        print(publish(db, out, s.catalog_signing_key))
+
+
+def cmd_catalog_pull(_: argparse.Namespace) -> None:
+    from .catalog_feed import pull
+
+    if not get_settings().catalog_url:
+        sys.exit("FINOPS_CATALOG_URL is not set")
+    with SessionLocal() as db:
+        print(json.dumps(pull(db)))
+
+
 def cmd_collect_servers(_: argparse.Namespace) -> None:
     from .fleet_service import collect_all
 
@@ -123,6 +151,11 @@ def main() -> None:
     m.add_argument("--file", required=True)
     m.set_defaults(fn=cmd_price_import)
     sub.add_parser("collect-servers").set_defaults(fn=cmd_collect_servers)
+    sub.add_parser("catalog-keygen").set_defaults(fn=cmd_catalog_keygen)
+    cp = sub.add_parser("catalog-publish")
+    cp.add_argument("--out")
+    cp.set_defaults(fn=cmd_catalog_publish)
+    sub.add_parser("catalog-pull").set_defaults(fn=cmd_catalog_pull)
     sub.add_parser("purge-uploads").set_defaults(fn=cmd_purge_uploads)
     args = ap.parse_args()
     args.fn(args)

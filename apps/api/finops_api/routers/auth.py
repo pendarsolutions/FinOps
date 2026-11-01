@@ -74,8 +74,10 @@ def register(body: RegisterIn, request: Request, db: Session = Depends(get_db)):
 
 @router.post("/api/v1/auth/login")
 def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
-    limiter().check(f"login:{_client_ip(request)}:{body.email.lower().strip()}",
-                    get_settings().login_rate_limit_per_minute)
+    limit = get_settings().login_rate_limit_per_minute
+    limiter().check(f"login:{_client_ip(request)}:{body.email.lower().strip()}", limit)
+    # across all addresses too, so a rotating or spoofed client address can't get around the limit
+    limiter().check(f"login-any:{body.email.lower().strip()}", limit * 5)
     user = db.scalar(select(User).where(User.email == body.email.lower().strip()))
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(401, "invalid email or password")
