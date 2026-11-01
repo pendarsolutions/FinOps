@@ -177,7 +177,7 @@ def enroll_script(public_key: str, source_ip: str | None = None) -> str:
     """Run once as root on a server. Idempotent. Contains only the public key, so it isn't secret."""
     if not re.fullmatch(r"ssh-ed25519 [A-Za-z0-9+/=]+", public_key.strip()):
         raise ValueError("expected an ssh-ed25519 public key")
-    if source_ip is not None and not re.fullmatch(r"[0-9a-fA-F:.]+", source_ip):
+    if source_ip and not re.fullmatch(r"[0-9a-fA-F:.]+", source_ip):
         raise ValueError("source_ip must be an IP address")
     options = [f'command="{COLLECT_PATH}"', "no-port-forwarding", "no-agent-forwarding", "no-X11-forwarding", "no-pty"]
     if source_ip:

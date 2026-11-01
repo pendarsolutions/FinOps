@@ -119,3 +119,8 @@ def test_enroll_command_decodes_to_the_script():
     encoded = cmd.split()[1]
     assert base64.b64decode(encoded).decode() == enroll_script(PUB)
     assert cmd.endswith("| base64 -d | sudo sh")
+
+
+def test_empty_source_ip_means_no_limit():
+    # docker compose passes an unset optional variable as an empty string
+    assert "from=" not in enroll_script(PUB, "")
