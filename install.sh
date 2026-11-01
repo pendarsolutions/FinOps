@@ -120,7 +120,12 @@ EOF
 write_caddyfile() {
   local site="$1"
   {
-    if [ -n "$DOMAIN" ]; then echo "$site {"; else printf 'https://%s {\n  tls internal\n' "$site"; fi
+    if [ -n "$DOMAIN" ]; then
+      echo "$site {"
+    else
+      # browsers send no hostname when connecting to an IP address, so Caddy must be told which certificate to use
+      printf '{\n  default_sni %s\n}\nhttps://%s {\n  tls internal\n' "$site" "$site"
+    fi
     cat <<'EOF'
   encode gzip
   handle /catalog/* {
