@@ -1,5 +1,11 @@
 # Architecture
 
+## Server monitoring
+
+`packages/fleet` holds the collector script, output parsing and usage summaries, and one fixed SSH exchange. Raw counters
+go in `server_samples`; `apps/api/finops_api/fleet_service.py` turns a confirmed server into an engine `Resource`, so its
+cost and recommendations come from the same deterministic code as everything else.
+
 ## Flow
 
 ```

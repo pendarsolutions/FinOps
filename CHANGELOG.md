@@ -1,5 +1,18 @@
 # Changelog / implementation status
 
+## Unreleased
+
+- Renamed to FinOps agent, removed consulting referrals and unused credential storage.
+- Apache-2.0 license and contributor files. GitHub Actions are written but disabled while the repository is private.
+- Safer defaults: local-only ports in development, sign-up closes after the first account, login rate limits.
+- Server monitoring: read-only SSH collection, Servers page, plan suggestions, usage-based rightsizing evidence.
+- One-command installer with a registry mirror option and offline bundles.
+- Chabokan and MobinHost scrapers, twice-daily checks, reviewed manual price files for ArvanCloud.
+- Alerts by email and Bale for price changes, failed updates, reviews and renewals.
+- Signed shared price catalog.
+- Fixed: re-importing the seed on restart overwrote newer scraped prices.
+
+
 ## 0.1.0 — 2026-10-04 (MVP build)
 
 ### Phase 0 — Bootstrap ✅

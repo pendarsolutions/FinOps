@@ -16,6 +16,10 @@ make web                    # Vite on :5173 (proxies /api to :8000)
 make test                   # pytest + web typecheck
 ```
 
+## Installing on a server
+
+Use [the installer](installation.md). The steps below are for running from a checkout without it.
+
 ## Staging / production
 
 1. `cp .env.example .env`; set `FINOPS_ENV=staging|prod`, `POSTGRES_PASSWORD`, `FINOPS_JWT_SECRET`
@@ -39,6 +43,11 @@ configured) — returns 503 with the failing check.
 | `hash changed but parser output unchanged` | The page changed in a way the parser ignores — check for new plans/families. |
 
 Manual: `make sync-prices` (or `python -m finops_api.cli sync-prices --provider serverir --strict`).
+
+## Server monitoring
+
+The worker collects from every server every 5 minutes. To run it by hand: `python -m finops_api.cli collect-servers`.
+Without the worker (SQLite, no Docker), use **Check now** on the Servers page. See [servers.md](servers.md).
 
 ## Data retention
 
