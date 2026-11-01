@@ -14,7 +14,7 @@ COPY alembic.ini ./
 COPY data ./data
 COPY docker/entrypoint.sh /entrypoint.sh
 # strip CRLF in case the repo was checked out on Windows without .gitattributes
-RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh && mkdir -p /app/var/uploads && chown -R finops /app/var
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh && mkdir -p /app/var/uploads /app/var/catalog && chown -R finops /app/var
 USER finops
 EXPOSE 8000
 ENTRYPOINT ["/entrypoint.sh"]
