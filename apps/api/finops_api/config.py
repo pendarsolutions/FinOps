@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     ai_model: str = "claude-opus-5-5"
     anthropic_api_key: str | None = None
     ai_rate_limit_per_minute: int = 20
+    #: optional: the collector key on each server then only works from this address
+    collector_source_ip: str | None = None
     #: alerts (both optional)
     smtp_host: str | None = None
     smtp_port: int = 587

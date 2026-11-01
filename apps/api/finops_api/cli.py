@@ -82,6 +82,13 @@ def cmd_price_import(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_collect_servers(_: argparse.Namespace) -> None:
+    from .fleet_service import collect_all
+
+    with SessionLocal() as db:
+        print(json.dumps(collect_all(db)))
+
+
 def cmd_purge_uploads(_: argparse.Namespace) -> None:
     now = datetime.now(UTC)
     n = 0
@@ -115,6 +122,7 @@ def main() -> None:
     m.add_argument("--provider", required=True)
     m.add_argument("--file", required=True)
     m.set_defaults(fn=cmd_price_import)
+    sub.add_parser("collect-servers").set_defaults(fn=cmd_collect_servers)
     sub.add_parser("purge-uploads").set_defaults(fn=cmd_purge_uploads)
     args = ap.parse_args()
     args.fn(args)

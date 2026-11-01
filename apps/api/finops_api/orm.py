@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -360,3 +362,65 @@ class Upload(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     delete_after: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+# --------------------------------------------------------------------------- monitored servers
+
+
+class FleetKey(Base):
+    """One SSH key per organization. The private half is encrypted at rest."""
+
+    __tablename__ = "fleet_keys"
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), primary_key=True)
+    public_key: Mapped[str] = mapped_column(Text)
+    private_key_encrypted: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Server(Base):
+    __tablename__ = "servers"
+    __table_args__ = (UniqueConstraint("organization_id", "host", "port", name="uq_server_host"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    host: Mapped[str] = mapped_column(String(255))
+    port: Mapped[int] = mapped_column(Integer, default=22)
+    #: pending | online | unreachable | host_key_changed
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    host_key: Mapped[str | None] = mapped_column(Text)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    hostname: Mapped[str | None] = mapped_column(String(200))
+    os: Mapped[str | None] = mapped_column(String(200))
+    cpu_cores: Mapped[int | None] = mapped_column(Integer)
+    mem_total_kb: Mapped[int | None] = mapped_column(BigInteger)
+    disk_total_kb: Mapped[int | None] = mapped_column(BigInteger)
+    usage: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict)
+    # what the user confirmed: nothing is priced until a provider is set
+    environment: Mapped[str | None] = mapped_column(String(50))
+    provider_id: Mapped[str | None] = mapped_column(String(50))
+    sku: Mapped[str | None] = mapped_column(String(100))
+    resource_class: Mapped[str | None] = mapped_column(String(50))
+    storage_type: Mapped[str | None] = mapped_column(String(50))
+    download_gb_override: Mapped[Decimal | None] = mapped_column(Money(18, 3))
+    upload_gb_override: Mapped[Decimal | None] = mapped_column(Money(18, 3))
+    renewal_date: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class ServerSample(Base):
+    """Raw cumulative counters. Percentages and traffic are derived from these, never stored as guesses."""
+
+    __tablename__ = "server_samples"
+    __table_args__ = (Index("ix_server_samples_server_time", "server_id", "taken_at"),)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    server_id: Mapped[str] = mapped_column(ForeignKey("servers.id", ondelete="CASCADE"))
+    taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    cpu_total: Mapped[int] = mapped_column(BigInteger)
+    cpu_idle: Mapped[int] = mapped_column(BigInteger)
+    mem_total_kb: Mapped[int] = mapped_column(BigInteger)
+    mem_available_kb: Mapped[int] = mapped_column(BigInteger)
+    disk_total_kb: Mapped[int] = mapped_column(BigInteger)
+    disk_used_kb: Mapped[int] = mapped_column(BigInteger)
+    rx_bytes: Mapped[int] = mapped_column(BigInteger)
+    tx_bytes: Mapped[int] = mapped_column(BigInteger)

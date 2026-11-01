@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .platform import configure_logging
-from .routers import analysis, auth, catalog, integrations, inventories
+from .routers import analysis, auth, catalog, integrations, inventories, servers
 
 # Money must never become a binary float on the wire: encode every Decimal as an exact string.
 fastapi.encoders.ENCODERS_BY_TYPE[Decimal] = lambda d: format(d.normalize(), "f")
@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
                                    "duration_ms": round((time.perf_counter() - start) * 1000, 1)})
         return response
 
-    for r in (auth.router, catalog.router, inventories.router, analysis.router, integrations.router):
+    for r in (auth.router, catalog.router, inventories.router, analysis.router, integrations.router, servers.router):
         app.include_router(r)
     return app
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import smtplib
+from datetime import UTC, datetime
 from email.message import EmailMessage
 
 import httpx
@@ -13,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .orm import PriceSyncRun
+from .orm import PriceSyncRun, Server
 
 log = logging.getLogger("finops.alerts")
 
@@ -86,4 +87,14 @@ def sync_alert(db: Session, run: PriceSyncRun) -> None:
         if _previous_status(db, run) != "failed":
             notify(f"Price update failed: {pid}", f"{run.error}\nThe last known prices stay active.")
     elif run.status in ("ok", "warning") and (changes := format_price_changes(run)):
-        notify(f"Prices changed: {pid}", changes)
+        moved = {c["sku"] for c in (run.summary or {}).get("changes", []) if c.get("kind") == "changed"}
+        yours = [s.name for s in db.scalars(select(Server).where(Server.provider_id == pid, Server.sku.in_(moved)))]
+        affected = f"\n\nYour servers on these plans: {', '.join(yours)}" if yours else ""
+        notify(f"Prices changed: {pid}", changes + affected)
+
+
+def renewal_alerts(db: Session) -> None:
+    from .fleet_service import renewals_due
+
+    for server, days in renewals_due(db, datetime.now(UTC).date()):
+        notify(f"Renewal in {days} day(s): {server.name}", f"{server.name} ({server.host}) renews on {server.renewal_date}.")

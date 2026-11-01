@@ -12,9 +12,10 @@ from celery import Celery
 from celery.schedules import crontab
 from sqlalchemy import select
 
-from finops_api.alerts import sync_alert
+from finops_api.alerts import renewal_alerts, sync_alert
 from finops_api.catalog_store import run_provider_sync
 from finops_api.db import SessionLocal
+from finops_api.fleet_service import collect_all, purge_samples
 from finops_api.orm import ProviderRow
 from finops_api.platform import configure_logging
 
@@ -29,6 +30,9 @@ app.conf.update(
     worker_prefetch_multiplier=1,
     beat_schedule={
         "price-sync": {"task": "finops_worker.tasks.sync_all", "schedule": crontab(hour="3,15", minute=15)},
+        "collect-servers": {"task": "finops_worker.tasks.collect_servers", "schedule": crontab(minute="*/5"),
+                            "options": {"expires": 240}},
+        "server-maintenance": {"task": "finops_worker.tasks.server_maintenance", "schedule": crontab(hour=9, minute=0)},
         "purge-expired-invoices": {"task": "finops_worker.tasks.purge_uploads", "schedule": crontab(hour=4, minute=0)},
     },
 )
@@ -57,3 +61,16 @@ def purge_uploads() -> None:
     from finops_api.cli import cmd_purge_uploads
 
     cmd_purge_uploads(Namespace())
+
+
+@app.task(name="finops_worker.tasks.collect_servers")
+def collect_servers() -> dict:
+    with SessionLocal() as db:
+        return collect_all(db)
+
+
+@app.task(name="finops_worker.tasks.server_maintenance")
+def server_maintenance() -> None:
+    with SessionLocal() as db:
+        purge_samples(db)
+        renewal_alerts(db)
