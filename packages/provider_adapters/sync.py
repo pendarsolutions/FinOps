@@ -102,7 +102,7 @@ def plan_sync(adapter: Any, raw: RawCatalog | None, previous: list[CatalogItem],
                     if a != b]
             changes.append(ItemChange(key, old, new, "changed", diff))
     for key, old in prev_by_key.items():
-        if key not in new_by_key:
+        if key not in new_by_key and getattr(adapter, "removes_missing", True):
             changes.append(ItemChange(key, old, None, "removed"))
 
     warnings: list[str] = []

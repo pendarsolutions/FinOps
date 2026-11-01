@@ -1,11 +1,10 @@
-"""Celery worker: nightly provider price sync (with guardrails) and invoice retention purge.
+"""Celery worker: twice-daily provider price sync (with guardrails) and invoice retention purge.
 
 Run:  celery -A finops_worker.tasks worker -B --loglevel=INFO
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 
@@ -13,6 +12,7 @@ from celery import Celery
 from celery.schedules import crontab
 from sqlalchemy import select
 
+from finops_api.alerts import sync_alert
 from finops_api.catalog_store import run_provider_sync
 from finops_api.db import SessionLocal
 from finops_api.orm import ProviderRow
@@ -28,21 +28,10 @@ app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     beat_schedule={
-        "nightly-price-sync": {"task": "finops_worker.tasks.sync_all", "schedule": crontab(hour=3, minute=15)},
+        "price-sync": {"task": "finops_worker.tasks.sync_all", "schedule": crontab(hour="3,15", minute=15)},
         "purge-expired-invoices": {"task": "finops_worker.tasks.purge_uploads", "schedule": crontab(hour=4, minute=0)},
     },
 )
-
-
-def _alert(run) -> None:
-    """Sync failures/quarantines are logged at ERROR as structured JSON (ship to your alerting stack);
-    they are also visible in the product (Integrations / Price Catalog pages)."""
-    if run.status in ("failed", "quarantined"):
-        log.error(json.dumps({"alert": "price_sync", "provider": run.provider_id, "status": run.status,
-                              "error": run.error, "warnings": run.warnings}, ensure_ascii=False))
-    elif run.status == "warning":
-        log.warning(json.dumps({"alert": "price_sync_warning", "provider": run.provider_id,
-                                "warnings": run.warnings}, ensure_ascii=False))
 
 
 @app.task(name="finops_worker.tasks.sync_provider", autoretry_for=(ConnectionError,), retry_backoff=True,
@@ -50,7 +39,7 @@ def _alert(run) -> None:
 def sync_provider(provider_id: str, triggered_by: str = "schedule") -> dict:
     with SessionLocal() as db:
         run = run_provider_sync(db, provider_id, triggered_by=triggered_by)
-        _alert(run)
+        sync_alert(db, run)
         return {"provider_id": provider_id, "status": run.status, "run_id": run.id}
 
 

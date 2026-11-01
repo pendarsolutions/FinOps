@@ -13,6 +13,7 @@ from .base import (
 from .chabokan import ChabokanAdapter
 from .iranserver import IranServerAdapter
 from .liara import LiaraAdapter
+from .manual import ManualPriceAdapter
 from .mobinhost import MobinHostAdapter
 from .serverir import ServerIrAdapter
 from .sync import SyncPlan, plan_sync
@@ -41,6 +42,6 @@ def get_adapter(provider_id: str):
 
 __all__ = [
     "ADAPTERS", "SECOND_WAVE_STATUS", "AdapterHealth", "ArvanCloudAdapter", "ChabokanAdapter", "InventoryConnector", "IranServerAdapter",
-    "LiaraAdapter", "MobinHostAdapter", "ParseError", "ProviderAdapter", "RawCatalog", "ServerIrAdapter", "SourceBlockedError",
+    "LiaraAdapter", "ManualPriceAdapter", "MobinHostAdapter", "ParseError", "ProviderAdapter", "RawCatalog", "ServerIrAdapter", "SourceBlockedError",
     "SyncPlan", "get_adapter", "natural_key", "plan_sync",
 ]

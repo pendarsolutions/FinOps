@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     ai_model: str = "claude-opus-5-5"
     anthropic_api_key: str | None = None
     ai_rate_limit_per_minute: int = 20
+    #: alerts (both optional)
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_starttls: bool = True
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str | None = None
+    alert_email_to: str | None = None
+    bale_bot_token: str | None = None
+    bale_chat_id: str | None = None
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
     #: open sign-up. The first account can always register; later users are added by an admin.
     allow_registration: bool = False

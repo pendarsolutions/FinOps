@@ -10,7 +10,8 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from .catalog_store import run_provider_sync, seed_pricing
+from .alerts import sync_alert
+from .catalog_store import import_manual_prices, run_provider_sync, seed_pricing
 from .config import get_settings
 from .db import Base, SessionLocal, get_engine
 from .orm import ProviderRow, Upload, User
@@ -70,6 +71,17 @@ def cmd_sync(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_price_import(args: argparse.Namespace) -> None:
+    content = Path(args.file).read_text(encoding="utf-8")
+    with SessionLocal() as db:
+        run = import_manual_prices(db, args.provider, content, triggered_by="manual-file")
+        sync_alert(db, run)
+        print(json.dumps({"provider": args.provider, "status": run.status, "changed": run.items_changed,
+                          "warnings": run.warnings, "error": run.error}, ensure_ascii=False))
+    if run.status == "failed":
+        sys.exit(1)
+
+
 def cmd_purge_uploads(_: argparse.Namespace) -> None:
     now = datetime.now(UTC)
     n = 0
@@ -99,6 +111,10 @@ def main() -> None:
     s.add_argument("--provider")
     s.add_argument("--strict", action="store_true", help="exit 1 if any sync failed or was quarantined")
     s.set_defaults(fn=cmd_sync)
+    m = sub.add_parser("price-import", help="apply a reviewed price file (see docs/provider-adapters.md)")
+    m.add_argument("--provider", required=True)
+    m.add_argument("--file", required=True)
+    m.set_defaults(fn=cmd_price_import)
     sub.add_parser("purge-uploads").set_defaults(fn=cmd_purge_uploads)
     args = ap.parse_args()
     args.fn(args)

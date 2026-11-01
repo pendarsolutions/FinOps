@@ -37,10 +37,29 @@ Adapters never invent values: an unstated field stays `None`; an unrecognised pa
 Fixtures: real pages saved on 2026-10-04 in `tests/fixtures/providers/*.html.gz`. CI never hits live
 sites. Refresh a fixture by saving the page again and re-running `tests/providers`.
 
+## Updating prices by hand
+
+For a provider that can't be scraped, such as ArvanCloud, copy the prices from the official page into a file:
+
+```json
+{
+  "provider_id": "arvancloud",
+  "source_url": "https://www.arvancloud.ir/fa/pricing/all",
+  "price_date": "2026-11-01",
+  "prices": [
+    {"sku": "IR-CPU-STANDARD", "price_toman": "250000"},
+    {"sku": "IR-TRAFFIC-EXAMPLE", "tier_min": "1000", "price_toman": "900"}
+  ]
+}
+```
+
+Then run `python -m finops_api.cli price-import --provider arvancloud --file prices.json`. An unknown SKU fails the
+whole file, rows it doesn't mention are kept, and a sharp price move is held for review like any other update.
+
 ## Sync pipeline
 
 `run_provider_sync` (API `POST /api/v1/admin/providers/{id}/sync`, CLI `make sync-prices`, worker
-nightly 03:15 Asia/Tehran):
+twice daily at 03:15 and 15:15 Asia/Tehran):
 
 1. fetch → 2. normalize → 3. `plan_sync` guardrails → 4. apply (close + insert versions) or hold.
 
