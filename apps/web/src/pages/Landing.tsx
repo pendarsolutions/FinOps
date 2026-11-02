@@ -111,7 +111,7 @@ export function LandingPage() {
           <span>{t("appName")}</span>
         </div>
         <nav className="lp-links" aria-label="Landing">
-          <a href="#how">{t("lpNavHow")}</a>
+          <Link to="/how-it-works">{t("navHowItWorks")}</Link>
           <a href="#features">{t("lpNavFeatures")}</a>
           <a href="#trust">{t("lpNavTrust")}</a>
         </nav>
@@ -252,6 +252,7 @@ export function LandingPage() {
 
       <footer className="lp-footer">
         <span>{t("lpFooter")}</span>
+        <Link to="/how-it-works">{t("navHowItWorks")}</Link>
         <span className="muted">© {localizeDigits("2026", lang)}</span>
       </footer>
     </div>

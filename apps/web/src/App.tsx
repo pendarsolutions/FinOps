@@ -7,6 +7,7 @@ import { LandingPage } from "./pages/Landing";
 import { OverviewPage } from "./pages/Overview";
 import { InfrastructurePage } from "./pages/Infrastructure";
 import { ServersPage } from "./pages/Servers";
+import { HowItWorksContent, HowItWorksPublic } from "./pages/HowItWorks";
 import { CostsPage } from "./pages/Costs";
 import { OpportunitiesPage } from "./pages/Opportunities";
 import { ComparePage } from "./pages/Compare";
@@ -30,6 +31,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/welcome" element={<LandingPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPublic />} />
       <Route path="/login" element={<LoginPage mode="login" />} />
       <Route path="/register" element={<LoginPage mode="register" />} />
       <Route
@@ -48,6 +50,7 @@ export function App() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="catalog" element={<CatalogPage />} />
         <Route path="integrations" element={<IntegrationsPage />} />
+        <Route path="guide" element={<HowItWorksContent />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

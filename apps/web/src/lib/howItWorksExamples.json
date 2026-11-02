@@ -1,0 +1,212 @@
+{
+  "catalog_note": "Seed catalog prices. tests/pricing/test_how_it_works.py checks every number here against the engine.",
+  "pricing": [
+    {
+      "id": "component",
+      "provider": {
+        "fa": "آروان‌کلاد",
+        "en": "ArvanCloud"
+      },
+      "title": {
+        "fa": "قیمت‌گذاری جزءبه‌جزء",
+        "en": "Priced per component"
+      },
+      "body": {
+        "fa": "هر بخش سرور جداگانه قیمت دارد: تعداد × قیمت واحد.",
+        "en": "Each part of the server has its own price: quantity × unit price."
+      },
+      "resource": {
+        "provider_id": "arvancloud",
+        "resource_class": "standard",
+        "cpu_cores": "2",
+        "ram_gb": "4",
+        "storage_gb": "50",
+        "storage_type": "hot_ssd",
+        "requires_public_ipv4": true,
+        "expected_monthly_download_gb": "100",
+        "expected_monthly_upload_gb": "50"
+      },
+      "lines": [
+        {
+          "code": "compute.cpu",
+          "fa": "۲ هسته پردازنده",
+          "en": "2 CPU cores",
+          "qty": "2",
+          "unit_price": "273000",
+          "subtotal": "546000"
+        },
+        {
+          "code": "compute.ram",
+          "fa": "۴ گیگابایت رم",
+          "en": "4 GB memory",
+          "qty": "4",
+          "unit_price": "212600",
+          "subtotal": "850400"
+        },
+        {
+          "code": "storage",
+          "fa": "۵۰ گیگابایت دیسک SSD",
+          "en": "50 GB SSD disk",
+          "qty": "50",
+          "unit_price": "15000",
+          "subtotal": "750000"
+        },
+        {
+          "code": "ipv4.first",
+          "fa": "یک IPv4",
+          "en": "One IPv4",
+          "qty": "1",
+          "unit_price": "195000",
+          "subtotal": "195000"
+        },
+        {
+          "code": "traffic.download.IR-EGRESS",
+          "fa": "۱۰۰ گیگابایت ترافیک خروجی",
+          "en": "100 GB outgoing traffic",
+          "qty": "100",
+          "unit_price": "0",
+          "subtotal": "0"
+        },
+        {
+          "code": "traffic.upload.IR-INGRESS-0-250",
+          "fa": "۵۰ گیگابایت ترافیک ورودی",
+          "en": "50 GB incoming traffic",
+          "qty": "50",
+          "unit_price": "0",
+          "subtotal": "0"
+        }
+      ],
+      "total": "2341400"
+    },
+    {
+      "id": "plan",
+      "provider": {
+        "fa": "لیارا",
+        "en": "Liara"
+      },
+      "title": {
+        "fa": "پلن به‌علاوه مصرف",
+        "en": "A plan plus usage"
+      },
+      "body": {
+        "fa": "پلن قیمت ثابت دارد و ترافیک بر اساس مصرف به آن اضافه می‌شود.",
+        "en": "The plan has a fixed price, and traffic is added according to use."
+      },
+      "resource": {
+        "provider_id": "liara",
+        "sku": "IAAS-JUPITER",
+        "requires_public_ipv4": true,
+        "expected_monthly_download_gb": "100",
+        "expected_monthly_upload_gb": "50"
+      },
+      "lines": [
+        {
+          "code": "plan",
+          "fa": "پلن IAAS-JUPITER",
+          "en": "IAAS-JUPITER plan",
+          "qty": "1",
+          "unit_price": "1475000",
+          "subtotal": "1475000"
+        },
+        {
+          "code": "ipv4",
+          "fa": "یک IPv4",
+          "en": "One IPv4",
+          "qty": "1",
+          "unit_price": "200000",
+          "subtotal": "200000"
+        },
+        {
+          "code": "traffic.download",
+          "fa": "۱۰۰ گیگابایت دانلود",
+          "en": "100 GB download",
+          "qty": "100",
+          "unit_price": "2500",
+          "subtotal": "250000"
+        },
+        {
+          "code": "traffic.upload",
+          "fa": "۵۰ گیگابایت آپلود",
+          "en": "50 GB upload",
+          "qty": "50",
+          "unit_price": "0",
+          "subtotal": "0"
+        }
+      ],
+      "total": "1925000"
+    },
+    {
+      "id": "fixed",
+      "provider": {
+        "fa": "مبین‌هاست",
+        "en": "MobinHost"
+      },
+      "title": {
+        "fa": "پلن ثابت",
+        "en": "A fixed plan"
+      },
+      "body": {
+        "fa": "یک قیمت ماهانه که ترافیک تا سقف پلن را هم پوشش می‌دهد.",
+        "en": "One monthly price, which also covers traffic up to the plan's limit."
+      },
+      "resource": {
+        "provider_id": "mobinhost",
+        "sku": "IR-VPS-8GB",
+        "requires_public_ipv4": true,
+        "expected_monthly_download_gb": "36",
+        "expected_monthly_upload_gb": "7"
+      },
+      "lines": [
+        {
+          "code": "plan",
+          "fa": "پلن IR-VPS-8GB",
+          "en": "IR-VPS-8GB plan",
+          "qty": "1",
+          "unit_price": "1395000",
+          "subtotal": "1395000"
+        },
+        {
+          "code": "traffic",
+          "fa": "۴۳ گیگابایت ترافیک، در سقف پلن",
+          "en": "43 GB traffic, within the plan's limit",
+          "qty": "43",
+          "unit_price": "0",
+          "subtotal": "0"
+        }
+      ],
+      "total": "1395000"
+    }
+  ],
+  "downsize": {
+    "resource": {
+      "provider_id": "mobinhost",
+      "sku": "IR-VPS-8GB",
+      "environment": "production",
+      "requires_public_ipv4": true,
+      "expected_monthly_download_gb": "36",
+      "expected_monthly_upload_gb": "7"
+    },
+    "metrics": {
+      "p95_cpu_percent": "6",
+      "p95_ram_percent": "20",
+      "disk_used_gb": "8.58",
+      "observation_days": 19
+    },
+    "ram_gb": "8",
+    "ram_p95": "20",
+    "headroom": "1.3",
+    "required_ram_gb": "2.08",
+    "candidate_sku": "IR-VPS-4GB",
+    "current": "1395000",
+    "candidate": "795000",
+    "saving": "600000",
+    "saving_percent": "43.01"
+  },
+  "payback": {
+    "days": "2",
+    "day_rate": "4000000",
+    "cost": "8000000",
+    "saving": "600000",
+    "months": "13.33"
+  }
+}

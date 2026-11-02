@@ -152,6 +152,7 @@ docs/           Architecture, pricing model, scrapers, AI safety and operations
 
 ## Documentation
 
+- **How it works:** the app explains its own calculations at `/how-it-works`, in Persian and English
 - [Installation](docs/installation.md)
 - [Monitoring your servers](docs/servers.md)
 - [Architecture](docs/architecture.md)

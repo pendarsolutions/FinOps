@@ -19,6 +19,7 @@ const NAV: { to: string; key: TKey; tour: string }[] = [
   { to: "/catalog", key: "navCatalog", tour: "nav-catalog" },
   { to: "/integrations", key: "navIntegrations", tour: "nav-integrations" },
   { to: "/settings", key: "navSettings", tour: "nav-settings" },
+  { to: "/guide", key: "navHowItWorks", tour: "nav-guide" },
 ];
 
 const INVENTORY_PAGES = ["/", "/infrastructure", "/costs", "/opportunities", "/compare", "/reports"];
