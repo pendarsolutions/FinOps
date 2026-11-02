@@ -98,7 +98,7 @@ fernet_key() { head -c 32 /dev/urandom | base64 | tr '+/' '-_'; }
 
 port_in_use() { ss -ltnH "sport = :$1" 2>/dev/null | grep -q .; }
 
-env_value() { sed -n "s/^$1=//p" "$INSTALL_DIR/.env" 2>/dev/null | head -1; }
+env_value() { [ -f "$INSTALL_DIR/.env" ] && sed -n "s/^$1=//p" "$INSTALL_DIR/.env" | head -1 || true; }
 
 # An upgrade keeps its ports, which are in use by this app. Otherwise take 80/443 only if nothing else has them.
 choose_ports() {
