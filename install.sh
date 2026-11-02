@@ -5,7 +5,8 @@
 #   sudo ./install.sh --domain finops.ir      use a domain with an automatic certificate
 #   sudo ./install.sh --bundle images.tar.gz  offline: no container registry needed
 #
-# Running it again upgrades and keeps your settings, secrets and data.
+# Safe on a server that already runs other things: if ports 80 and 443 are taken, it picks a free port and
+# changes nothing else. Running it again upgrades and keeps your settings, secrets and data.
 set -euo pipefail
 
 VERSION="0.1.0"
@@ -13,6 +14,8 @@ INSTALL_DIR="/opt/finops-agent"
 IMAGE_PREFIX="ghcr.io/theparsakhezli"
 DOMAIN=""
 IP=""
+HTTPS_PORT=""
+HTTP_BIND=""
 BUNDLE=""
 MIRROR=""
 FORCE_BUILD=0
@@ -28,6 +31,7 @@ Usage: sudo ./install.sh [options]
 
   --domain NAME           Domain pointing at this server (automatic certificate)
   --ip ADDRESS            IP address to serve on (default: detected)
+  --port PORT             HTTPS port (default: 443, or a free port if 443 is taken)
   --bundle FILE           Load images from an offline bundle (see scripts/make-bundle.sh)
   --registry-mirror URL   Docker registry mirror, for when Docker Hub isn't reachable
   --build                 Build the application images here from source
@@ -40,6 +44,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --domain) DOMAIN="${2:?--domain needs a value}"; shift 2 ;;
     --ip) IP="${2:?--ip needs a value}"; shift 2 ;;
+    --port) HTTPS_PORT="${2:?--port needs a value}"; shift 2 ;;
     --bundle) BUNDLE="${2:?--bundle needs a file}"; shift 2 ;;
     --registry-mirror) MIRROR="${2:?--registry-mirror needs a URL}"; shift 2 ;;
     --build) FORCE_BUILD=1; shift ;;
@@ -55,6 +60,7 @@ done
 [ -f "$SOURCE_DIR/deploy/compose.install.yml" ] || die "run this from the project folder or an extracted bundle"
 if [[ -n "$DOMAIN" && ! "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]]; then die "invalid domain: $DOMAIN"; fi
 if [[ -n "$IP" && ! "$IP" =~ ^[0-9A-Fa-f:.]+$ ]]; then die "invalid IP address: $IP"; fi
+if [[ -n "$HTTPS_PORT" && ! "$HTTPS_PORT" =~ ^[0-9]+$ ]]; then die "invalid port: $HTTPS_PORT"; fi
 
 mem_kb="$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null || echo 0)"
 [ "$mem_kb" -ge 1500000 ] || warn "less than 1.5 GB of memory; the app may run slowly"
@@ -90,6 +96,38 @@ configure_mirror() {
 secret() { head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
 fernet_key() { head -c 32 /dev/urandom | base64 | tr '+/' '-_'; }
 
+port_in_use() { ss -ltnH "sport = :$1" 2>/dev/null | grep -q .; }
+
+env_value() { sed -n "s/^$1=//p" "$INSTALL_DIR/.env" 2>/dev/null | head -1; }
+
+# An upgrade keeps its ports, which are in use by this app. Otherwise take 80/443 only if nothing else has them.
+choose_ports() {
+  local saved p
+  saved="$(env_value FINOPS_HTTPS_PORT)"
+  HTTP_BIND="$(env_value FINOPS_HTTP_BIND)"
+  if [ -n "$HTTPS_PORT" ]; then
+    if [ "$HTTPS_PORT" != "$saved" ] && port_in_use "$HTTPS_PORT"; then die "port $HTTPS_PORT is already in use"; fi
+  elif [ -n "$saved" ]; then
+    HTTPS_PORT="$saved"
+  elif ! port_in_use 443; then
+    HTTPS_PORT=443
+  else
+    for p in 8443 9443 10443 18443 28443; do
+      if ! port_in_use "$p"; then HTTPS_PORT="$p"; break; fi
+    done
+    [ -n "$HTTPS_PORT" ] || die "no free HTTPS port found; choose one with --port"
+    say "Port 443 is in use, so this will use port $HTTPS_PORT and leave the existing service alone"
+  fi
+  if [ -z "$HTTP_BIND" ]; then
+    # port 80 only redirects to HTTPS, so without it the app still works
+    if [ "$HTTPS_PORT" = 443 ] && ! port_in_use 80; then HTTP_BIND=80; else HTTP_BIND="127.0.0.1:18080"; fi
+  fi
+}
+
+url() {
+  if [ "$HTTPS_PORT" = 443 ]; then echo "https://$1"; else echo "https://$1:$HTTPS_PORT"; fi
+}
+
 site_address() {
   if [ -n "$DOMAIN" ]; then echo "$DOMAIN"; return; fi
   if [ -z "$IP" ]; then IP="$(hostname -I 2>/dev/null | awk '{print $1}')"; fi
@@ -102,6 +140,8 @@ write_env() {
   if [ -f "$env_file" ]; then
     say "Keeping the existing settings in $env_file"
     sed -i "s|^FINOPS_APP_IMAGE=.*|FINOPS_APP_IMAGE=$APP_IMAGE|; s|^FINOPS_WEB_IMAGE=.*|FINOPS_WEB_IMAGE=$WEB_IMAGE|" "$env_file"
+    sed -i "/^FINOPS_HTTPS_PORT=/d; /^FINOPS_HTTP_BIND=/d" "$env_file"
+    printf 'FINOPS_HTTPS_PORT=%s\nFINOPS_HTTP_BIND=%s\n' "$HTTPS_PORT" "$HTTP_BIND" >> "$env_file"
     return
   fi
   ( umask 077
@@ -111,8 +151,10 @@ FINOPS_WEB_IMAGE=$WEB_IMAGE
 POSTGRES_PASSWORD=$(secret)
 FINOPS_JWT_SECRET=$(secret)
 FINOPS_CREDENTIALS_KEY=$(fernet_key)
-FINOPS_CORS_ORIGINS=["https://$site"]
+FINOPS_CORS_ORIGINS=["$(url "$site")"]
 FINOPS_AI_PROVIDER=offline
+FINOPS_HTTPS_PORT=$HTTPS_PORT
+FINOPS_HTTP_BIND=$HTTP_BIND
 EOF
   )
 }
@@ -120,11 +162,12 @@ EOF
 write_caddyfile() {
   local site="$1"
   {
-    if [ -n "$DOMAIN" ]; then
+    if [ -n "$DOMAIN" ] && [ "$HTTPS_PORT" = 443 ]; then
       echo "$site {"
     else
-      # browsers send no hostname when connecting to an IP address, so Caddy must be told which certificate to use
-      printf '{\n  default_sni %s\n}\nhttps://%s {\n  tls internal\n' "$site" "$site"
+      # browsers send no hostname when connecting to an IP address, so Caddy must be told which certificate to use.
+      # a public certificate needs port 443, so any other port uses Caddy's own.
+      printf '{\n  default_sni %s\n}\nhttps://%s:%s {\n  tls internal\n' "$site" "$site" "$HTTPS_PORT"
     fi
     cat <<'EOF'
   encode gzip
@@ -175,6 +218,7 @@ configure_mirror
 APP_IMAGE="$IMAGE_PREFIX/finops-agent-app:$VERSION"
 WEB_IMAGE="$IMAGE_PREFIX/finops-agent-web:$VERSION"
 mkdir -p "$INSTALL_DIR"
+choose_ports
 SITE="$(site_address)"
 cp "$SOURCE_DIR/deploy/compose.install.yml" "$INSTALL_DIR/compose.yml"
 write_env "$SITE"
@@ -191,7 +235,7 @@ cat <<EOF
 
 FinOps agent is running.
 
-  Open:       https://$SITE
+  Open:       $(url "$SITE")
   Next:       create the first account there. Sign-up closes after it.
   Add servers from the Servers page.
 
@@ -199,7 +243,10 @@ FinOps agent is running.
   Logs:       cd $INSTALL_DIR && docker compose logs
   Upgrade:    run this installer again
 EOF
-if [ -z "$DOMAIN" ]; then
+if [ -z "$DOMAIN" ] || [ "$HTTPS_PORT" != 443 ]; then
   echo
-  echo "Your browser will warn about the certificate because there is no domain. Use --domain to avoid that."
+  echo "Your browser will warn about the certificate. Use --domain with port 443 free to avoid that."
+fi
+if [ "$HTTPS_PORT" != 443 ]; then
+  echo "If this server has a firewall, open port $HTTPS_PORT."
 fi

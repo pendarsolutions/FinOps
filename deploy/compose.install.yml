@@ -87,7 +87,9 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on: [web]
-    ports: ["80:80", "443:443"]
+    ports:
+      - "${FINOPS_HTTP_BIND:-80}:80"
+      - "${FINOPS_HTTPS_PORT:-443}:${FINOPS_HTTPS_PORT:-443}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

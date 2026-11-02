@@ -1,7 +1,8 @@
 # Installation
 
-You need one Linux server (Ubuntu or Debian is easiest) with at least 2 GB of memory, ports 80 and 443 open, and root
-access.
+You need one Linux server (Ubuntu or Debian is easiest) with at least 2 GB of memory and root access. It doesn't have to
+be empty: if ports 80 and 443 are taken, for example by nginx, the installer picks a free port such as 8443 and leaves
+the existing service alone. Choose the port yourself with `--port`.
 
 ```bash
 git clone https://github.com/theparsakhezli/FinOps_agent.git
