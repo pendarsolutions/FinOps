@@ -21,5 +21,6 @@ mkdir -p "$WORK/$NAME/deploy"
 cp "$ROOT/install.sh" "$WORK/$NAME/"
 cp "$ROOT/deploy/compose.install.yml" "$WORK/$NAME/deploy/"
 docker save "$APP" "$WEB" postgres:16-alpine redis:7-alpine caddy:2-alpine | gzip > "$WORK/$NAME/images.tar.gz"
-tar -C "$WORK" -czf "$ROOT/$NAME.tar.gz" "$NAME"
+# through stdout: on Windows, tar reads a "C:/..." file name as a remote host
+(cd "$WORK" && tar -czf - "$NAME") > "$ROOT/$NAME.tar.gz"
 echo "Created $ROOT/$NAME.tar.gz"
