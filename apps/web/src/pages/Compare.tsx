@@ -9,14 +9,24 @@ import { Badge, Button, Card, ErrorBox, Money, Pct, StatusChip, ToneBadge } from
 import { RankedBars } from "../components/viz";
 import { visualShare } from "../lib/money";
 import { usePlain } from "../lib/plain";
-import { ConstraintsList, FitPercent, VerdictBadge } from "./Opportunities";
+import { ConstraintsList, VerdictBadge } from "./Opportunities";
+
+/** Already inside the monthly cost, or repeated in each option's details. */
+const NOT_A_ROW = new Set(["traffic_cost_toman", "ipv4_cost_toman", "unknown_features"]);
 
 function Matrix({ r }: { r: CompareResult }) {
   const { t, lang } = useI18n();
   const p = usePlain();
   const pname = useProviderName();
   const dims: string[] = [];
-  r.candidates.forEach((c) => c.differences.forEach((d) => !dims.includes(d.dimension) && dims.push(d.dimension)));
+  r.candidates.forEach((c) => c.differences.forEach((d) => !NOT_A_ROW.has(d.dimension) && !dims.includes(d.dimension) && dims.push(d.dimension)));
+  // A row only earns its place if at least one option says something different from the current server.
+  const shown = dims.filter((dim) =>
+    r.candidates.some((c) => {
+      const d = c.differences.find((x) => x.dimension === dim);
+      return d && d.verdict !== "same" && d.candidate_value !== null;
+    }),
+  );
   const srcOf = (dim: string) => r.candidates.flatMap((c) => c.differences).find((d) => d.dimension === dim)?.source_value;
   const current = r.candidates[0]?.current;
   // index of the cheapest exact candidate (comparison only; no arithmetic on the amounts)
@@ -90,15 +100,6 @@ function Matrix({ r }: { r: CompareResult }) {
                 ))}
               </tr>
               <tr>
-                <th scope="row">{t("fitScore")}</th>
-                <td className="col-current">—</td>
-                {r.candidates.map((c, i) => (
-                  <td key={i} title={t("fitExplain")}>
-                    <FitPercent v={c.fit_score} />
-                  </td>
-                ))}
-              </tr>
-              <tr>
                 <th scope="row">{t("cost")}</th>
                 <td className="col-current">
                   <Money v={current?.monthly_total_toman ?? null} />
@@ -119,18 +120,17 @@ function Matrix({ r }: { r: CompareResult }) {
                   </td>
                 ))}
               </tr>
-              {dims.map((dim) => (
+              {shown.map((dim) => (
                 <tr key={dim}>
                   <th scope="row">{p.dimension(dim)}</th>
                   <td className="col-current">{p.value(dim, srcOf(dim))}</td>
                   {r.candidates.map((c, i) => {
                     const d = c.differences.find((x) => x.dimension === dim);
                     return (
-                      <td key={i} className={d ? `v-${d.verdict}` : undefined}>
+                      <td key={i} className={d && (d.verdict === "better" || d.verdict === "worse") ? `v-${d.verdict}` : undefined}>
                         {d ? (
                           <>
-                            {p.value(dim, d.candidate_value)} <VerdictBadge v={d.verdict} />
-                            {d.note ? <div className="note">{p.note(d.note)}</div> : null}
+                            {p.value(dim, d.candidate_value)} {d.verdict === "better" || d.verdict === "worse" ? <VerdictBadge v={d.verdict} /> : null}
                           </>
                         ) : (
                           "—"
@@ -141,14 +141,12 @@ function Matrix({ r }: { r: CompareResult }) {
                 </tr>
               ))}
               <tr>
-                <th scope="row">{t("assumptions")}</th>
+                <th scope="row">{t("compareDetails")}</th>
                 <td className="col-current" />
                 {r.candidates.map((c, i) => (
                   <td key={i} className="small">
                     <details>
-                      <summary>
-                        {t("constraints")} / {t("assumptions")}
-                      </summary>
+                      <summary>{t("showDetails")}</summary>
                       <ConstraintsList items={c.constraints} />
                       <ul className="assumptions">
                         {c.assumptions.map((a, j) => (

@@ -24,7 +24,9 @@ export function localizeDigits(s: string, lang: Lang): string {
 function parts(value: Decimalish): { sign: string; int: string; frac: string } | null {
   if (value === null || value === undefined || value === "") return null;
   // Numbers only ever reach here if the API sent a JSON number; stringify without arithmetic.
-  const s = typeof value === "number" ? String(value) : value.trim();
+  const raw = typeof value === "number" ? String(value) : value.trim();
+  // Python's Decimal writes a scaled zero as "0E-8".
+  const s = /^[+-]?0*\.?0*E[+-]?\d+$/i.test(raw) ? "0" : raw;
   const m = DECIMAL_RE.exec(s);
   if (!m || (m[2] === "" && (m[3] ?? "") === "")) return null;
   const int = m[2].replace(/^0+(?=\d)/, "") || "0";

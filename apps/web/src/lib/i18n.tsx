@@ -418,6 +418,8 @@ const dict = {
   youSave: ["صرفه‌جویی", "You save"],
   ofThisServer: ["از هزینه این سرور", "of this server's cost"],
   technicalDetails: ["جزئیات فنی", "Technical details"],
+  compareDetails: ["جزئیات", "Details"],
+  showDetails: ["بررسی‌ها و فرض‌ها", "Checks and assumptions"],
   cpuTypeUnknown: ["نوع پردازنده مشخص نیست، پس بررسی نشد", "The CPU type isn't stated, so this couldn't be checked"],
   discoveryOnly: ["فقط برای آشنایی", "For reference only"],
   colServer: ["سرور", "Server"],

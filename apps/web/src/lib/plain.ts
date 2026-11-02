@@ -30,6 +30,9 @@ const VALUES: Record<string, Pair> = {
   monthly: ["ماهانه", "monthly"],
   hourly: ["ساعتی", "hourly"],
   "hourly+monthly": ["ساعتی یا ماهانه", "hourly or monthly"],
+  hot_ssd: ["Hot SSD", "Hot SSD"],
+  ssd: ["SSD", "SSD"],
+  hdd: ["HDD", "HDD"],
 };
 
 const UNITS: Record<string, Pair> = {
@@ -108,6 +111,8 @@ const FA_NOTES: [RegExp, string][] = [
   [/^ArvanCloud: Each tier price applies only.*$/, "آروان‌کلود: قیمت هر پله فقط برای همان بخش از حجم مصرفی اعمال شده است."],
   [/^Liara: If the resource's billing_mode.*$/, "لیارا: چون زمان کار سرور محدود است، با نرخ ساعتی حساب شده است."],
   [/^CPU class semantics.*$/, "این ارائه‌دهنده نوع پردازنده را اعلام نکرده است."],
+  [/^Iran-only comparison.*$/, "فقط ارائه‌دهندگان ایرانی مقایسه شده‌اند."],
+  [/^Traffic is the figure you entered.*$/, "ترافیک همان عددی است که وارد کرده‌اید و اندازه‌گیری نشده است."],
   [/^candidate traffic policy: included_quota$/, "حجم مشخصی ترافیک همراه پلن است."],
   [/^candidate traffic policy: unlimited$/, "ترافیک نامحدود است."],
   [/^candidate traffic policy: .*$/, "شرایط ترافیک این پلن با پلن فعلی فرق دارد."],
