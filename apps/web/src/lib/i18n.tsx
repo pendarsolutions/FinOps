@@ -125,6 +125,7 @@ const dict = {
   srvRenewsIn: ["تمدید", "Renews"],
   srvEnv: ["محیط", "Environment"],
   srvPlan: ["پلن", "Plan"],
+  srvPricedBySize: ["این ارائه‌دهنده پلن ثابت ندارد. قیمت از روی مشخصات خود سرور محاسبه می‌شود و نیازی به انتخاب پلن نیست.", "This provider has no fixed plans. The price comes from the server's own specs, so there's no plan to choose."],
   srvClass: ["کلاس سرور", "Server class"],
   srvStorage: ["نوع دیسک", "Disk type"],
   srvSuggest: ["پلن‌های هم‌مشخصات", "Plans with matching specs"],

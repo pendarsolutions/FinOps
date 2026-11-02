@@ -213,7 +213,7 @@ def test_unknown_provider_is_price_unavailable(snapshot):
     assert bd.status == PriceStatus.PRICE_UNAVAILABLE
 
 
-@pytest.mark.parametrize("pid, sku", [("parspack", "CONFIGURATOR-DEFAULT"), ("abrha", "IRAN-STARTING")])
+@pytest.mark.parametrize("pid, sku", [("abrha", "IRAN-STARTING")])
 def test_discovery_only_providers_never_produce_totals(snapshot, pid, sku):
     bd = price_resource(make(provider_id=pid, sku=sku), snapshot)
     assert bd.status == PriceStatus.DISCOVERY_ONLY
@@ -247,7 +247,7 @@ def test_sample_inventory_quote(snapshot, sample_resources):
 
 
 def test_incomplete_inventory_has_no_total(snapshot, sample_resources):
-    bad = sample_resources + [make(id="x", provider_id="parspack", sku="CONFIGURATOR-DEFAULT")]
+    bad = sample_resources + [make(id="x", provider_id="abrha", sku="IRAN-STARTING")]
     q = price_inventory(bad, snapshot)
     assert not q.complete
     assert q.total_toman is None

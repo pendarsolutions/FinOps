@@ -77,9 +77,11 @@
       "tax_rule": null
     },
     "parspack": {
-      "strategy": "discovery_only",
-      "exact_eligible": false,
-      "reason": "Only a calculator_snapshot with unselected location/datacenter/OS. Exact pricing requires the ParsPack Cloud Server API adapter."
+      "strategy": "daily_table",
+      "exact_eligible": true,
+      "traffic_note": "the official calculator doesn't price traffic, so none is included here. Extra traffic may be billed.",
+      "ipv4_note": "the official calculator doesn't price IPv4, so one is assumed included.",
+      "setup_fee_note": "the price list mentions a setup fee equal to 7 days; a one-time fee isn't in this monthly figure."
     },
     "abrha": {
       "strategy": "discovery_only",

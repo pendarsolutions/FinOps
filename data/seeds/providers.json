@@ -129,15 +129,15 @@
       "database_cluster"
     ],
     "pricing_model": "configurator_payg_daily",
-    "public_catalog_quality": "medium",
+    "public_catalog_quality": "high",
     "api_status": "verified",
     "automation_surfaces": [
       "Cloud Server API",
       "docs"
     ],
     "recommended_mvp_priority": 6,
-    "integration_strategy": "prefer official API over HTML configurator for complete catalog",
-    "notes": "Public page exposes a default calculator snapshot, not a full static SKU matrix."
+    "integration_strategy": "official page sync of the embedded calculator table",
+    "notes": "The public page embeds the full calculator price table: daily disk + RAM + CPU."
   },
   {
     "provider_id": "mobinhost",

@@ -198,6 +198,7 @@ function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => voi
                 <input id="s-renew" type="date" dir="ltr" disabled={!canEdit} value={d.renewal_date ?? ""} onChange={(e) => patch.mutate({ renewal_date: e.target.value || null })} />
               </Field>
             </div>
+            {providers.data?.find((p) => p.id === d.provider_id)?.engine_strategy === "daily_table" && <p className="muted small">{t("srvPricedBySize")}</p>}
             {d.provider_id && (
               <div className="form-grid">
                 {plans.length > 0 && (

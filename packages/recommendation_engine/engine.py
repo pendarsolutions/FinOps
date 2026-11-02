@@ -19,6 +19,7 @@ from pricing_engine import (
 )
 from pricing_engine.models import Comparison
 from pricing_engine.money import OptDec
+from pricing_engine.pricing import smallest_size_at_least
 
 RECOMMENDATION_ENGINE_VERSION = "recommendation-engine/0.1.0"
 PCT = Decimal("0.01")
@@ -253,6 +254,14 @@ def _downsize(snapshot: CatalogSnapshot, r: Resource, current: PriceBreakdown, c
             cand_r = src.model_copy(update={"cpu_cores": min(cores, src.cpu_cores), "ram_gb": min(ram, src.ram_gb)})
             bd = price_resource(cand_r, snapshot, ctx)
             if bd.status == PriceStatus.EXACT:
+                best = (bd, cand_r, None)
+    elif pol.get("strategy") == "daily_table":
+        cpu_row = smallest_size_at_least(snapshot, src.provider_id, "compute_component", "cpu_cores", max(need_cpu, Decimal(1)))
+        ram_row = smallest_size_at_least(snapshot, src.provider_id, "memory_component", "ram_gb", max(need_ram, Decimal(1)))
+        if cpu_row is not None and ram_row is not None:
+            cand_r = src.model_copy(update={"cpu_cores": cpu_row.cpu_cores, "ram_gb": ram_row.ram_gb})
+            bd = price_resource(cand_r, snapshot, ctx)
+            if bd.status == PriceStatus.EXACT and bd.monthly_total_toman < current.monthly_total_toman:
                 best = (bd, cand_r, None)
     else:
         row = _plan_row(snapshot, src)

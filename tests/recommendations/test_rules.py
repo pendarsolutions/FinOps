@@ -104,7 +104,7 @@ def test_rec004_informational_term_discount_has_no_number(recs):
 
 
 def test_unpriceable_resource_yields_cannot_determine(snapshot):
-    r = make(id="pp", name="pp", provider_id="parspack", sku="CONFIGURATOR-DEFAULT")
+    r = make(id="pp", name="pp", provider_id="abrha", sku="IRAN-STARTING")
     [x] = recommend([r], snapshot)
     assert x.status == "cannot_determine" and x.monthly_saving_toman is None
 

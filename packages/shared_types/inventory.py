@@ -109,6 +109,8 @@ def required_fields(r: ResourceDraft, policy: dict[str, Any]) -> list[str]:
         req += ["sku", "expected_monthly_download_gb"]
         if pol.get("included_traffic_direction") != "download":
             req += ["expected_monthly_upload_gb"]
+    elif strategy == "daily_table":
+        req += ["cpu_cores", "ram_gb", "storage_gb"]
     elif strategy == "discovery_only":
         req += ["sku"]
     return req

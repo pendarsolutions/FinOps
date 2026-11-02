@@ -36,7 +36,6 @@ def test_sold_out_candidate_is_excluded(snapshot):
 def test_discovery_only_candidates_rejected(snapshot):
     res = find_equivalents(web_prod(), snapshot)
     labels = {r.label for r in res.rejected}
-    assert any("ParsPack" in l for l in labels)
     assert any("Abrha" in l for l in labels)
     assert all(c.candidate_provider_id not in ("parspack", "abrha") for c in res.candidates)
 

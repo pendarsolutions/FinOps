@@ -12,7 +12,7 @@ FIX = Path(__file__).resolve().parents[1] / "fixtures" / "providers"
 def test_health(client):
     assert client.get("/health/live").json() == {"status": "ok"}
     r = client.get("/health/ready")
-    assert r.status_code == 200 and r.json()["checks"]["catalog_items"] == 123
+    assert r.status_code == 200 and r.json()["checks"]["catalog_items"] == 173
 
 
 def test_auth_required(client):
@@ -26,12 +26,12 @@ def test_seed_is_idempotent(api_env):
 
     with SessionLocal() as db:
         stats = seed_pricing(db, get_settings().seed_dir)
-    assert stats["items_inserted"] == 0 and stats["items_unchanged"] == 123
+    assert stats["items_inserted"] == 0 and stats["items_unchanged"] == 173
 
 
 def test_catalog_has_source_metadata_and_money_as_strings(client, auth):
     items = client.get("/api/v1/catalog", headers=auth).json()
-    assert len(items) == 123
+    assert len(items) == 173
     for i in items:
         assert i["source_url"] and i["source_retrieved_at"]
         if i["price_toman"] is not None:
@@ -45,8 +45,8 @@ def test_catalog_has_source_metadata_and_money_as_strings(client, auth):
 def test_providers_listing(client, auth):
     provs = client.get("/api/v1/providers", headers=auth).json()
     assert [p["id"] for p in provs][:4] == ["arvancloud", "liara", "serverir", "iranserver"]
-    pp = next(p for p in provs if p["id"] == "parspack")
-    assert pp["exact_eligible"] is False and pp["adapter"] == "seed_only"
+    ab = next(p for p in provs if p["id"] == "abrha")
+    assert ab["exact_eligible"] is False and ab["adapter"] == "seed_only"
 
 
 @pytest.fixture(scope="module")

@@ -130,7 +130,8 @@ def to_resource(server: Server, snapshot: CatalogSnapshot) -> Resource | None:
     if not server.provider_id:
         return None
     usage = server.usage or {}
-    plan = next(iter(snapshot.find(server.provider_id, sku=server.sku)), None) if server.sku else None
+    by_size = (snapshot.provider_policy(server.provider_id) or {}).get("strategy") == "daily_table"
+    plan = next(iter(snapshot.find(server.provider_id, sku=server.sku)), None) if server.sku and not by_size else None
     # a plan's own specs are exact; what a server reports is lower because of kernel and filesystem overhead
     cpu = plan.cpu_cores if plan and plan.cpu_cores is not None else _dec(server.cpu_cores)
     ram = plan.ram_gb if plan and plan.ram_gb is not None else (
@@ -144,7 +145,7 @@ def to_resource(server: Server, snapshot: CatalogSnapshot) -> Resource | None:
     download = server.download_gb_override if server.download_gb_override is not None else usage.get("monthly_download_gb")
     upload = server.upload_gb_override if server.upload_gb_override is not None else usage.get("monthly_upload_gb")
     return Resource(id=server.id, name=server.name, provider_id=server.provider_id, service_type="compute_vm",
-                    sku=server.sku, resource_class=server.resource_class, environment=server.environment,
+                    sku=None if by_size else server.sku, resource_class=server.resource_class, environment=server.environment,
                     cpu_cores=cpu, ram_gb=ram, storage_gb=disk, storage_type=server.storage_type,
                     expected_monthly_download_gb=download, expected_monthly_upload_gb=upload,
                     requires_public_ipv4=True, metrics=metrics)

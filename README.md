@@ -106,7 +106,7 @@ flowchart LR
 | ArvanCloud | ✅ Exact | ⚠️ [Updated by hand](docs/provider-adapters.md#updating-prices-by-hand), because the site's bot protection blocks scraping |
 | Chabokan | ✅ Exact | ✅ Scraper |
 | MobinHost | ✅ Exact | ✅ Scraper |
-| ParsPack | ℹ️ Starting price only, never used for savings | ❌ |
+| ParsPack | ✅ Exact, priced from a server's specs | ✅ Scraper |
 | Abrha | ℹ️ Starting price only, never used for savings | ❌ |
 
 Scrapers check official pages twice a day. If a page can't be read, or prices move too sharply, nothing is
@@ -147,7 +147,7 @@ docs/           Architecture, pricing model, scrapers, AI safety and operations
 - [x] Server dashboard with real usage, wasted spend and renewal dates
 - [x] Price change and renewal alerts by email and Bale
 - [x] Shared, signed price catalog
-- [ ] Exact catalogs for ParsPack and ArvanCloud through their APIs
+- [ ] An exact catalog for ArvanCloud through its API
 - [ ] An optional small agent for servers behind NAT
 
 ## Documentation

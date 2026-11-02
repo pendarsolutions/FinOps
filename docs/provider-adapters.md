@@ -30,7 +30,7 @@ Adapters never invent values: an unstated field stays `None`; an unrecognised pa
 | Server.ir | `ServerIrAdapter` | /vps/iran/ | **live** | Parses `div.isotope-item` cards: SKU, vCore vs Core (+ "نوع سرور" class), RAM, disk, traffic text, datacenter, monthly price from `data-price`, VAT kept separate. **Live differs from seed**: IRFH5024/5048/8048/1001224 now meter download at 1,600 Toman/GB (seed: fair-use 50 GB/day) and IRFH80612 is delisted. A sync versions these; history keeps the seed values. |
 | IranServer | `IranServerAdapter` | /vps/iran/ | **live** | Parses the NGP-* General Purpose table only; other families are dynamic and not fabricated. Live = seed. |
 | Chabokan | `ChabokanAdapter` | /products/cloudserver/ | **live** | Reads plan objects embedded in the page, Iranian plans only. Prices had moved up from the seed on 2026-10-31 (NCO-small40-MHD 1,691,006 → 1,758,475). Multi-month prices are stored as attributes, never applied. |
-| ParsPack | — | — | seed only (discovery) | The public page shows only "starting from" prices. An exact catalog needs the documented Cloud Server API and an account. |
+| ParsPack | `ParsPackAdapter` | /cloud-server | **live** | Reads the calculator table embedded in the page. Its own script charges disk + RAM + CPU per day, which reproduces the page's total exactly. Iranian datacenters and Linux prices only. If datacenters ever differ in price, the sync fails rather than guess. |
 | MobinHost | `MobinHostAdapter` | /economic-vps/, /iran-vds/ | **live** | Reads Iran plan cards from both pages and skips foreign cards. A price unit it doesn't recognise fails the sync. |
 | Abrha | — | — | seed only (discovery) | Only a starting price is public. |
 

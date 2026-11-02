@@ -65,5 +65,5 @@ def test_mobinhost_unknown_price_unit_fails_instead_of_guessing():
         a.normalize_catalog(r)
 
 
-def test_starting_price_only_providers_stay_without_scrapers():
-    assert "parspack" not in ADAPTERS and "abrha" not in ADAPTERS
+def test_starting_price_only_provider_stays_without_a_scraper():
+    assert "abrha" not in ADAPTERS and "parspack" in ADAPTERS

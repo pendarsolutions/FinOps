@@ -69,6 +69,10 @@ class _Builder:
         self.lines.append(ComponentLine(code=code, description=desc, status=LineStatus.ASSUMED_INCLUDED, note=note))
         self.assume(note)
 
+    def snap_source(self, provider_id: str) -> str | None:
+        rows = self.snap.provider_items(provider_id)
+        return rows[0].source_url if rows else None
+
     def assume(self, text: str) -> None:
         if text not in self.assumptions:
             self.assumptions.append(text)
@@ -444,6 +448,37 @@ def _fixed_traffic(b: _Builder, row: CatalogItem, pol: dict[str, Any]) -> None:
     b.missing("traffic", "traffic_policy", f"{row.provider_id} {row.sku}: traffic terms are not in the seed catalog")
 
 
+def smallest_size_at_least(snapshot: CatalogSnapshot, provider_id: str, service_type: str, attr: str,
+                           wanted: Decimal) -> CatalogItem | None:
+    """The smallest size a provider sells that covers ``wanted``. None if it sells nothing that big."""
+    rows = [r for r in snapshot.find(provider_id, service_type=service_type) if getattr(r, attr) is not None]
+    return min((r for r in rows if getattr(r, attr) >= wanted), key=lambda r: getattr(r, attr), default=None)
+
+
+def _price_daily_table(b: _Builder, ctx: BillingContext, pol: dict[str, Any]) -> None:
+    """Each resource size has its own daily price (ParsPack): month = daily price x days, per component."""
+    r, q = b.r, b.r.quantity
+    days = Decimal(str(b.snap.policy["days_per_month"]["value"]))
+    for code, field, service_type, label in (("compute.cpu", "cpu_cores", "compute_component", "CPU"),
+                                             ("compute.ram", "ram_gb", "memory_component", "RAM GB"),
+                                             ("storage", "storage_gb", "storage_component", "Disk GB")):
+        wanted = b.require(code, field)
+        if wanted is None:
+            continue
+        row = smallest_size_at_least(b.snap, r.provider_id, service_type, field, wanted)
+        if row is None:
+            b.missing(code, field, f"{r.provider_id} sells no {label} size of at least {wanted}", b.snap_source(r.provider_id))
+            continue
+        size = getattr(row, field)
+        if size != wanted:
+            b.assume(f"{r.provider_id}: {label} {wanted} priced at the next size sold, {size.normalize():f}.")
+        b.priced(code, f"{label} {size.normalize():f}", row, days * q, row.daily_price_toman, "day")
+    b.assumed_included("traffic", "Traffic", f"{r.provider_id}: " + pol["traffic_note"])
+    if r.effective_ipv4_count > 0:
+        b.assumed_included("ipv4", "Public IPv4", f"{r.provider_id}: " + pol["ipv4_note"])
+    b.assume(f"{r.provider_id}: " + pol["setup_fee_note"])
+
+
 def _price_discovery(b: _Builder, ctx: BillingContext, pol: dict[str, Any]) -> None:
     b.discovery_only = True
     rows = b.snap.find(b.r.provider_id or "", sku=b.r.sku) if b.r.sku else b.snap.provider_items(b.r.provider_id or "")
@@ -464,6 +499,7 @@ STRATEGIES = {
     "component": _price_arvan,
     "liara_plan": _price_liara,
     "fixed_sku": _price_fixed_sku,
+    "daily_table": _price_daily_table,
     "discovery_only": _price_discovery,
 }
 

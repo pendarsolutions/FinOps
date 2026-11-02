@@ -14,7 +14,7 @@ independently.
 |---|---|
 | `EXACT` | Every component priced from catalog rows. `monthly_total_toman` set. |
 | `PRICE_UNAVAILABLE` | At least one component has no price (missing field, unknown SKU, overage price not published, …). `monthly_total_toman` is **null**; `priced_subtotal_toman` shows what *was* priced; `unavailable[]` names the component, missing field, reason and source. |
-| `DISCOVERY_ONLY` | ParsPack `calculator_snapshot` / Abrha `starting_price`. Shown as `info` lines, never summed, never used for savings. |
+| `DISCOVERY_ONLY` | Abrha `starting_price`. Shown as `info` lines, never summed, never used for savings. |
 
 A quote is `complete` only if every resource is `EXACT`; otherwise `total_toman` is null.
 
@@ -59,6 +59,13 @@ Line statuses: `priced`, `included` (catalog explicitly says 0 / unlimited), `as
 - Sold-out plans can still be priced as the *current* plan (flagged) but never as a candidate.
 - Term discounts (`serverir-discounts`, `needs_checkout_verification`) are never applied; REC-004
   surfaces them as information with no number.
+
+### `daily_table` — ParsPack
+- Each size has its own daily price: month = (CPU + RAM + disk daily prices) × 30 × quantity.
+- A size between two sold sizes uses the next one up, with a recorded assumption. A size beyond the table is `PRICE_UNAVAILABLE`.
+- The official calculator prices no traffic or IPv4, and the price list mentions a 7-day setup fee. These are visible
+  assumptions on every quote, not numbers.
+- Not yet offered as a candidate when comparing other providers' servers.
 
 ## Equivalence (`equivalence_rules.json`)
 
