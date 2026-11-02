@@ -796,6 +796,20 @@ li,
   cursor: pointer;
   color: var(--info);
 }
+.opp-saving {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.opp-ask {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+}
+.opp-ask ul {
+  margin: 0.3rem 0 0;
+  padding-inline-start: 1.1rem;
+}
 .cannot {
   border-block-end: 1px solid var(--border);
   padding-block: 0.4rem;

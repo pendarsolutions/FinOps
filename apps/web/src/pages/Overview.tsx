@@ -5,6 +5,7 @@ import { environmentColor, providerColor } from "../lib/viz";
 import { PartMeter, RankedBars, ShareBar } from "../components/viz";
 import { useI18n } from "../lib/i18n";
 import { useProviderName } from "../lib/hooks";
+import { recTitle } from "../lib/plain";
 import { useSession } from "../lib/session";
 import { Badge, Button, Card, Date_, Empty, ErrorBox, FreshnessBadge, Loading, Money, Num, Pct, PriceUnavailableBadge, ToneBadge } from "../components/ui";
 
@@ -42,7 +43,7 @@ export function EmptyWorkspace() {
 }
 
 export function OverviewPage() {
-  const { t, lang, pick } = useI18n();
+  const { t, lang } = useI18n();
   const { activeId, inventories, inventoriesLoading } = useSession();
   const pname = useProviderName();
   const qc = useQueryClient();
@@ -177,8 +178,8 @@ export function OverviewPage() {
             caption={t("savingsChart")}
             rows={d.top_opportunities.map((r) => ({
               key: r.id,
-              label: pick(r.title_fa, r.title_en),
-              tipLabel: `${pick(r.title_fa, r.title_en)} · ${r.resource_name ?? ""}`,
+              label: recTitle(r, lang),
+              tipLabel: `${recTitle(r, lang)} · ${r.resource_name ?? ""}`,
               sub: r.resource_name,
               value: r.monthly_saving_toman,
               trailing: (

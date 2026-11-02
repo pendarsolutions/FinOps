@@ -3,6 +3,7 @@ import { ApiError } from "../api/client";
 import type { BlockingRow, ComponentLine, PriceSource } from "../api/types";
 import { useI18n, type TKey } from "../lib/i18n";
 import { formatDate, formatDecimal, formatPercent, formatToman, localizeDigits, type Decimalish } from "../lib/money";
+import { usePlain } from "../lib/plain";
 
 // ------------------------------------------------------------------ basics
 
@@ -158,7 +159,7 @@ export function PriceUnavailableBadge() {
   const { t } = useI18n();
   return (
     <span className="price-unavailable" title="PRICE_UNAVAILABLE">
-      ⚠ {t("priceUnavailable")} <code>PRICE_UNAVAILABLE</code>
+      ⚠ {t("priceUnavailable")}
     </span>
   );
 }
@@ -265,6 +266,7 @@ export function LineStatusBadge({ s }: { s: string }) {
 /** Component lines of a price breakdown (priced / included / assumed_included / unavailable / info). */
 export function LinesTable({ lines, sources }: { lines: ComponentLine[] | undefined; sources?: PriceSource[] }) {
   const { t } = useI18n();
+  const p = usePlain();
   if (!lines?.length) return null;
   return (
     <div className="table-wrap">
@@ -283,17 +285,14 @@ export function LinesTable({ lines, sources }: { lines: ComponentLine[] | undefi
           {lines.map((l, i) => (
             <tr key={`${l.code}-${i}`}>
               <td>
-                <div>{l.description}</div>
-                <small className="muted" dir="ltr">
-                  {l.code}
-                </small>
-                {l.note ? <div className="note">{l.note}</div> : null}
+                <div>{p.lineLabel(l)}</div>
+                {l.note ? <div className="note">{p.note(l.note)}</div> : null}
               </td>
               <td>
                 <LineStatusBadge s={l.status} />
               </td>
               <td className="num-col">
-                <Num v={l.quantity} /> <small className="muted">{l.unit}</small>
+                <Num v={l.quantity} /> <small className="muted">{p.unit(l.unit)}</small>
               </td>
               <td className="num-col">{l.unit_price_toman !== null ? <Money v={l.unit_price_toman} /> : <span className="muted">—</span>}</td>
               <td className="num-col">
@@ -403,9 +402,10 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
 }
 
 export function ToneBadge({ value, kind }: { value: string | null | undefined; kind: "risk" | "effort" | "confidence" }) {
+  const p = usePlain();
   const v = (value ?? "").toLowerCase();
   let tone: Tone = "neutral";
   if (kind === "confidence") tone = v === "high" ? "good" : v === "medium" ? "info" : v === "needs_human_review" ? "warn" : "neutral";
   else tone = v === "low" || v === "none" ? "good" : v === "medium" ? "warn" : v === "high" ? "bad" : "neutral";
-  return <StatusChip tone={tone} label={value ?? "—"} />;
+  return <StatusChip tone={tone} label={p.level(value)} />;
 }

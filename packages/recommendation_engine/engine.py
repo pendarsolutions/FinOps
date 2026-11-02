@@ -229,8 +229,8 @@ def _downsize(snapshot: CatalogSnapshot, r: Resource, current: PriceBreakdown, c
         missing.append(f"metrics.observation_days>={p['min_observation_days']}")
     if missing:
         return [_cannot(snapshot, r, "REC-002", missing,
-                        "Rightsizing needs usage evidence (p95 CPU/RAM over enough days). Allocation alone is not used.",
-                        "کوچک‌سازی نیازمند شواهد مصرف (p95 پردازنده/حافظه در بازه کافی) است؛ تخصیص منابع به‌تنهایی ملاک نیست.")]
+                        "To suggest a smaller server, its real usage must be measured for long enough. Its size alone isn't enough.",
+                        "برای پیشنهاد سرور کوچک‌تر، مصرف واقعی آن باید به مدت کافی اندازه‌گیری شود. اندازه سرور به‌تنهایی کافی نیست.")]
     if m.p95_cpu_percent > Decimal(p["max_p95_cpu_percent"]) or m.p95_ram_percent > Decimal(p["max_p95_ram_percent"]):
         return []
     if current.status != PriceStatus.EXACT:
@@ -294,10 +294,10 @@ def _downsize(snapshot: CatalogSnapshot, r: Resource, current: PriceBreakdown, c
     label = row.sku if row is not None else f"{cand_r.cpu_cores} vCPU / {cand_r.ram_gb} GB"
     return [_priced_rec(
         snapshot, rule, r, current, bd, conf,
-        f"{r.name}: p95 CPU {m.p95_cpu_percent}% and p95 RAM {m.p95_ram_percent}% over {m.observation_days} days. "
-        f"{label} covers p95 x {head} headroom.",
-        f"{r.name}: مصرف p95 پردازنده {m.p95_cpu_percent}٪ و حافظه {m.p95_ram_percent}٪ در {m.observation_days} روز. "
-        f"{label} با ضریب اطمینان {head} کافی است.",
+        f"Over {m.observation_days} days, {r.name} stayed under {m.p95_cpu_percent}% CPU and {m.p95_ram_percent}% memory "
+        f"95% of the time. {label} covers that with a safety margin.",
+        f"در {m.observation_days} روز گذشته، مصرف {r.name} در ۹۵٪ مواقع زیر {m.p95_cpu_percent}٪ پردازنده و {m.p95_ram_percent}٪ حافظه بوده است. "
+        f"{label} با حاشیه اطمینان کافی است.",
         {"inputs": inputs, "candidate_sku": label, "never_from_allocation_alone": True})]
 
 
@@ -331,10 +331,10 @@ def _migration(snapshot: CatalogSnapshot, r: Resource, current: PriceBreakdown, 
     differences = [d.model_dump(mode="json") for d in best.differences if d.verdict != "same"]
     return [_priced_rec(
         snapshot, rule, r, current, best.candidate, best.confidence,
-        f"{best.candidate_label} passes all hard constraints (fit {best.fit_score}, confidence {best.confidence}). "
-        f"Review the listed differences before migrating.",
-        f"{best.candidate_label} همه محدودیت‌های سخت را پاس می‌کند (امتیاز تطابق {best.fit_score}، اطمینان {best.confidence}). "
-        "پیش از مهاجرت تفاوت‌ها را بررسی کنید.",
+        f"{best.candidate_label} has at least the CPU, memory and disk of this server and costs less. "
+        f"Check the listed differences before moving.",
+        f"{best.candidate_label} دست‌کم همین پردازنده، حافظه و دیسک را دارد و ارزان‌تر است. "
+        "پیش از انتقال، تفاوت‌ها را بررسی کنید.",
         {"candidate_label": best.candidate_label, "fit_score": str(best.fit_score),
          "score_breakdown": {k: str(v) for k, v in best.score_breakdown.items()},
          "constraints": [c.model_dump(mode="json") for c in best.constraints], "differences": differences,
@@ -389,7 +389,7 @@ def summarize(recs: list[Recommendation], current_total_toman: Decimal | None, s
         "avoidable_monthly_toman": avoidable,
         "potential_saving_percent": pct,
         "counted_recommendation_keys": sorted(x.key for x in best.values()),
-        "method": "Per resource, only the largest actionable saving is counted; alternatives for the same resource are not added.",
+        "method": "If a server has several suggestions, only the largest saving is counted, because you can only apply one.",
         "actionable_count": sum(1 for x in recs if x.status == "actionable"),
         "cannot_determine_count": sum(1 for x in recs if x.status == "cannot_determine"),
     }

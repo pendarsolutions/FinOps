@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import type { ServerDetail, ServerView } from "../api/types";
 import { useI18n, type TKey } from "../lib/i18n";
 import { useProviderName, useProviders } from "../lib/hooks";
+import { recTitle, usePlain } from "../lib/plain";
 import { useSession } from "../lib/session";
 import { Badge, Button, Card, Date_, Drawer, Empty, ErrorBox, Field, LinesTable, Loading, Money, Num, Pct, PriceUnavailableBadge, StatusChip, type Tone } from "../components/ui";
 import { Initial, Rec, RecList, RecStat } from "../components/records";
@@ -114,6 +115,7 @@ function UsageGrid({ s }: { s: ServerView }) {
 
 function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => void; canEdit: boolean }) {
   const { t, lang, pick } = useI18n();
+  const plain = usePlain();
   const pname = useProviderName();
   const providers = useProviders();
   const qc = useQueryClient();
@@ -297,7 +299,7 @@ function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => voi
               {d.breakdown.assumptions.length > 0 && (
                 <ul className="assumptions">
                   {d.breakdown.assumptions.map((a) => (
-                    <li key={a}>{a}</li>
+                    <li key={a}>{plain.note(a)}</li>
                   ))}
                 </ul>
               )}
@@ -310,7 +312,7 @@ function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => voi
               <ul>
                 {d.recommendations.map((r) => (
                   <li key={r.key}>
-                    <strong>{pick(r.title_fa, r.title_en)}</strong>
+                    <strong>{recTitle(r, lang)}</strong>
                     {r.monthly_saving_toman != null && (
                       <>
                         {" "}

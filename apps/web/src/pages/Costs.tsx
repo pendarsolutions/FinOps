@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type { InventoryView, QuoteView } from "../api/types";
 import { useI18n } from "../lib/i18n";
 import { useProviderName } from "../lib/hooks";
+import { usePlain } from "../lib/plain";
 import { formatDecimal, visualShare } from "../lib/money";
 import { providerColor } from "../lib/viz";
 import { ConfirmedInventory } from "../components/Guard";
@@ -15,6 +16,7 @@ import { Button, Card, Date_, ErrorBox, LineStatusBadge, Loading, Money, Num, Pr
 function BreakdownTable({ q }: { q: QuoteView }) {
   const { t, lang } = useI18n();
   const pname = useProviderName();
+  const p = usePlain();
   const c = q.content;
   const [open, setOpen] = useState<Set<string>>(() => new Set(c.breakdowns.filter((b) => b.status !== "EXACT").map((b) => b.resource_id)));
   const toggle = (id: string) =>
@@ -64,7 +66,7 @@ function BreakdownTable({ q }: { q: QuoteView }) {
                       {" "}
                       {pname(b.provider_id, lang)} · {lines.length} {t("componentsCount")}
                     </small>{" "}
-                    {b.status === "EXACT" ? null : <StatusChip tone={b.status === "PRICE_UNAVAILABLE" ? "bad" : "warn"} label={b.status} />}
+                    {b.status === "EXACT" ? null : <StatusChip tone={b.status === "PRICE_UNAVAILABLE" ? "bad" : "warn"} label={b.status === "PRICE_UNAVAILABLE" ? t("priceUnavailable") : t("discoveryOnly")} />}
                   </th>
                   <td className="num-col">
                     ×<Num v={b.quantity} />
@@ -77,17 +79,14 @@ function BreakdownTable({ q }: { q: QuoteView }) {
                   lines.map((l, i) => (
                     <tr key={`${l.code}-${i}`} className={`line line-${l.status}`}>
                       <td>
-                        <div className="bidi">{l.description}</div>
-                        <small className="muted code" dir="ltr">
-                          {l.code}
-                        </small>
-                        {l.note ? <div className="note">{l.note}</div> : null}
+                        <div className="bidi">{p.lineLabel(l)}</div>
+                        {l.note ? <div className="note">{p.note(l.note)}</div> : null}
                       </td>
                       <td>
                         <LineStatusBadge s={l.status} />
                       </td>
                       <td className="num-col">
-                        <Num v={l.quantity} /> <small className="muted">{l.unit}</small>
+                        <Num v={l.quantity} /> <small className="muted">{p.unit(l.unit)}</small>
                       </td>
                       <td className="num-col">{l.unit_price_toman !== null ? <Money v={l.unit_price_toman} /> : <span className="muted">—</span>}</td>
                       <td className="num-col">
@@ -103,7 +102,7 @@ function BreakdownTable({ q }: { q: QuoteView }) {
                     <td colSpan={6}>
                       {b.unavailable.map((u, i) => (
                         <div key={i} className="small">
-                          <PriceUnavailableBadge /> {u.component}: {u.reason}
+                          <PriceUnavailableBadge /> {p.note(u.reason)}
                         </div>
                       ))}
                       {b.monthly_total_toman === null && (
@@ -133,6 +132,7 @@ function BreakdownTable({ q }: { q: QuoteView }) {
 function QuoteDetail({ q }: { q: QuoteView }) {
   const { t, lang } = useI18n();
   const pname = useProviderName();
+  const p = usePlain();
   const c = q.content;
   return (
     <div className="stack">
@@ -157,16 +157,19 @@ function QuoteDetail({ q }: { q: QuoteView }) {
           </div>
         )}
       </div>
-      <p className="muted small" dir="ltr">
-        quote {q.id} · {t("catalogVersion")} {c.catalog_version} · {t("engineVersion")} {c.engine_version} · {t("policyVersion")} {c.policy_version} · hash {c.content_hash.slice(0, 12)}
-      </p>
+      <details className="small muted">
+        <summary>{t("technicalDetails")}</summary>
+        <p dir="ltr">
+          quote {q.id} · {t("catalogVersion")} {c.catalog_version} · {t("engineVersion")} {c.engine_version} · {t("policyVersion")} {c.policy_version} · hash {c.content_hash.slice(0, 12)}
+        </p>
+      </details>
 
       {c.unavailable.length > 0 && (
         <Card title={t("unavailableList")} className="card-bad">
           <ul>
             {c.unavailable.map((u, i) => (
               <li key={i}>
-                <PriceUnavailableBadge /> <strong>{u.component}</strong> — {u.reason} <small className="muted">({u.missing_field})</small>
+                <PriceUnavailableBadge /> {p.note(u.reason)}
               </li>
             ))}
           </ul>
@@ -215,7 +218,7 @@ function QuoteDetail({ q }: { q: QuoteView }) {
         {c.assumptions.length ? (
           <ul className="assumptions">
             {c.assumptions.map((a, i) => (
-              <li key={i}>{a}</li>
+              <li key={i}>{p.note(a)}</li>
             ))}
           </ul>
         ) : (

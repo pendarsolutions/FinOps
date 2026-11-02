@@ -1,10 +1,12 @@
-import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { ComponentLine, ConstraintResult, Difference, InventoryView, Recommendation } from "../api/types";
+import type { ComponentLine, ConstraintResult, Dec, Difference, InventoryView, Recommendation } from "../api/types";
+import { Link } from "react-router-dom";
 import { useI18n } from "../lib/i18n";
+import { formatDecimal, localizeDigits } from "../lib/money";
+import { recTitle, usePlain } from "../lib/plain";
 import { ConfirmedInventory } from "../components/Guard";
-import { Badge, Button, Card, Drawer, ErrorBox, LinesTable, Loading, Money, Num, Pct, ToneBadge } from "../components/ui";
+import { Badge, Button, Card, ErrorBox, LinesTable, Loading, Money, Num, Pct, ToneBadge } from "../components/ui";
 import { BeforeAfter, RankedBars } from "../components/viz";
 
 const VERDICT: Record<string, { mark: string; key: "vBetter" | "vWorse" | "vSame" | "vDifferent" | "vUnknown" }> = {
@@ -26,46 +28,61 @@ export function VerdictBadge({ v }: { v: string }) {
   );
 }
 
-export function show(v: unknown): string {
-  if (v === null || v === undefined) return "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
+/** A 0–1 match score as a whole percentage. Display only. */
+export function FitPercent({ v }: { v: Dec | null }) {
+  const { lang } = useI18n();
+  if (v === null) return <>—</>;
+  const pct = Math.round(Number(v) * 100);
+  return <span className="num">{lang === "fa" ? `${localizeDigits(String(pct), lang)}٪` : `${pct}%`}</span>;
 }
 
 export function ConstraintsList({ items }: { items: ConstraintResult[] }) {
+  const { t } = useI18n();
+  const p = usePlain();
   return (
     <ul className="plain small">
-      {items.map((c) => (
-        <li key={c.constraint_id}>
-          <Badge tone={c.passed ? "good" : "bad"}>{c.passed ? "✓" : "✗"}</Badge> <code dir="ltr">{c.constraint_id}</code> <span dir="ltr">{c.detail}</span>
-        </li>
-      ))}
+      {items.map((c) => {
+        // A check that passed only because nothing is known isn't a real pass.
+        const unknown = c.passed && c.detail === "cpu class: unknown";
+        return (
+          <li key={c.constraint_id}>
+            <Badge tone={unknown ? "warn" : c.passed ? "good" : "bad"}>{unknown ? "?" : c.passed ? "✓" : "✗"}</Badge>{" "}
+            {unknown ? t("cpuTypeUnknown") : p.check(c)}
+            {!c.passed && c.constraint_id === "HC-PRICEABLE" ? <div className="note">{p.note(c.detail)}</div> : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
-function DifferencesTable({ items }: { items: Difference[] }) {
+/** Shown as a before/after row on the card. */
+const SPEC_ROWS = ["cpu_cores", "ram_gb", "storage_gb", "included_traffic_gb", "datacenter"];
+/** Already visible in the price lines, so they aren't repeated as differences. */
+const COST_ROWS = new Set(["traffic_cost_toman", "ipv4_cost_toman"]);
+
+function WhatChanges({ items }: { items: Difference[] }) {
   const { t } = useI18n();
+  const p = usePlain();
+  const rows = items.filter((d) => SPEC_ROWS.includes(d.dimension) && d.candidate_value !== null && d.verdict !== "unknown");
+  if (!rows.length) return null;
   return (
     <div className="table-wrap">
       <table className="table compact">
         <thead>
           <tr>
-            <th>{t("dimension")}</th>
-            <th>{t("current")}</th>
-            <th>{t("candidateLines")}</th>
             <th />
+            <th>{t("nowLabel")}</th>
+            <th>{t("afterMove")}</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((d) => (
+          {rows.map((d) => (
             <tr key={d.dimension}>
-              <td dir="ltr">{d.dimension}</td>
-              <td dir="ltr">{show(d.source_value)}</td>
-              <td dir="ltr">{show(d.candidate_value)}</td>
+              <th scope="row">{p.dimension(d.dimension)}</th>
+              <td>{p.value(d.dimension, d.source_value)}</td>
               <td>
-                <VerdictBadge v={d.verdict} />
-                {d.note ? <div className="note">{d.note}</div> : null}
+                {p.value(d.dimension, d.candidate_value)} {d.verdict === "better" || d.verdict === "worse" ? <VerdictBadge v={d.verdict} /> : null}
               </td>
             </tr>
           ))}
@@ -75,30 +92,73 @@ function DifferencesTable({ items }: { items: Difference[] }) {
   );
 }
 
-const STRUCTURED = new Set(["current", "candidate", "constraints", "differences"]);
+/** What the price list doesn't say, as questions to ask the new provider. */
+function AskFirst({ items }: { items: Difference[] }) {
+  const { t, pick } = useI18n();
+  const p = usePlain();
+  const questions: string[] = [];
+  for (const d of items) {
+    if (d.verdict !== "unknown" || COST_ROWS.has(d.dimension)) continue;
+    if (d.dimension === "cpu_class") questions.push(pick("پردازنده اختصاصی است یا اشتراکی؟", "Is the CPU dedicated or shared?"));
+    else if (d.dimension === "storage_type") questions.push(pick("نوع دیسک چیست (مثلاً SSD یا NVMe)؟", "What type of disk is it (SSD or NVMe, for example)?"));
+    else if (d.dimension === "datacenter") questions.push(pick("سرور در کدام دیتاسنتر است؟", "Which datacenter is the server in?"));
+    else if (Array.isArray(d.candidate_value)) d.candidate_value.forEach((x) => questions.push(p.note(String(x))));
+    else questions.push(p.dimension(d.dimension));
+  }
+  if (!questions.length) return null;
+  return (
+    <div className="opp-ask">
+      <strong>{t("askFirst")}</strong>
+      <ul>
+        {questions.map((q) => (
+          <li key={q}>{q}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
-function Evidence({ r }: { r: Recommendation }) {
-  const { t } = useI18n();
+function Migration({ r }: { r: Recommendation }) {
+  const { t, lang, pick } = useI18n();
+  const days = formatDecimal(r.evidence.migration_effort_days_per_instance as string | undefined, lang);
+  return (
+    <p className="small">
+      {pick(`انتقال حدود ${days} روز کار مهندس می‌برد.`, `Moving takes about ${days} engineer days.`)}{" "}
+      {r.one_time_migration_cost_toman !== null ? (
+        <>
+          {t("migrationCost")}: <Money v={r.one_time_migration_cost_toman} /> · {t("payback")}: <Num v={r.payback_months} max={1} />
+        </>
+      ) : (
+        <>
+          {pick("برای دیدن هزینه انتقال و زمان جبران آن، ", "To see what the move costs and when it pays off, ")}
+          <Link to="/settings">{t("enterDayRate")}</Link>.
+        </>
+      )}
+    </p>
+  );
+}
+
+const INPUTS: Record<string, [string, string]> = {
+  p95_cpu_percent: ["مصرف پردازنده در ۹۵٪ مواقع (٪)", "CPU use 95% of the time (%)"],
+  p95_ram_percent: ["مصرف حافظه در ۹۵٪ مواقع (٪)", "Memory use 95% of the time (%)"],
+  observation_days: ["روزهای اندازه‌گیری", "Days measured"],
+  required_cpu_cores: ["پردازنده لازم (هسته)", "CPU needed (cores)"],
+  required_ram_gb: ["حافظه لازم (گیگابایت)", "Memory needed (GB)"],
+  required_storage_gb: ["دیسک لازم (گیگابایت)", "Disk needed (GB)"],
+  active_hours_per_month: ["ساعت کار در ماه", "Hours used per month"],
+};
+
+/** The working behind a suggestion: both price lists, the checks it passed and how the prices were dated. */
+function Working({ r }: { r: Recommendation }) {
+  const { t, lang, pick } = useI18n();
   const e = r.evidence;
-  const rest = Object.entries(e).filter(([k]) => !STRUCTURED.has(k));
+  const inputs = Object.entries((e.inputs ?? {}) as Record<string, unknown>).filter(([k]) => INPUTS[k]);
   return (
     <div className="stack">
-      {e.constraints && (
-        <>
-          <h4>{t("constraints")}</h4>
-          <ConstraintsList items={e.constraints} />
-        </>
-      )}
-      {e.differences && (
-        <>
-          <h4>{t("differences")}</h4>
-          <DifferencesTable items={e.differences} />
-        </>
-      )}
       {e.current && (
         <>
           <h4>
-            {t("currentLines")} — <Money v={e.current.monthly_total_toman ?? null} />
+            {t("currentLines")}: <Money v={e.current.monthly_total_toman ?? null} />
           </h4>
           <LinesTable lines={e.current.components as ComponentLine[]} />
         </>
@@ -106,163 +166,141 @@ function Evidence({ r }: { r: Recommendation }) {
       {e.candidate && (
         <>
           <h4>
-            {t("candidateLines")} {e.candidate_label ? `(${e.candidate_label})` : ""} — <Money v={e.candidate.monthly_total_toman ?? null} />
+            {t("afterChange")} {e.candidate_label ? `(${e.candidate_label})` : ""}: <Money v={e.candidate.monthly_total_toman ?? null} />
           </h4>
           <LinesTable lines={e.candidate.components as ComponentLine[]} />
         </>
       )}
+      {inputs.length > 0 && (
+        <dl className="kv">
+          {inputs.map(([k, v]) => (
+            <div key={k} className="kv-row">
+              <dt>{pick(...INPUTS[k])}</dt>
+              <dd>
+                <Num v={String(v)} max={2} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {e.constraints && (
+        <>
+          <h4>{t("constraints")}</h4>
+          <ConstraintsList items={e.constraints} />
+        </>
+      )}
+      {e.fit_score && (
+        <p className="small">
+          <strong>{t("fitScore")}:</strong> <FitPercent v={e.fit_score} />. {t("fitExplain")}
+        </p>
+      )}
       {r.price_dates.length > 0 && (
-        <>
-          <h4>{t("priceDates")}</h4>
-          <ul className="plain small" dir="ltr">
-            {r.price_dates.map((d) => (
-              <li key={d}>{d}</li>
-            ))}
-          </ul>
-        </>
-      )}
-      {rest.length > 0 && (
-        <>
-          <h4>{t("otherEvidence")}</h4>
-          <dl className="kv small">
-            {rest.map(([k, v]) => (
-              <div key={k} className="kv-row">
-                <dt dir="ltr">{k}</dt>
-                <dd>
-                  <code className="pre" dir="ltr">
-                    {typeof v === "object" ? JSON.stringify(v, null, 1) : show(v)}
-                  </code>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </>
+        <p className="small muted">
+          {t("priceDates")}: {localizeDigits([...new Set(r.price_dates.map((d) => d.slice(d.lastIndexOf(" ") + 1)))].join("، "), lang)}
+        </p>
       )}
     </div>
   );
 }
 
-function Plan({ id }: { id: string }) {
-  const { t, pick } = useI18n();
-  const q = useQuery({ queryKey: ["rec", id], queryFn: () => api.rec(id) });
-  if (q.isLoading) return <Loading />;
-  if (q.error) return <ErrorBox error={q.error} />;
-  const r = q.data!;
-  return (
-    <div className="stack">
-      <p>{pick(r.summary_fa, r.summary_en)}</p>
-      <dl className="kv">
-        <dt>{t("affectedResource")}</dt>
-        <dd>{r.resource_name ?? "—"}</dd>
-        <dt>{t("currentCost")}</dt>
-        <dd>
-          <Money v={r.current_cost_toman} />
-        </dd>
-        <dt>{t("candidateCost")}</dt>
-        <dd>
-          <Money v={r.candidate_cost_toman} />
-        </dd>
-        <dt>{t("savingMonth")}</dt>
-        <dd>
-          <Money v={r.monthly_saving_toman} /> (<Pct v={r.monthly_saving_percent} />)
-        </dd>
-        {r.one_time_migration_cost_toman !== null && (
-          <>
-            <dt>{t("migrationCost")}</dt>
-            <dd>
-              <Money v={r.one_time_migration_cost_toman} />
-            </dd>
-          </>
-        )}
-        {(r.payback_months !== null || r.payback_status) && (
-          <>
-            <dt>{t("payback")}</dt>
-            <dd>
-              <Num v={r.payback_months} /> <small className="muted">{r.payback_status}</small>
-            </dd>
-          </>
-        )}
-        <dt>{t("risk")}</dt>
-        <dd>
-          <ToneBadge kind="risk" value={r.risk_level} />
-        </dd>
-        <dt>{t("effort")}</dt>
-        <dd>
-          <ToneBadge kind="effort" value={r.effort_level} />
-        </dd>
-        <dt>{t("confidence")}</dt>
-        <dd>
-          <ToneBadge kind="confidence" value={r.confidence} />
-        </dd>
-        <dt>Rule</dt>
-        <dd dir="ltr">
-          {r.rule_id} · {r.recommendation_type} · {r.status}
-        </dd>
-      </dl>
-      {r.missing_inputs.length > 0 && (
-        <>
-          <h4>{t("missingInputs")}</h4>
-          <ul dir="ltr">
-            {r.missing_inputs.map((m) => (
-              <li key={m}>
-                <code>{m}</code>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      <Evidence r={r} />
-    </div>
-  );
-}
-
-function OppCard({ r, counted, onPlan }: { r: Recommendation; counted: boolean; onPlan: () => void }) {
-  const { t, pick } = useI18n();
+function OppCard({ r }: { r: Recommendation }) {
+  const { t, lang, pick } = useI18n();
+  const isMove = r.rule_id === "REC-003";
+  const differences = r.evidence.differences ?? [];
   return (
     <article className="opp">
       <header className="row between wrap">
-        <h3>{pick(r.title_fa, r.title_en)}</h3>
-        {r.monthly_saving_toman !== null && <Money v={r.monthly_saving_toman} big suffix={t("perMonth")} />}
-      </header>
-      <div className="row gap wrap small">
-        <span>
-          {t("affectedResource")}: <strong>{r.resource_name ?? "—"}</strong>
-        </span>
-        {r.monthly_saving_percent && (
-          <span>
-            <Pct v={r.monthly_saving_percent} />
-          </span>
+        <div>
+          <h3>{recTitle(r, lang)}</h3>
+          <small className="muted">
+            {t("colServer")}: <strong>{r.resource_name ?? "—"}</strong>
+          </small>
+        </div>
+        {r.monthly_saving_toman !== null && (
+          <div className="opp-saving">
+            <small className="muted">{t("youSave")}</small>
+            <Money v={r.monthly_saving_toman} big suffix={t("perMonth")} />
+            {r.monthly_saving_percent && (
+              <small className="muted">
+                <Pct v={r.monthly_saving_percent} /> {t("ofThisServer")}
+              </small>
+            )}
+          </div>
         )}
+      </header>
+      {r.current_cost_toman !== null && r.candidate_cost_toman !== null && (
+        <BeforeAfter current={r.current_cost_toman} after={r.candidate_cost_toman} saving={r.monthly_saving_toman} />
+      )}
+      {!isMove && <p className="small">{pick(r.summary_fa, r.summary_en)}</p>}
+      {isMove && <WhatChanges items={differences} />}
+      {isMove && <AskFirst items={differences} />}
+      {isMove && <Migration r={r} />}
+      <div className="row gap wrap small">
         <span>
           {t("risk")} <ToneBadge kind="risk" value={r.risk_level} />
         </span>
         <span>
           {t("effort")} <ToneBadge kind="effort" value={r.effort_level} />
         </span>
-        <span>
-          {t("confidence")} <ToneBadge kind="confidence" value={r.confidence} />
-        </span>
-        {counted && <Badge tone="info">Σ</Badge>}
+        {r.confidence !== "n/a" && (
+          <span>
+            {t("confidence")} <ToneBadge kind="confidence" value={r.confidence} />
+          </span>
+        )}
       </div>
-      {r.current_cost_toman !== null && r.candidate_cost_toman !== null && (
-        <BeforeAfter current={r.current_cost_toman} after={r.candidate_cost_toman} saving={r.monthly_saving_toman} />
+      {r.evidence.current && (
+        <details>
+          <summary>{t("howCalculated")}</summary>
+          <Working r={r} />
+        </details>
       )}
-      <p className="small">{pick(r.summary_fa, r.summary_en)}</p>
-      <details>
-        <summary>{t("evidence")}</summary>
-        <Evidence r={r} />
-      </details>
-      <div className="row gap">
-        <Button onClick={onPlan}>{t("viewPlan")}</Button>
-      </div>
     </article>
   );
 }
 
+/** One line per thing still needed, saying who has to do what. */
+function Needed({ r }: { r: Recommendation }) {
+  const { t, lang, pick, fieldLabel } = useI18n();
+  const dayRate = r.missing_inputs.includes("organization.engineer_day_rate_toman");
+  const days = r.missing_inputs.map((m) => /^metrics\.observation_days>=(\d+)$/.exec(m)?.[1]).find(Boolean);
+  const metrics = r.missing_inputs.some((m) => m.startsWith("metrics."));
+  let body;
+  if (dayRate) {
+    body = (
+      <>
+        {pick("برای محاسبه هزینه انتقال و زمان جبران آن، ", "To work out what a move costs and when it pays off, ")}
+        <Link to="/settings">{t("enterDayRate")}</Link>.
+      </>
+    );
+  } else if (metrics) {
+    const n = days ? formatDecimal(days, lang) : null;
+    body = n
+      ? pick(`برای پیشنهاد سرور کوچک‌تر، مصرف این سرور باید دست‌کم ${n} روز اندازه‌گیری شود. سرور را متصل نگه دارید.`,
+             `To suggest a smaller server, its usage must be measured for at least ${n} days. Keep the server connected.`)
+      : pick("برای پیشنهاد سرور کوچک‌تر، مصرف پردازنده و حافظه این سرور لازم است. سرور را متصل نگه دارید.",
+             "To suggest a smaller server, its CPU and memory usage is needed. Keep the server connected.");
+  } else {
+    body = (
+      <>
+        {pick(r.summary_fa, r.summary_en)}
+        {r.missing_inputs.length > 0 && (
+          <div className="small muted">
+            {t("missing")}: {r.missing_inputs.map(fieldLabel).join("، ")}
+          </div>
+        )}
+      </>
+    );
+  }
+  return (
+    <li className="cannot">
+      <strong>{r.resource_name ?? "—"}</strong>: {body}
+    </li>
+  );
+}
+
 function OppsInner({ inv }: { inv: InventoryView }) {
-  const { t, pick } = useI18n();
+  const { t, lang } = useI18n();
   const qc = useQueryClient();
-  const [plan, setPlan] = useState<Recommendation | null>(null);
   const q = useQuery({ queryKey: ["recs", inv.id], queryFn: () => api.recs(inv.id) });
   const run = useMutation({
     mutationFn: () => api.runRecs(inv.id),
@@ -309,79 +347,54 @@ function OppsInner({ inv }: { inv: InventoryView }) {
               <div className="stat">
                 <span className="stat-label">{t("counts")}</span>
                 <span>
-                  {t("actionable")}: <Num v={d.summary.actionable_count} /> · {t("cannotDetermine")}: <Num v={d.summary.cannot_determine_count} />
+                  {t("actionable")}: <Num v={d.summary.actionable_count} /> · {t("needMoreData")}: <Num v={d.summary.cannot_determine_count} />
                 </span>
               </div>
             </div>
-            <p className="small">
-              <strong>{t("method")}:</strong> {d.summary.method} <Badge tone="info">Σ</Badge>
-            </p>
+            <p className="small muted">{t("savingMethod")}</p>
           </Card>
 
-          {groups.actionable.length > 0 && (
+          {groups.actionable.length > 1 && (
             <Card title={t("savingsChart")}>
               <RankedBars
                 caption={t("savingsChart")}
                 rows={groups.actionable.map((r) => ({
                   key: r.id,
-                  label: pick(r.title_fa, r.title_en),
-                  tipLabel: `${pick(r.title_fa, r.title_en)} · ${r.resource_name ?? ""}`,
+                  label: recTitle(r, lang),
+                  tipLabel: `${recTitle(r, lang)} · ${r.resource_name ?? ""}`,
                   sub: r.resource_name,
                   value: r.monthly_saving_toman,
                   emphasis: counted.has(r.key),
-                  trailing: counted.has(r.key) ? <Badge tone="info">Σ</Badge> : undefined,
                 }))}
               />
-              <p className="muted small">
-                <Badge tone="info">Σ</Badge> {t("method")}: {d.summary.method}
-              </p>
             </Card>
           )}
 
-          <h2>{t("actionable")}</h2>
+          {groups.actionable.length > 0 && <h2>{t("actionable")}</h2>}
           {groups.actionable.map((r) => (
-            <OppCard key={r.id} r={r} counted={counted.has(r.key)} onPlan={() => setPlan(r)} />
+            <OppCard key={r.id} r={r} />
           ))}
 
           {groups.informational.length > 0 && (
             <>
               <h2>{t("informational")}</h2>
               {groups.informational.map((r) => (
-                <OppCard key={r.id} r={r} counted={false} onPlan={() => setPlan(r)} />
+                <OppCard key={r.id} r={r} />
               ))}
             </>
           )}
 
           {groups.cannot.length > 0 && (
-            <Card title={t("cannotDetermine")} className="card-warn">
+            <Card title={t("needMoreData")} className="card-warn">
               <ul className="plain">
                 {groups.cannot.map((r) => (
-                  <li key={r.id} className="cannot">
-                    <strong>{r.resource_name ?? "—"}</strong> — {pick(r.summary_fa, r.summary_en)}
-                    <div className="chips" dir="ltr">
-                      {r.missing_inputs.map((m) => (
-                        <code key={m} className="chip">
-                          {m}
-                        </code>
-                      ))}
-                    </div>
-                    <Button variant="ghost" onClick={() => setPlan(r)}>
-                      {t("viewPlan")}
-                    </Button>
-                  </li>
+                  <Needed key={r.id} r={r} />
                 ))}
               </ul>
             </Card>
           )}
-
-          <p className="muted small" dir="ltr">
-            analysis {d.analysis_id} · quote {d.quote_id}
-          </p>
         </>
       )}
-      <Drawer open={!!plan} onClose={() => setPlan(null)} title={plan ? pick(plan.title_fa, plan.title_en) : ""} wide>
-        {plan && <Plan id={plan.id} />}
-      </Drawer>
     </div>
   );
 }

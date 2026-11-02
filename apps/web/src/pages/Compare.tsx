@@ -2,15 +2,19 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { CompareResult, InventoryView } from "../api/types";
+import { useProviderName } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
 import { ConfirmedInventory } from "../components/Guard";
-import { Badge, Button, Card, ErrorBox, Money, Num, Pct, StatusChip } from "../components/ui";
+import { Badge, Button, Card, ErrorBox, Money, Pct, StatusChip, ToneBadge } from "../components/ui";
 import { RankedBars } from "../components/viz";
 import { visualShare } from "../lib/money";
-import { ConstraintsList, VerdictBadge, show } from "./Opportunities";
+import { usePlain } from "../lib/plain";
+import { ConstraintsList, FitPercent, VerdictBadge } from "./Opportunities";
 
 function Matrix({ r }: { r: CompareResult }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const p = usePlain();
+  const pname = useProviderName();
   const dims: string[] = [];
   r.candidates.forEach((c) => c.differences.forEach((d) => !dims.includes(d.dimension) && dims.push(d.dimension)));
   const srcOf = (dim: string) => r.candidates.flatMap((c) => c.differences).find((d) => d.dimension === dim)?.source_value;
@@ -28,17 +32,14 @@ function Matrix({ r }: { r: CompareResult }) {
     <Card
       title={
         <>
-          {r.resource_name}{" "}
-          <small className="muted" dir="ltr">
-            {show(r.source_specs.provider_id)} · {show(r.source_specs.sku ?? r.source_specs.service_type)}
-          </small>
+          {r.resource_name} <small className="muted">{pname(r.source_specs.provider_id as string | null, lang)}</small>
         </>
       }
     >
       {r.notes.length > 0 && (
         <ul className="plain small muted">
           {r.notes.map((n, i) => (
-            <li key={i}>{n}</li>
+            <li key={i}>{p.note(n)}</li>
           ))}
         </ul>
       )}
@@ -54,7 +55,7 @@ function Matrix({ r }: { r: CompareResult }) {
               key: String(i),
               label: <span dir="ltr">{c.candidate_label}</span>,
               tipLabel: c.candidate_label,
-              sub: c.confidence === "NEEDS_HUMAN_REVIEW" ? t("needsHumanReview") : c.confidence,
+              sub: `${t("confidence")}: ${p.level(c.confidence)}`,
               value: c.candidate.monthly_total_toman,
               trailing: i === cheapest ? <StatusChip tone="good" label={t("cheapest")} /> : undefined,
             })),
@@ -84,11 +85,7 @@ function Matrix({ r }: { r: CompareResult }) {
                 <td className="col-current">—</td>
                 {r.candidates.map((c, i) => (
                   <td key={i}>
-                    {c.confidence === "NEEDS_HUMAN_REVIEW" ? (
-                      <Badge tone="warn">⚠ {t("needsHumanReview")}</Badge>
-                    ) : (
-                      <Badge tone={c.confidence === "high" ? "good" : c.confidence === "medium" ? "info" : "bad"}>{c.confidence}</Badge>
-                    )}
+                    <ToneBadge kind="confidence" value={c.confidence} />
                   </td>
                 ))}
               </tr>
@@ -96,8 +93,8 @@ function Matrix({ r }: { r: CompareResult }) {
                 <th scope="row">{t("fitScore")}</th>
                 <td className="col-current">—</td>
                 {r.candidates.map((c, i) => (
-                  <td key={i} title={Object.entries(c.score_breakdown).map(([k, v]) => `${k}: ${v}`).join("\n")}>
-                    <Num v={c.fit_score} max={4} />
+                  <td key={i} title={t("fitExplain")}>
+                    <FitPercent v={c.fit_score} />
                   </td>
                 ))}
               </tr>
@@ -124,20 +121,16 @@ function Matrix({ r }: { r: CompareResult }) {
               </tr>
               {dims.map((dim) => (
                 <tr key={dim}>
-                  <th scope="row" dir="ltr">
-                    {dim}
-                  </th>
-                  <td className="col-current" dir="ltr">
-                    {show(srcOf(dim))}
-                  </td>
+                  <th scope="row">{p.dimension(dim)}</th>
+                  <td className="col-current">{p.value(dim, srcOf(dim))}</td>
                   {r.candidates.map((c, i) => {
                     const d = c.differences.find((x) => x.dimension === dim);
                     return (
-                      <td key={i} className={d ? `v-${d.verdict}` : undefined} title={d?.note ?? undefined}>
+                      <td key={i} className={d ? `v-${d.verdict}` : undefined}>
                         {d ? (
                           <>
-                            <span dir="ltr">{show(d.candidate_value)}</span> <VerdictBadge v={d.verdict} />
-                            {d.note ? <div className="note">{d.note}</div> : null}
+                            {p.value(dim, d.candidate_value)} <VerdictBadge v={d.verdict} />
+                            {d.note ? <div className="note">{p.note(d.note)}</div> : null}
                           </>
                         ) : (
                           "—"
@@ -159,7 +152,7 @@ function Matrix({ r }: { r: CompareResult }) {
                       <ConstraintsList items={c.constraints} />
                       <ul className="assumptions">
                         {c.assumptions.map((a, j) => (
-                          <li key={j}>{a}</li>
+                          <li key={j}>{p.note(a)}</li>
                         ))}
                       </ul>
                     </details>
@@ -220,9 +213,6 @@ function CompareInner({ inv }: { inv: InventoryView }) {
       <ErrorBox error={m.error} />
       {m.data && (
         <>
-          <p className="muted small" dir="ltr">
-            {t("catalogVersion")} {m.data.catalog_version} · allow_outside_iran={String(m.data.allow_outside_iran)}
-          </p>
           {m.data.results.map((r) => (
             <Matrix key={r.resource_id} r={r} />
           ))}
