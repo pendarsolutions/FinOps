@@ -230,6 +230,8 @@ if ! docker compose up -d --pull missing --quiet-pull; then
   die "couldn't start. If Docker Hub isn't reachable, use --registry-mirror or --bundle."
 fi
 wait_healthy
+# compose doesn't notice a changed Caddyfile, so an upgrade would keep serving the old one
+docker compose restart caddy >/dev/null 2>&1 || warn "couldn't restart Caddy; run: cd $INSTALL_DIR && docker compose restart caddy"
 
 cat <<EOF
 
