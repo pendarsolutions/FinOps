@@ -11,7 +11,7 @@ set -euo pipefail
 
 VERSION="0.2.0"
 INSTALL_DIR="/opt/finops-agent"
-IMAGE_PREFIX="ghcr.io/theparsakhezli"
+IMAGE_PREFIX="ghcr.io/pendarsolutions"
 DOMAIN=""
 IP=""
 HTTPS_PORT=""

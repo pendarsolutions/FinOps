@@ -5,8 +5,8 @@ be empty: if ports 80 and 443 are taken, for example by nginx, the installer pic
 the existing service alone. Choose the port yourself with `--port`.
 
 ```bash
-git clone https://github.com/theparsakhezli/FinOps_agent.git
-cd FinOps_agent
+git clone https://github.com/pendarsolutions/FinOps.git
+cd FinOps
 sudo ./install.sh --domain finops.example.ir
 ```
 
@@ -27,7 +27,7 @@ sudo ./install.sh --registry-mirror https://mirror.example.ir
 ```
 
 **Use an offline bundle.** It holds every image the app needs, so nothing else is downloaded except Docker itself
-if it's missing. Each [release](https://github.com/theparsakhezli/FinOps_agent/releases) has one attached, with a checksum file.
+if it's missing. Each [release](https://github.com/pendarsolutions/FinOps/releases) has one attached, with a checksum file.
 Download both on a machine with good internet access and copy them over:
 
 ```bash

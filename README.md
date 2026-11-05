@@ -7,8 +7,8 @@
 Open-source cost management for startups and small teams using Iranian cloud and VPS providers.
 Install it on one server and see the real cost and usage of all of them.
 
-[![CI](https://github.com/theparsakhezli/FinOps_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/theparsakhezli/FinOps_agent/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/theparsakhezli/FinOps_agent)](https://github.com/theparsakhezli/FinOps_agent/releases/latest)
+[![CI](https://github.com/pendarsolutions/FinOps/actions/workflows/ci.yml/badge.svg)](https://github.com/pendarsolutions/FinOps/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/pendarsolutions/FinOps)](https://github.com/pendarsolutions/FinOps/releases/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB.svg)
 ![Status: early](https://img.shields.io/badge/status-early-orange.svg)
@@ -44,13 +44,13 @@ comparison and savings you can check yourself. You don't need Terraform, tagging
 **Install on a server:**
 
 ```bash
-git clone https://github.com/theparsakhezli/FinOps_agent.git
-cd FinOps_agent
+git clone https://github.com/pendarsolutions/FinOps.git
+cd FinOps
 sudo ./install.sh --domain finops.example.ir
 ```
 
 Then open your domain, create the first account, and add your other servers from the **Servers** page. If Docker Hub
-isn't reachable from your server, download the offline bundle from the [latest release](https://github.com/theparsakhezli/FinOps_agent/releases/latest),
+isn't reachable from your server, download the offline bundle from the [latest release](https://github.com/pendarsolutions/FinOps/releases/latest),
 or [use a mirror](docs/installation.md#if-foreign-registries-are-blocked).
 
 **Or try it on your computer** with [Docker](https://docs.docker.com/get-docker/):
