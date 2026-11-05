@@ -5,7 +5,7 @@ import { environmentColor, providerColor } from "../lib/viz";
 import { PartMeter, RankedBars, ShareBar } from "../components/viz";
 import { useI18n } from "../lib/i18n";
 import { useProviderName } from "../lib/hooks";
-import { recTitle } from "../lib/plain";
+import { recTitle, usePlain } from "../lib/plain";
 import { useSession } from "../lib/session";
 import { Badge, Button, Card, Date_, Empty, ErrorBox, FreshnessBadge, Loading, Money, Num, Pct, PriceUnavailableBadge, ToneBadge } from "../components/ui";
 
@@ -44,6 +44,7 @@ export function EmptyWorkspace() {
 
 export function OverviewPage() {
   const { t, lang } = useI18n();
+  const plain = usePlain();
   const { activeId, inventories, inventoriesLoading } = useSession();
   const pname = useProviderName();
   const qc = useQueryClient();
@@ -123,7 +124,7 @@ export function OverviewPage() {
           <small className="muted">{t("avoidableOfCurrent")}</small>
         </div>
       </div>
-      {d.summary && <p className="muted small">{d.summary.method}</p>}
+      {d.summary && <p className="muted small">{t("savingMethod")}</p>}
 
       <div className="grid2">
         <Card title={t("providerDist")}>
@@ -149,7 +150,7 @@ export function OverviewPage() {
               total={d.quote?.total_toman ?? d.quote?.priced_subtotal_toman}
               items={d.environment_distribution.map((r) => ({
                 key: r.environment,
-                label: r.environment,
+                label: plain.environment(r.environment),
                 value: r.monthly_toman,
                 color: environmentColor(r.environment).css,
               }))}
@@ -197,7 +198,7 @@ export function OverviewPage() {
         )}
       </Card>
 
-      <Card title={t("priceFreshness")} actions={<small className="muted" dir="ltr">{d.catalog_version}</small>}>
+      <Card title={t("priceFreshness")}>
         <div className="table-wrap">
           <table className="table compact">
             <thead>

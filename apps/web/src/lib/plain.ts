@@ -77,10 +77,10 @@ const FA_LINES: [RegExp, string][] = [
   [/^vCPU \((.+)\)$/, "پردازنده ($1)"],
   [/^RAM GB \((.+)\)$/, "حافظه ($1)"],
   [/^Block storage \((.+)\)$/, "دیسک ($1)"],
-  [/^First IPv4$/, "نخستین IP عمومی"],
-  [/^Additional IPv4$/, "IP عمومی اضافه"],
-  [/^Public IPv4$/, "IP عمومی"],
-  [/^IPv4 monthly$/, "IP عمومی، ماهانه"],
+  [/^First IPv4$/, "نخستین آی‌پی عمومی"],
+  [/^Additional IPv4$/, "آی‌پی عمومی اضافه"],
+  [/^Public IPv4$/, "آی‌پی عمومی"],
+  [/^IPv4 monthly$/, "آی‌پی عمومی، ماهانه"],
   [/^Traffic$/, "ترافیک"],
   [/^Traffic within included (.+) GB$/, "ترافیک، تا $1 گیگابایت همراه پلن"],
   [/^Traffic: unlimited per catalog$/, "ترافیک نامحدود"],
@@ -88,7 +88,21 @@ const FA_LINES: [RegExp, string][] = [
   [/^Traffic within fair use \((.+) GB\/day\)$/, "ترافیک، تا $1 گیگابایت در روز"],
   [/^Traffic download$/, "ترافیک دانلود"],
   [/^Traffic upload$/, "ترافیک آپلود"],
-  [/^(.+) monthly$/, "$1، ماهانه"],
+  [/^DB vCPU \((.+)\)$/, "پردازنده دیتابیس ($1)"],
+  [/^DB RAM GB \((.+)\)$/, "حافظه دیتابیس ($1)"],
+  [/^DB storage \((.+)\)$/, "دیسک دیتابیس ($1)"],
+  [/^DB upload\/download traffic$/, "ترافیک دیتابیس"],
+  [/^DB public IPv4$/, "آی‌پی عمومی دیتابیس"],
+  [/^Object storage \((.+)\)$/, "فضای ذخیره‌سازی ($1)"],
+  [/^Object storage (\S+)-∞ GB$/, "فضای ذخیره‌سازی، بیش از $1 گیگابایت"],
+  [/^Object storage (\S+)-(\S+) GB$/, "فضای ذخیره‌سازی، $1 تا $2 گیگابایت"],
+  [/^Traffic (download|upload) \(\w+\) (\S+)-∞ GB$/, "ترافیک {dir}، بیش از $2 گیگابایت"],
+  [/^Traffic (download|upload) \(\w+\) (\S+)-(\S+) GB$/, "ترافیک {dir}، $2 تا $3 گیگابایت"],
+  [/^Traffic download \(metered per GB\)$/, "ترافیک دانلود، به ازای هر گیگابایت"],
+  [/^IPv4 hourly x (\S+) h$/, "آی‌پی عمومی، ساعتی × $1 ساعت"],
+  [/^(.+) hourly x (\S+) h$/, "پلن ساعتی $1، × $2 ساعت"],
+  [/^VAT (\S+)% \(.+\)$/, "مالیات بر ارزش افزوده $1٪"],
+  [/^(.+) monthly$/, "پلن ماهانه $1"],
 ];
 
 /** `{p}` is the provider's display name. */
@@ -118,9 +132,36 @@ const FA_NOTES: [RegExp, string][] = [
   [/^candidate traffic policy: .*$/, "شرایط ترافیک این پلن با پلن فعلی فرق دارد."],
   [/^public IPv4 inclusion not stated in catalog$/, "مشخص نیست IP عمومی همراه پلن است یا نه."],
   [/^(\S+) GB\/month exceeds the (\S+) GB included in (\S+); .*$/, "مصرف $1 گیگابایت در ماه از سهمیه $2 گیگابایتی $3 بیشتر است و قیمت ترافیک اضافه اعلام نشده است."],
-  [/^Discovery context only.*$/, "فقط برای آشنایی است و در جمع هزینه یا صرفه‌جویی حساب نمی‌شود."],
+  [/^billing rule liara-iaas-network$/, "طبق شرایط محاسبه ترافیک لیارا"],
+  [/^rate from official plan description$/, "نرخ از توضیحات رسمی پلن"],
+  [/^rate limited to (\S+) Mbps$/, "سرعت محدود به $1 مگابیت بر ثانیه"],
+  [/^Discovery context only.*$/,"فقط برای آشنایی است و در جمع هزینه یا صرفه‌جویی حساب نمی‌شود."],
   [/^Separate invoice line; not part of base price\.$/, "در فاکتور جدا می‌آید و جزو قیمت پایه نیست."],
 ];
+
+/** Persian digits for numbers in a sentence; digits that are part of a name ("IR-VDS-48GB") stay as they are. */
+export function sentenceDigits(text: string, lang: Lang): string {
+  if (lang !== "fa") return text;
+  return text.replace(/(?<![A-Za-z0-9_-])\d+(?:\.\d+)?(?![A-Za-z0-9_])/g, (n) => localizeDigits(n.replace(".", "٫"), lang));
+}
+
+const ROLES: Record<string, Pair> = {
+  owner: ["مالک", "owner"],
+  admin: ["مدیر", "admin"],
+  analyst: ["تحلیل‌گر", "analyst"],
+  viewer: ["فقط مشاهده", "viewer"],
+};
+
+const ENVIRONMENTS: Record<string, Pair> = {
+  production: ["عملیاتی", "production"],
+  prod: ["عملیاتی", "production"],
+  staging: ["پیش از انتشار", "staging"],
+  development: ["توسعه", "development"],
+  dev: ["توسعه", "development"],
+  test: ["تست", "test"],
+  ci: ["CI", "CI"],
+  unknown: ["نامشخص", "unknown"],
+};
 
 /** Numbers come back from the engine padded ("1024.0000"). */
 const trimZeros = (s: string) => s.replace(/(\d+)\.0+(?!\d)/g, "$1");
@@ -137,7 +178,7 @@ export function usePlain() {
     if (unknownField) return `${fieldLabel(unknownField[1])} مشخص نیست. آن را وارد کنید.`;
     for (const [re, fa] of FA_NOTES) {
       const m = re.exec(text);
-      if (m) return localizeDigits(text.replace(re, fa).replace("{p}", pname(m[1], lang)), lang);
+      if (m) return sentenceDigits(text.replace(re, fa).replace("{p}", pname(m[1], lang)), lang);
     }
     return text;
   };
@@ -167,10 +208,19 @@ export function usePlain() {
       const text = trimZeros(l.description);
       if (l.status === "unavailable") return note(l.description);
       if (lang !== "fa") return text.replace(/^CPU (\S+)$/, "$1 CPU cores").replace(/^RAM GB (\S+)$/, "$1 GB memory").replace(/^Disk GB (\S+)$/, "$1 GB disk");
-      for (const [re, fa] of FA_LINES) if (re.test(text)) return localizeDigits(text.replace(re, fa), lang);
+      for (const [re, fa] of FA_LINES) {
+        if (!re.test(text)) continue;
+        const dir = /^Traffic (download|upload)/.exec(text)?.[1];
+        return sentenceDigits(text.replace(re, fa).replace("{dir}", dir === "upload" ? "آپلود" : "دانلود"), lang);
+      }
       return text;
     },
     note,
+    /** An engine summary sentence, with Persian digits where they belong. */
+    sentence: (fa: string | null | undefined, en: string | null | undefined) =>
+      lang === "fa" ? sentenceDigits(fa || en || "", lang) : en || fa || "",
+    environment: (e: string) => tr(ENVIRONMENTS[e.toLowerCase()], e),
+    role: (r: string | null | undefined) => (r ? tr(ROLES[r], r) : ""),
   };
 }
 

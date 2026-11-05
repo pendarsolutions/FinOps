@@ -194,15 +194,18 @@ def _term_discount_info(snapshot: CatalogSnapshot, r: Resource) -> list[Recommen
     if rule is None or rule.status == "active":
         return []
     rec_rule = _rules(snapshot)["REC-004"]
+    prov = snapshot.providers.get(r.provider_id)
+    name_en = prov.name_en if prov else r.provider_id
+    name_fa = (prov.name_fa or prov.name_en) if prov else r.provider_id
     return [Recommendation(
         key=_key("REC-004-info", r.id, rid), rule_id="REC-004", type=rec_rule["type"], status="informational",
-        title_en=f"Term discount published by {r.provider_id} (unverified)",
-        title_fa=f"تخفیف دوره‌ای اعلام‌شده توسط {r.provider_id} (تأییدنشده)",
+        title_en=f"Term discount published by {name_en} (unverified)",
+        title_fa=f"تخفیف دوره‌ای اعلام‌شده توسط {name_fa} (تأییدنشده)",
         resource_id=r.id, resource_name=r.name, provider_id=r.provider_id, risk="low", effort="low",
         confidence="unverified",
-        summary_en=f"{r.provider_id} lists longer-term discounts (rule {rid}, status '{rule.status}'). No saving is "
-                   "calculated until the discount is verified at checkout.",
-        summary_fa=f"{r.provider_id} برای دوره‌های بلندمدت تخفیف اعلام کرده (قانون {rid}). تا تأیید در صفحه پرداخت، صرفه‌جویی محاسبه نمی‌شود.",
+        summary_en=f"{name_en} lists discounts for longer billing periods. No saving is calculated until the "
+                   "discount is confirmed at checkout.",
+        summary_fa=f"{name_fa} برای دوره‌های پرداخت بلندمدت تخفیف اعلام کرده است. تا وقتی این تخفیف در صفحه پرداخت تأیید نشود، صرفه‌جویی حساب نمی‌شود.",
         evidence={"billing_rule": rule.model_dump(mode="json")},
     )]
 

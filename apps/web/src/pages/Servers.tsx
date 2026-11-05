@@ -114,7 +114,7 @@ function UsageGrid({ s }: { s: ServerView }) {
 }
 
 function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => void; canEdit: boolean }) {
-  const { t, lang, pick } = useI18n();
+  const { t, lang } = useI18n();
   const plain = usePlain();
   const pname = useProviderName();
   const providers = useProviders();
@@ -319,7 +319,7 @@ function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => voi
                         · <Money v={r.monthly_saving_toman} />
                       </>
                     )}
-                    <div className="small muted">{pick(r.summary_fa, r.summary_en)}</div>
+                    <div className="small muted">{plain.sentence(r.summary_fa, r.summary_en)}</div>
                   </li>
                 ))}
               </ul>

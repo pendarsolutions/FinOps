@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useI18n } from "../lib/i18n";
+import { usePlain } from "../lib/plain";
 import { useSession } from "../lib/session";
 import { Badge, Button, Card, Date_, ErrorBox, Field, Loading, Money } from "../components/ui";
 import { normalizeDigits } from "../components/ReviewTable";
@@ -142,6 +143,7 @@ function MembersCard() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const members = useQuery({ queryKey: ["members"], queryFn: api.members });
+  const plain = usePlain();
   const empty = { email: "", password: "", name: "", role: "viewer" };
   const [form, setForm] = useState(empty);
   const add = useMutation({
@@ -156,7 +158,7 @@ function MembersCard() {
       <ul>
         {members.data?.map((m) => (
           <li key={m.id}>
-            <bdi dir="ltr">{m.email}</bdi> · <small className="muted">{m.role}</small>
+            <bdi dir="ltr">{m.email}</bdi> · <small className="muted">{plain.role(m.role)}</small>
           </li>
         ))}
       </ul>
@@ -175,9 +177,9 @@ function MembersCard() {
         </Field>
         <Field label={t("role")} htmlFor="m-role">
           <select id="m-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-            <option value="viewer">viewer</option>
-            <option value="analyst">analyst</option>
-            <option value="admin">admin</option>
+            <option value="viewer">{plain.role("viewer")}</option>
+            <option value="analyst">{plain.role("analyst")}</option>
+            <option value="admin">{plain.role("admin")}</option>
           </select>
         </Field>
         <Button type="submit" variant="primary" busy={add.isPending}>

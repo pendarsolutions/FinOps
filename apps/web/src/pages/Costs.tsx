@@ -64,7 +64,7 @@ function BreakdownTable({ q }: { q: QuoteView }) {
                     </button>
                     <small className="muted">
                       {" "}
-                      {pname(b.provider_id, lang)} · {lines.length} {t("componentsCount")}
+                      {pname(b.provider_id, lang)} · {formatDecimal(lines.length, lang)} {t("componentsCount")}
                     </small>{" "}
                     {b.status === "EXACT" ? null : <StatusChip tone={b.status === "PRICE_UNAVAILABLE" ? "bad" : "warn"} label={b.status === "PRICE_UNAVAILABLE" ? t("priceUnavailable") : t("discoveryOnly")} />}
                   </th>

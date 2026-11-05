@@ -204,7 +204,8 @@ function Working({ r }: { r: Recommendation }) {
 }
 
 function OppCard({ r }: { r: Recommendation }) {
-  const { t, lang, pick } = useI18n();
+  const { t, lang } = useI18n();
+  const p = usePlain();
   const isMove = r.rule_id === "REC-003";
   const differences = r.evidence.differences ?? [];
   return (
@@ -231,7 +232,7 @@ function OppCard({ r }: { r: Recommendation }) {
       {r.current_cost_toman !== null && r.candidate_cost_toman !== null && (
         <BeforeAfter current={r.current_cost_toman} after={r.candidate_cost_toman} saving={r.monthly_saving_toman} />
       )}
-      {!isMove && <p className="small">{pick(r.summary_fa, r.summary_en)}</p>}
+      {!isMove && <p className="small">{p.sentence(r.summary_fa, r.summary_en)}</p>}
       {isMove && <WhatChanges items={differences} />}
       {isMove && <AskFirst items={differences} />}
       {isMove && <Migration r={r} />}
@@ -261,6 +262,7 @@ function OppCard({ r }: { r: Recommendation }) {
 /** One line per thing still needed, saying who has to do what. */
 function Needed({ r }: { r: Recommendation }) {
   const { t, lang, pick, fieldLabel } = useI18n();
+  const p = usePlain();
   const dayRate = r.missing_inputs.includes("organization.engineer_day_rate_toman");
   const days = r.missing_inputs.map((m) => /^metrics\.observation_days>=(\d+)$/.exec(m)?.[1]).find(Boolean);
   const metrics = r.missing_inputs.some((m) => m.startsWith("metrics."));
@@ -282,7 +284,7 @@ function Needed({ r }: { r: Recommendation }) {
   } else {
     body = (
       <>
-        {pick(r.summary_fa, r.summary_en)}
+        {p.sentence(r.summary_fa, r.summary_en)}
         {r.missing_inputs.length > 0 && (
           <div className="small muted">
             {t("missing")}: {r.missing_inputs.map(fieldLabel).join("، ")}

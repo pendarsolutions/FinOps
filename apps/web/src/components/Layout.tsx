@@ -5,6 +5,7 @@ import { useSession } from "../lib/session";
 import { Advisor } from "./Advisor";
 import { Button } from "./ui";
 import { localizeDigits } from "../lib/money";
+import { usePlain } from "../lib/plain";
 import { TourProvider, useTour } from "./Tour";
 import { TooltipLayer } from "./viz";
 
@@ -37,6 +38,7 @@ export function Layout() {
 
 function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: boolean) => boolean) => void }) {
   const { t, lang, setLang } = useI18n();
+  const plain = usePlain();
   const { session, signOut, inventories, activeId, setActiveId } = useSession();
   const tour = useTour();
   useEffect(() => {
@@ -88,7 +90,7 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
             {lang === "fa" ? "EN" : "فا"}
           </Button>
           <span className="who" title={session?.user.email}>
-            {session?.organization.name} · <small>{session?.role}</small>
+            {session?.organization.name} · <small>{plain.role(session?.role)}</small>
           </span>
           <Button variant="ghost" onClick={signOut}>
             {t("logout")}
