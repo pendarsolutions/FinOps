@@ -212,6 +212,29 @@ def test_sync_from_saved_page_versions_prices(client, auth, api_env):
     assert runs[0]["provider_id"] == "serverir"
 
 
+
+def test_unchanged_prices_count_as_checked(client, auth, api_env):
+    """Re-reading the same page later keeps unchanged prices fresh, although their rows aren't rewritten."""
+    from finops_api.catalog_store import load_snapshot, run_provider_sync
+    from finops_api.config import get_settings
+    from finops_api.db import SessionLocal
+    from provider_adapters import ServerIrAdapter
+    from provider_adapters.base import RawCatalog
+
+    page = gzip.decompress((FIX / "serverir-2026-10-04.html.gz").read_bytes()).decode()
+    url = ServerIrAdapter().source_url
+    with SessionLocal() as db:
+        first = run_provider_sync(db, "serverir", triggered_by="test",
+                                  raw=RawCatalog("serverir", url, datetime(2026, 10, 5, tzinfo=UTC), page))
+        again = run_provider_sync(db, "serverir", triggered_by="test",
+                                  raw=RawCatalog("serverir", url, datetime(2026, 10, 20, tzinfo=UTC), page))
+        assert first.status in ("ok", "warning") and again.items_changed == 0
+        assert again.summary["confirmed_item_ids"] and again.summary["checked_at"] == "2026-10-20"
+        snap = load_snapshot(db, get_settings().seed_dir)
+    src = next(s for s in snap.source_freshness() if s["source_url"] == url)
+    assert src["retrieved_at"] == "2026-10-20"
+
+
 def test_arvan_sync_failure_is_visible(client, auth, api_env):
     from finops_api.catalog_store import run_provider_sync
     from finops_api.db import SessionLocal

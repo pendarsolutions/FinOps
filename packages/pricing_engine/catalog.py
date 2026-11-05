@@ -113,6 +113,8 @@ class CatalogSnapshot:
     equivalence_rules: dict[str, Any]
     recommendation_rules: dict[str, Any]
     snapshot_at: datetime
+    #: item id -> date a later sync read the same price again (rows are immutable, so this is kept beside them)
+    source_checked: dict[str, str] = field(default_factory=dict, repr=False)
     _by_provider: dict[str, list[CatalogItem]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
@@ -181,25 +183,28 @@ class CatalogSnapshot:
         today = today or self.snapshot_at.date()
         warn = int(self.policy.get("freshness", {}).get("warn_after_days", 14))
         stale = int(self.policy.get("freshness", {}).get("stale_after_days", 45))
-        seen: dict[tuple[str, str], dict[str, Any]] = {}
+        newest: dict[tuple[str, str], tuple[date | None, str | None, CatalogItem]] = {}
         for it in self.items:
             key = (it.provider_id, it.source_url or "")
-            if key in seen:
-                continue
-            retrieved = parse_price_date(it.source_retrieved_at)
+            for raw in (it.source_retrieved_at, self.source_checked.get(it.id)):
+                d = parse_price_date(raw)
+                if key not in newest or (d is not None and (newest[key][0] is None or d > newest[key][0])):
+                    newest[key] = (d, raw, it)
+        out = []
+        for retrieved, raw, it in newest.values():
             price_date = parse_price_date(it.source_price_date)
             age = (today - retrieved).days if retrieved else None
             status = "unknown" if age is None else "fresh" if age <= warn else "aging" if age <= stale else "stale"
-            seen[key] = {
+            out.append({
                 "provider_id": it.provider_id,
                 "source_url": it.source_url,
-                "retrieved_at": it.source_retrieved_at,
+                "retrieved_at": raw,
                 "provider_price_date": it.source_price_date,
                 "provider_price_date_gregorian": price_date.isoformat() if price_date else None,
                 "age_days": age,
                 "freshness": status,
-            }
-        return list(seen.values())
+            })
+        return out
 
 
 def load_seed_snapshot(seed_dir: Path = SEED_DIR, snapshot_at: datetime | None = None) -> CatalogSnapshot:

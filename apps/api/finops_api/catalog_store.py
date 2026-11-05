@@ -10,7 +10,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from pricing_engine.catalog import CatalogSnapshot, load_json, normalize_seed_item
@@ -148,11 +148,27 @@ def load_snapshot(db: Session, seed_dir: Path, as_of: datetime | None = None) ->
                                        retrieved_at=r.retrieved_at, notes=r.notes)
     return CatalogSnapshot(
         providers=providers, items=[row_to_item(r) for r in rows], billing_rules=rules,
+        source_checked=_source_checked(db, as_of),
         policy=load_json(seed_dir / "engine_policy.json"),
         equivalence_rules=load_json(seed_dir / "equivalence_rules.json"),
         recommendation_rules=load_json(seed_dir / "recommendation_rules.json"),
         snapshot_at=as_of,
     )
+
+
+def _source_checked(db: Session, as_of: datetime) -> dict[str, str]:
+    """Item id -> date the latest successful sync of its provider read the same price again."""
+    ok = PriceSyncRun.status.in_(("ok", "warning"))
+    latest = (select(PriceSyncRun.provider_id, func.max(PriceSyncRun.started_at).label("at"))
+              .where(ok, PriceSyncRun.started_at <= as_of).group_by(PriceSyncRun.provider_id).subquery())
+    runs = db.scalars(select(PriceSyncRun).join(latest, and_(PriceSyncRun.provider_id == latest.c.provider_id,
+                                                             PriceSyncRun.started_at == latest.c.at)).where(ok))
+    out: dict[str, str] = {}
+    for run in runs:
+        s = run.summary or {}
+        if s.get("checked_at"):
+            out.update(dict.fromkeys(s.get("confirmed_item_ids") or [], s["checked_at"]))
+    return out
 
 
 def _aware(dt: datetime) -> datetime:

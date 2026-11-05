@@ -50,6 +50,8 @@ class SyncPlan:
     error: str | None = None
     median_price_move: Decimal | None = None
     content_hash: str | None = None
+    confirmed_ids: list[str] = field(default_factory=list)
+    checked_at: str | None = None
 
     @property
     def items_changed(self) -> int:
@@ -64,6 +66,7 @@ class SyncPlan:
             "provider_id": self.provider_id, "status": self.status, "items_seen": self.items_seen,
             "items_changed": self.items_changed, "warnings": self.warnings, "error": self.error,
             "median_price_move": str(self.median_price_move) if self.median_price_move is not None else None,
+            "checked_at": self.checked_at, "confirmed_item_ids": self.confirmed_ids,
             "changes": [{"kind": c.kind, "sku": (c.new or c.old).sku, "fields": c.changed_fields,
                          "old_price_toman": str(c.old.price_toman) if c.old and c.old.price_toman is not None else None,
                          "new_price_toman": str(c.new.price_toman) if c.new and c.new.price_toman is not None else None}
@@ -89,6 +92,7 @@ def plan_sync(adapter: Any, raw: RawCatalog | None, previous: list[CatalogItem],
     new_by_key = {natural_key(n): n for n in new_items}
     changes: list[ItemChange] = []
     moves: list[Decimal] = []
+    confirmed: list[str] = []
     for key, new in new_by_key.items():
         old = prev_by_key.get(key)
         if old is None:
@@ -101,6 +105,8 @@ def plan_sync(adapter: Any, raw: RawCatalog | None, previous: list[CatalogItem],
             diff = [f for f, a, b in zip(SIGNATURE_FIELDS + SIGNATURE_ATTRS, signature(old), signature(new), strict=True)
                     if a != b]
             changes.append(ItemChange(key, old, new, "changed", diff))
+        elif old.id:
+            confirmed.append(old.id)
     for key, old in prev_by_key.items():
         if key not in new_by_key and getattr(adapter, "removes_missing", True):
             changes.append(ItemChange(key, old, None, "removed"))
@@ -128,7 +134,7 @@ def plan_sync(adapter: Any, raw: RawCatalog | None, previous: list[CatalogItem],
     if status == "ok" and warnings:
         status = "warning"
     return SyncPlan(pid, status, len(new_items), changes, warnings, median_price_move=median,
-                    content_hash=raw.content_hash)
+                    content_hash=raw.content_hash, confirmed_ids=confirmed, checked_at=raw.fetched_at.date().isoformat())
 
 
 def fetched_now() -> datetime:
