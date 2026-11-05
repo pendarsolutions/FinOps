@@ -7,6 +7,8 @@
 Open-source cost management for startups and small teams using Iranian cloud and VPS providers.
 Install it on one server and see the real cost and usage of all of them.
 
+[![CI](https://github.com/theparsakhezli/FinOps_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/theparsakhezli/FinOps_agent/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/theparsakhezli/FinOps_agent)](https://github.com/theparsakhezli/FinOps_agent/releases/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB.svg)
 ![Status: early](https://img.shields.io/badge/status-early-orange.svg)
@@ -14,6 +16,8 @@ Install it on one server and see the real cost and usage of all of them.
 [Quick start](#quick-start) · [How it works](#how-it-works) · [Providers](#supported-providers) · [Roadmap](#roadmap) · [فارسی](#فارسی)
 
 </div>
+
+<p align="center"><img src="docs/images/overview.png" alt="Overview: monthly spend, possible saving, cost by provider and the top suggestions" width="900"><br><sub>Sample data</sub></p>
 
 ---
 
@@ -46,7 +50,8 @@ sudo ./install.sh --domain finops.example.ir
 ```
 
 Then open your domain, create the first account, and add your other servers from the **Servers** page. If Docker Hub
-isn't reachable from your server, [use a mirror or an offline bundle](docs/installation.md#if-foreign-registries-are-blocked).
+isn't reachable from your server, download the offline bundle from the [latest release](https://github.com/theparsakhezli/FinOps_agent/releases/latest),
+or [use a mirror](docs/installation.md#if-foreign-registries-are-blocked).
 
 **Or try it on your computer** with [Docker](https://docs.docker.com/get-docker/):
 
@@ -94,7 +99,9 @@ flowchart LR
 4. **Compare providers.** Plans must pass hard requirements before they count as equivalent. Low-confidence
    matches are marked `NEEDS_HUMAN_REVIEW`.
 5. **Act on savings.** Recommendations cover scheduling, downsizing, migration payback and billing period, and
-   say clearly when there isn't enough data to decide.
+   say clearly when there isn't enough data to decide. Each one shows what changes and what to ask the new provider:
+
+<p align="center"><img src="docs/images/suggestion.png" alt="A suggestion: what changes after the move, what to ask the provider, and when it pays off" width="640"></p>
 
 ## Supported providers
 
@@ -149,6 +156,8 @@ docs/           Architecture, pricing model, scrapers, AI safety and operations
 - [x] Shared, signed price catalog
 - [ ] An exact catalog for ArvanCloud through its API
 - [ ] An optional small agent for servers behind NAT
+- [ ] Warn when a provider changes a plan's specs but keeps its name
+- [ ] Check totals against real invoices, with help from users
 
 ## Documentation
 
@@ -160,6 +169,8 @@ docs/           Architecture, pricing model, scrapers, AI safety and operations
 - [Provider scrapers](docs/provider-adapters.md)
 - [AI safety](docs/ai-safety.md)
 - [Operations and production](docs/runbook.md)
+- [Releasing](docs/releasing.md)
+- [Changelog](CHANGELOG.md)
 
 ## Contributing
 

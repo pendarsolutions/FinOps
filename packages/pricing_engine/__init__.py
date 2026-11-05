@@ -4,7 +4,7 @@ Pure library: no web framework, no database, no LLM. Every financial number the 
 is produced here (or in recommendation_engine, which calls into here).
 """
 
-ENGINE_VERSION = "pricing-engine/0.1.0"
+ENGINE_VERSION = "pricing-engine/0.2.0"
 
 from .catalog import CatalogSnapshot, load_seed_snapshot, parse_price_date  # noqa: E402
 from .equivalence import EquivalenceResult, compare_resource, find_equivalents, resolve_specs  # noqa: E402

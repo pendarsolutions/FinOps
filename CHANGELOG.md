@@ -1,19 +1,67 @@
-# Changelog / implementation status
+# Changelog
 
-## Unreleased
+All notable changes to FinOps agent. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and versions follow [Semantic Versioning](https://semver.org/). Until 1.0, a minor version can change behaviour.
 
-- Renamed to FinOps agent, removed consulting referrals and unused credential storage.
-- Apache-2.0 license and contributor files. GitHub Actions are written but disabled while the repository is private.
-- Safer defaults: local-only ports in development, sign-up closes after the first account, login rate limits.
-- Server monitoring: read-only SSH collection, Servers page, plan suggestions, usage-based rightsizing evidence.
-- One-command installer with a registry mirror option and offline bundles.
-- Chabokan and MobinHost scrapers, twice-daily checks, reviewed manual price files for ArvanCloud.
-- Alerts by email and Bale for price changes, failed updates, reviews and renewals.
-- Signed shared price catalog.
-- Fixed: re-importing the seed on restart overwrote newer scraped prices.
+## [0.2.0] — 2026-11-05
 
+First public release.
 
-## 0.1.0 — 2026-10-04 (MVP build)
+### Added
+
+- **Server monitoring.** Add servers from the dashboard and their real CPU, memory and disk use is read over SSH. The
+  key can run only one read-only script, server identities are pinned, and a changed identity stops collection until
+  an admin approves it. The Servers page shows each server's cost, unused capacity and renewal date.
+- **Installer that works next to other services.** If ports 80 and 443 are taken, it picks a free port and leaves
+  the existing services alone. It also takes a registry mirror, and an offline bundle is attached to every release.
+- **More providers with automatic prices.** Scrapers for Chabokan, MobinHost and ParsPack, checked twice a day.
+  ParsPack is priced exactly from a server's specs using the daily price table behind its official calculator.
+  ArvanCloud prices are updated from reviewed price files, because its site blocks scraping.
+- **Alerts** by email and Bale for price changes, failed updates, price moves held for review, and renewals.
+- **Shared, signed price catalog,** so one installation can scrape for the others.
+- **"How it works" page** that explains every calculation with worked examples. Tests check every number on it.
+- **Plain-language suggestions.** Each one says what changes, what to ask the new provider before moving, and how
+  long a move takes to pay for itself.
+- Release workflow: tests, an offline bundle with checksums, and images on GitHub Container Registry for every tag.
+
+### Changed
+
+- Renamed to FinOps agent. Consulting referrals and unused credential storage were removed.
+- Apache-2.0 license, contributor guide, security policy and an issue template for reporting a wrong price.
+- Safer defaults: development ports listen only on your own computer, sign-up closes after the first account, and
+  sign-in is rate limited.
+- The Persian interface no longer shows raw field names, internal codes or JSON, and the Vazirmatn font is bundled
+  instead of loaded from Google Fonts, which is unreliable from Iran and doesn't work offline.
+- The Compare table shows only the rows where an option differs from your current server.
+- CI runs on every push and pull request.
+
+### Fixed
+
+- Re-importing the starting catalog on restart overwrote newer scraped prices.
+- A sync that found unchanged prices didn't count as a check, so prices read twice a day were shown as getting old.
+- Upgrades kept serving the old Caddy configuration.
+- An offline bundle couldn't be built on Windows, and a bundle built at another version or image prefix looked for
+  images it didn't contain.
+
+### Known limitations
+
+- Prices are public list prices. Discounts, negotiated rates and fees not on the price page aren't included, and the
+  totals haven't yet been checked against many real invoices. Please [report a wrong price](../../issues/new?template=wrong-price.md).
+- When a provider changes a plan's specs but keeps its name, a server bought on the old plan is priced at the new
+  plan's price, and the app doesn't warn about the mismatch yet.
+- Price guardrails hold a sync for review when the median price moves more than 25%. A single plan that jumps is
+  applied without review.
+- ArvanCloud: no hourly proration rule, traffic direction unverified, prices updated by hand.
+- Plan-based providers rarely publish prices for extra traffic, extra disk or extra IPv4 addresses. Those parts show
+  as price unavailable, and one IPv4 address is assumed to be included (the quote says so).
+- ParsPack's calculator doesn't price traffic or IPv4, and its one-time setup fee isn't part of the monthly figure.
+- Liara PaaS and DBaaS traffic and Liara extra disk prices are unknown. Server.ir term discounts are unverified and
+  never applied. Providers' invoice rounding rules are unknown, so the engine doesn't round.
+- Downsizing suggestions need 14 days of measured usage.
+
+## [0.1.0] — 2026-10-04
+
+Internal MVP build. It was never published; the sections below record how it was built.
 
 ### Phase 0 — Bootstrap ✅
 Monorepo layout, Docker Compose (Postgres 16, Redis, API, worker, beat, web), Alembic migration
@@ -52,7 +100,7 @@ Web UI: all 9 sections, fa (RTL) / en, review table, compare matrix, catalog wit
 Not done: PDF report (phase 2 by spec), OIDC, external alert routing (alerts are structured ERROR logs),
 load testing. (pytest runs on SQLite; the Postgres path — migration, triggers, seed, full API flow, Celery sync — was verified via docker compose.)
 
-## Definition of Done
+### Definition of Done
 
 | # | Item | Status |
 |---|---|---|
@@ -71,12 +119,3 @@ load testing. (pytest runs on SQLite; the Postgres path — migration, triggers,
 | 13 | Unit/golden tests pass | ✅ 117 Python tests + web typecheck/build |
 | 14 | Full stack with one command | ✅ `docker compose up --build` verified: Postgres 16, Redis, api, worker, beat, web |
 | 15 | README: setup, architecture, production deployment | ✅ |
-
-## Known gaps / data the seed cannot support
-- ArvanCloud: no hourly proration rule, traffic-direction semantics unverified, live page blocked.
-- Fixed-SKU providers: no overage traffic, extra disk, or extra IPv4 prices; one IPv4 assumed included (visible).
-- Liara PaaS/DBaaS traffic prices; Liara extra disk.
-- Server.ir term discounts unverified (never applied).
-- Provider invoice rounding rules unknown (engine does not round).
-- `equivalence_rules.json`, `recommendation_rules.json`, `sample_inventory.json`, `sources.json` were
-  missing from the build pack and were authored (no prices in them).

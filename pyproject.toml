@@ -1,7 +1,7 @@
 [project]
 name = "finops-agent"
 license = "Apache-2.0"
-version = "0.1.0"
+version = "0.2.0"
 description = "Iran-first AI-assisted FinOps platform with a deterministic pricing core"
 requires-python = ">=3.12"
 # Dependencies: requirements.txt / requirements-dev.txt (pinned; used by Docker and CI).

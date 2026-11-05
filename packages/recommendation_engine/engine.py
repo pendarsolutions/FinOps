@@ -21,7 +21,7 @@ from pricing_engine.models import Comparison
 from pricing_engine.money import OptDec
 from pricing_engine.pricing import smallest_size_at_least
 
-RECOMMENDATION_ENGINE_VERSION = "recommendation-engine/0.1.0"
+RECOMMENDATION_ENGINE_VERSION = "recommendation-engine/0.2.0"
 PCT = Decimal("0.01")
 
 

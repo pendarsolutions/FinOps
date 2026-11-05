@@ -26,18 +26,22 @@ Docker Hub and other foreign sources can be blocked or unreliable from Iran. The
 sudo ./install.sh --registry-mirror https://mirror.example.ir
 ```
 
-**Use an offline bundle.** Build it anywhere with good internet access, copy it over, and nothing else is downloaded
-except Docker itself if it's missing:
+**Use an offline bundle.** It holds every image the app needs, so nothing else is downloaded except Docker itself
+if it's missing. Each [release](https://github.com/theparsakhezli/FinOps_agent/releases) has one attached, with a checksum file.
+Download both on a machine with good internet access and copy them over:
 
 ```bash
-scripts/make-bundle.sh                       # on a machine with internet access
-scp finops-agent-0.1.0.tar.gz server:
+scp finops-agent-0.2.0.tar.gz SHA256SUMS server:
 ```
 
 ```bash
-tar xzf finops-agent-0.1.0.tar.gz && cd finops-agent-0.1.0   # on the server
+sha256sum -c SHA256SUMS                                        # on the server
+tar xzf finops-agent-0.2.0.tar.gz && cd finops-agent-0.2.0
 sudo ./install.sh --bundle images.tar.gz
 ```
+
+To build a bundle yourself, for example from an unreleased change, run `scripts/make-bundle.sh` on a machine with
+Docker and internet access.
 
 ## Alerts
 

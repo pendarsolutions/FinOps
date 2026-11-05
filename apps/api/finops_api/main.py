@@ -22,7 +22,7 @@ log = logging.getLogger("finops.api")
 def create_app() -> FastAPI:
     configure_logging()
     s = get_settings()
-    app = FastAPI(title="FinOps agent API", version="0.1.0",
+    app = FastAPI(title="FinOps agent API", version="0.2.0",
                   description="Iran-first FinOps. All prices/savings come from the deterministic engine; "
                               "money fields are exact decimal strings in Toman.")
     app.add_middleware(CORSMiddleware, allow_origins=s.cors_origins, allow_credentials=False,
