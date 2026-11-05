@@ -9,7 +9,7 @@
 # changes nothing else. Running it again upgrades and keeps your settings, secrets and data.
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 INSTALL_DIR="/opt/finops-agent"
 IMAGE_PREFIX="ghcr.io/theparsakhezli"
 DOMAIN=""
@@ -203,8 +203,7 @@ prepare_images() {
 
 wait_healthy() {
   say "Starting (the first start takes a minute or two)"
-  local i
-  for i in $(seq 1 60); do
+  for _ in $(seq 1 60); do
     if [ "$(docker inspect -f '{{.State.Health.Status}}' finops-agent-api-1 2>/dev/null)" = healthy ]; then return 0; fi
     sleep 5
   done
