@@ -102,7 +102,10 @@ function AskFirst({ items }: { items: Difference[] }) {
     if (d.dimension === "cpu_class") questions.push(pick("پردازنده اختصاصی است یا اشتراکی؟", "Is the CPU dedicated or shared?"));
     else if (d.dimension === "storage_type") questions.push(pick("نوع دیسک چیست (مثلاً SSD یا NVMe)؟", "What type of disk is it (SSD or NVMe, for example)?"));
     else if (d.dimension === "datacenter") questions.push(pick("سرور در کدام دیتاسنتر است؟", "Which datacenter is the server in?"));
-    else if (Array.isArray(d.candidate_value)) d.candidate_value.forEach((x) => questions.push(p.note(String(x))));
+    else if (Array.isArray(d.candidate_value))
+      d.candidate_value.forEach((x) =>
+        questions.push(/public IPv4 inclusion/.test(String(x)) ? pick("آیا یک آی‌پی عمومی همراه پلن است؟", "Is a public IPv4 address included?") : p.note(String(x))),
+      );
     else questions.push(p.dimension(d.dimension));
   }
   if (!questions.length) return null;
@@ -126,7 +129,10 @@ function Migration({ r }: { r: Recommendation }) {
       {pick(`انتقال حدود ${days} روز کار مهندس می‌برد.`, `Moving takes about ${days} engineer days.`)}{" "}
       {r.one_time_migration_cost_toman !== null ? (
         <>
-          {t("migrationCost")}: <Money v={r.one_time_migration_cost_toman} /> · {t("payback")}: <Num v={r.payback_months} max={1} />
+          {t("migrationCost")}: <Money v={r.one_time_migration_cost_toman} />.{" "}
+          {r.payback_months !== null &&
+            pick(`در حدود ${formatDecimal(r.payback_months, lang, { maxFraction: 1 })} ماه جبران می‌شود.`,
+                 `It pays for itself in about ${formatDecimal(r.payback_months, lang, { maxFraction: 1 })} months.`)}
         </>
       ) : (
         <>
