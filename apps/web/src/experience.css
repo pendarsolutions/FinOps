@@ -92,6 +92,14 @@
   gap: 0;
   max-inline-size: calc(var(--spacing-20) * 3);
   font-size: var(--type-caption-font-size);
+  /* comes up from slightly below (motion guideline); `translate` leaves the pointer-following transform alone */
+  animation: tip-in var(--duration-base) var(--ease-enter) both;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--spacing-1);
+  }
 }
 .viz-tip-value {
   font-size: var(--type-body-default-font-size);
@@ -99,12 +107,6 @@
 }
 .viz-tip-label {
   color: var(--color-ink-inverse);
-}
-
-@keyframes segGrow {
-  from {
-    transform: scaleX(0);
-  }
 }
 
 /* part-to-whole stacked bar: 2px surface gaps, rounded outer ends only */
@@ -126,11 +128,9 @@
   cursor: pointer;
   outline: none;
   transition: opacity var(--duration-base) var(--ease-standard), filter var(--duration-base) var(--ease-standard);
-  transform-origin: left center;
-  animation: segGrow var(--duration-slow) var(--ease-enter) both;
-}
-[dir="rtl"] .share-seg {
-  transform-origin: right center;
+  /* bars are laid in reading direction, one after another (lay-bar in styles.css), never stretched */
+  animation: lay-bar var(--duration-slow) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-stagger) * min(var(--i, 0), 7));
 }
 .share-seg:focus-visible {
   outline: var(--focus-ring);
@@ -210,11 +210,8 @@
 .rank-bar {
   display: block;
   block-size: var(--spacing-4);
-  transform-origin: left center;
-  animation: segGrow var(--duration-slow) var(--ease-enter) both;
-}
-[dir="rtl"] .rank-bar {
-  transform-origin: right center;
+  animation: lay-bar var(--duration-slow) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-stagger) * min(var(--i, 0), 7));
 }
 .rank-missing {
   font-size: var(--type-caption-font-size);
@@ -266,11 +263,7 @@
   display: block;
   block-size: 100%;
   background-color: var(--color-surface-raised);
-  transform-origin: left center;
-  animation: segGrow var(--duration-slow) var(--ease-enter) both;
-}
-[dir="rtl"] .meter-fill {
-  transform-origin: right center;
+  animation: lay-bar var(--duration-slow) var(--ease-enter) both;
 }
 .meter-gap-label {
   position: absolute;
@@ -302,11 +295,7 @@
   display: block;
   block-size: 100%;
   background-color: var(--color-surface-raised);
-  transform-origin: left center;
-  animation: segGrow var(--duration-slow) var(--ease-enter) both;
-}
-[dir="rtl"] .meter-part span {
-  transform-origin: right center;
+  animation: lay-bar var(--duration-slow) var(--ease-enter) both;
 }
 
 /* hero stat (exactly one per view) */
@@ -747,13 +736,152 @@
 .lp-footer .powered {
   padding: 0;
 }
-.rise {
-  animation: rise var(--duration-slow) var(--ease-enter) both;
+
+/* ---------- landing motion, after pendarsolutions.ir, timed with the motion tokens (motion guideline) */
+/*
+ * The hero, once: the lockup is laid, the headline arrives word by word, then the lead, the actions and the preview,
+ * whose bars are laid last; the navigation drops into place at the end.
+ */
+.lp {
+  --lay-start: var(--duration-quick);
 }
-@keyframes rise {
+.lp-hero .lp-new {
+  animation: hero-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: var(--duration-quick);
+}
+.lp-hero h1 .w {
+  display: inline-block;
+  animation: word-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-slow) + var(--duration-stagger) * 2 * min(var(--i), 7));
+}
+.hero-in {
+  animation: hero-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-slow) * 2 + var(--duration-stagger) * 3 * var(--i));
+}
+.lp-preview .share-seg {
+  animation-delay: calc(var(--duration-slow) * 3 + var(--duration-stagger) * 2 * min(var(--i, 0), 7));
+}
+.lp-links,
+.lp-actions {
+  animation: nav-in var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-slow) * 3);
+}
+@keyframes hero-rise {
   from {
     opacity: 0;
-    transform: translateY(var(--spacing-2));
+    transform: translateY(var(--spacing-5));
+  }
+}
+@keyframes word-rise {
+  from {
+    opacity: 0;
+    transform: translateY(55%);
+  }
+}
+@keyframes nav-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--spacing-2)));
+  }
+}
+/* Sections rise once, as they first scroll in, an item three staggers after the last (lib/motion.ts). */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal-on] [data-reveal]:not([data-in]) .reveal {
+    opacity: 0;
+  }
+  [data-reveal-on] [data-reveal]:not([data-in]) .is-laying,
+  [data-reveal-on] [data-reveal]:not([data-in]) .is-laying * {
+    animation-play-state: paused;
+  }
+}
+[data-reveal][data-in] .reveal {
+  animation: hero-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-stagger) * 3 * min(var(--i, 0), 7));
+}
+/* in view when the page opens: wait for the hero above, so everything arrives in reading order */
+[data-reveal][data-in="load"] .reveal {
+  animation-delay: calc(var(--duration-slow) * 3 + var(--duration-stagger) * 3 * min(var(--i, 0), 7));
+}
+/*
+ * The closing band: a course of bricks rises along its top edge and its statement lights up word by word, both
+ * following the scroll; its lockup is laid when it comes into view. Without scroll-driven animation the edge simply
+ * stands and the words rise once.
+ */
+.lp-final {
+  position: relative;
+  view-timeline: --final block;
+  /* the logo on umber is the reverse one; on plaster (dark theme) the usual one */
+  --color-logo-brick: var(--color-neutral-100);
+  --color-logo-glaze: var(--color-product-400);
+}
+[data-theme="dark"] .lp-final {
+  --color-logo-brick: var(--color-brick-600);
+  --color-logo-glaze: var(--color-product-600);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .lp-final {
+    --color-logo-brick: var(--color-brick-600);
+    --color-logo-glaze: var(--color-product-600);
+  }
+}
+.lp-edge {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 100%;
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: var(--spacing-1);
+  block-size: clamp(var(--spacing-4), 2.6vw, var(--spacing-10));
+}
+.lp-edge span {
+  background: var(--color-surface-inverse);
+  transform-origin: bottom;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .lp-edge span {
+      animation: edge-rise linear both;
+      animation-timeline: --final;
+      animation-range: entry calc(var(--i) * 3%) entry calc(40% + var(--i) * 3%);
+    }
+    .lp-statement .w {
+      animation: word-light linear both;
+      animation-timeline: --final;
+      animation-range: entry calc(30% + var(--i) * 7%) entry calc(50% + var(--i) * 7%);
+    }
+  }
+}
+@supports not (animation-timeline: view()) {
+  .lp-statement .w {
+    display: inline-block;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal-on] [data-reveal]:not([data-in]) .lp-statement .w {
+      opacity: 0;
+    }
+  }
+  [data-reveal][data-in] .lp-statement .w {
+    animation: word-rise var(--duration-brand) var(--ease-enter) both;
+    animation-delay: calc(var(--duration-stagger) * 2 * min(var(--i), 7));
+  }
+}
+@keyframes edge-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes word-light {
+  from {
+    opacity: 0.14;
+  }
+}
+@media print {
+  .reveal,
+  .lp-statement .w,
+  .lp-edge span {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 }
 .brand-link {

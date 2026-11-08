@@ -61,7 +61,7 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
           <Icon name="menu" label={t("menu")} />
         </Button>
         <NavLink to="/" className="brand" aria-label={t("appName")}>
-          <Lockup />
+          <Lockup laid />
         </NavLink>
         <div className="topbar-inv" data-tour="inventory">
           <label htmlFor="inv-select" className="sr-only">
@@ -108,7 +108,10 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
         </ul>
       </nav>
       <main id="main" className="main">
-        <Outlet />
+        {/* a page's blocks arrive one by one, in reading order, when they first appear */}
+        <div className="page">
+          <Outlet />
+        </div>
         <PoweredBy />
       </main>
       {activeId ? <Advisor open={advisorOpen} onClose={() => setAdvisorOpen(false)} inventoryId={activeId} /> : null}

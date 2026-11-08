@@ -34,7 +34,7 @@ function CopyBox({ text }: { text: string }) {
             setDone(true);
           }}
         >
-          <Icon name={done ? "check" : "copy"} /> {done ? t("copied") : t("copy")}
+          <Icon name={done ? "check" : "copy"} className={done ? "icon-drawn" : undefined} /> {done ? t("copied") : t("copy")}
         </Button>
       </div>
     </div>

@@ -57,7 +57,7 @@ function useMarkTip(value: string, label: string, swatch?: string) {
 
 export type ShareItem = { key: string; label: string; value: Decimalish; color: string; sub?: ReactNode };
 
-function Segment({ item, total, active, onHover }: { item: ShareItem; total: Decimalish; active: string | null; onHover: (k: string | null) => void }) {
+function Segment({ item, total, active, onHover, index }: { item: ShareItem; total: Decimalish; active: string | null; onHover: (k: string | null) => void; index: number }) {
   const { lang } = useI18n();
   const handlers = useMarkTip(formatToman(item.value, lang) ?? "—", item.label, item.color);
   const share = visualShare(item.value, total);
@@ -65,7 +65,7 @@ function Segment({ item, total, active, onHover }: { item: ShareItem; total: Dec
   return (
     <span
       className={`share-seg ${active && active !== item.key ? "dim" : ""}`}
-      style={{ flexGrow: share, background: item.color } as CSSProperties}
+      style={{ flexGrow: share, background: item.color, "--i": index } as CSSProperties}
       tabIndex={0}
       aria-label={`${item.label}: ${formatToman(item.value, lang)}`}
       {...handlers}
@@ -85,8 +85,8 @@ export function ShareBar({ items, total, caption }: { items: ShareItem[]; total:
   return (
     <figure className="share">
       <div className="share-bar" role="img" aria-label={caption}>
-        {sorted.map((it) => (
-          <Segment key={it.key} item={it} total={total} active={active} onHover={setActive} />
+        {sorted.map((it, i) => (
+          <Segment key={it.key} item={it} total={total} active={active} onHover={setActive} index={i} />
         ))}
       </div>
       <ul className="legend-list">
@@ -116,13 +116,13 @@ export function ShareBar({ items, total, caption }: { items: ShareItem[]; total:
 
 export type BarRow = { key: string; label: ReactNode; tipLabel: string; sub?: ReactNode; value: Decimalish; color?: string; emphasis?: boolean; trailing?: ReactNode };
 
-function Bar({ row, max, emphasisMode }: { row: BarRow; max: Decimalish; emphasisMode: boolean }) {
+function Bar({ row, max, emphasisMode, index }: { row: BarRow; max: Decimalish; emphasisMode: boolean; index: number }) {
   const { lang } = useI18n();
   const color = emphasisMode ? (row.emphasis ? "var(--viz-accent)" : "var(--viz-deemph)") : row.color ?? "var(--viz-accent)";
   const handlers = useMarkTip(formatToman(row.value, lang) ?? "PRICE_UNAVAILABLE", row.tipLabel, color);
   const share = visualShare(row.value, max);
   return (
-    <div className={`rank-row ${row.emphasis ? "is-emph" : ""}`}>
+    <div className={`rank-row ${row.emphasis ? "is-emph" : ""}`} style={{ "--i": index } as CSSProperties}>
       <div className="rank-label">
         <span className="rank-name">{row.label}</span>
         {row.sub ? <small className="muted">{row.sub}</small> : null}
@@ -151,8 +151,8 @@ export function RankedBars({ rows, caption, max }: { rows: BarRow[]; caption: st
   const emphasisMode = rows.some((r) => r.emphasis);
   return (
     <figure className="rank" aria-label={caption}>
-      {rows.map((r) => (
-        <Bar key={r.key} row={r} max={ref} emphasisMode={emphasisMode} />
+      {rows.map((r, i) => (
+        <Bar key={r.key} row={r} max={ref} emphasisMode={emphasisMode} index={i} />
       ))}
     </figure>
   );

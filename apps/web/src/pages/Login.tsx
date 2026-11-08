@@ -41,7 +41,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
       <form className="card auth-card stack" onSubmit={submit}>
         <div className="row between">
           <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
-            <Lockup />
+            <Lockup laid />
           </Link>
           <Button variant="ghost" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")}>
             {lang === "fa" ? "EN" : "فا"}

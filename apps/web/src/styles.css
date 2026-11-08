@@ -22,6 +22,16 @@
   --icon-size-sm: var(--spacing-3);
   --focus-ring: 2px solid var(--color-focus);
   --scrim: color-mix(in srgb, var(--color-neutral-950) 45%, transparent);
+  /* Motion built from the motion tokens (motion guideline). */
+  --glaze-gap: calc(var(--duration-lay) * 10); /* 250ms between tiles, as in Pendar's animated logo */
+  --duration-brand: calc(var(--duration-slow) * 2.5); /* 800ms: entrances on the public pages, as on pendarsolutions.ir */
+  --lay-start: 0ms; /* when a laid wordmark starts */
+  --lay-from: inset(0 100% 0 0); /* a bar laid in reading direction starts clipped to nothing at its start */
+  --start-sign: -1; /* the start side: left (-1) in English, right (1) in Persian */
+}
+[dir="rtl"] {
+  --lay-from: inset(0 0 0 100%);
+  --start-sign: 1;
 }
 [data-theme="light"] {
   color-scheme: light;
@@ -164,13 +174,16 @@ input[aria-invalid="true"] {
   background: var(--color-surface-raised);
   padding: var(--spacing-2);
 }
+/* Reduced motion: nothing travels or waits; everything is in place from the start (motion guideline). */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0s !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0s !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 }
@@ -229,6 +242,60 @@ input[aria-invalid="true"] {
   line-height: 1;
   white-space: nowrap;
 }
+/*
+ * The laid wordmark (Pendar's animated logo, in tokens): each brick drops half its height and settles, one every
+ * --duration-lay in writing order; once the last has settled, the tiles glaze --glaze-gap apart. About 1.8s in all.
+ */
+.wordmark.is-laying rect {
+  transform-box: fill-box;
+  animation: lay var(--duration-base) var(--ease-settle) both;
+  animation-delay: calc(var(--lay-start) + var(--duration-lay) * var(--i));
+}
+.wordmark.is-laying .mark-glaze {
+  animation-name: lay, glaze-once;
+  animation-duration: var(--duration-base), var(--duration-slow);
+  animation-timing-function: var(--ease-settle), var(--ease-glaze);
+  animation-delay:
+    calc(var(--lay-start) + var(--duration-lay) * var(--i)),
+    calc(var(--lay-start) + var(--duration-lay) * var(--n) + var(--duration-base) + var(--glaze-gap) * var(--t));
+}
+@keyframes lay {
+  from {
+    opacity: 0;
+    transform: translateY(-50%);
+  }
+}
+@keyframes glaze-once {
+  from {
+    fill: var(--color-logo-brick);
+  }
+}
+/* then the rule stands up and the product name slides in from the wordmark's side */
+.lockup.is-laying .lockup-rule {
+  animation: rule-up var(--duration-base) var(--ease-enter) both;
+  animation-delay: calc(var(--lay-start) + var(--duration-lay) * var(--n));
+}
+.lockup.is-laying .lockup-name {
+  animation: name-in var(--duration-slow) var(--ease-enter) both;
+  animation-delay: calc(var(--lay-start) + var(--duration-lay) * var(--n) + var(--duration-quick));
+}
+@keyframes rule-up {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes name-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--start-sign) * var(--spacing-3)));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wordmark.is-laying rect,
+  .lockup.is-laying > * {
+    animation: none;
+  }
+}
 /* Loader: the symbol's wall, its three tiles glazing one by one (symbol guideline). */
 .loader {
   inline-size: var(--icon-size);
@@ -245,10 +312,10 @@ input[aria-invalid="true"] {
   animation: glaze var(--duration-glaze) var(--ease-glaze) infinite;
 }
 .loader .mark-glaze:nth-of-type(2) {
-  animation-delay: 250ms;
+  animation-delay: var(--glaze-gap);
 }
 .loader .mark-glaze:nth-of-type(3) {
-  animation-delay: 500ms;
+  animation-delay: calc(var(--glaze-gap) * 2);
 }
 @keyframes glaze {
   0%,
@@ -367,7 +434,9 @@ input[aria-invalid="true"] {
   border-inline-start: var(--spacing-1) solid transparent;
   color: var(--color-ink-default);
   text-decoration: none;
-  transition: background-color var(--duration-quick) var(--ease-standard);
+  transition:
+    background-color var(--duration-quick) var(--ease-standard),
+    color var(--duration-quick) var(--ease-standard);
 }
 .sidenav a:hover {
   background: var(--color-surface-sunken);
@@ -375,7 +444,6 @@ input[aria-invalid="true"] {
 }
 .sidenav a.active {
   background: var(--color-action-subtle);
-  border-inline-start-color: var(--color-action-default);
   color: var(--color-ink-action);
   font-weight: var(--font-weight-bold);
 }
@@ -1090,6 +1158,104 @@ li,
 }
 .auth-card {
   inline-size: min(420px, 100%);
+  animation: arrive var(--duration-slow) var(--ease-enter) both;
+}
+
+/* ---------- motion in the app (motion guideline): brief, in reading order, only when something first appears */
+/* A page's blocks arrive one by one, a stagger apart; no more than eight wait. */
+.page > * > * {
+  animation: arrive var(--duration-slow) var(--ease-enter) both;
+}
+.page > * > :nth-child(2) {
+  animation-delay: var(--duration-stagger);
+}
+.page > * > :nth-child(3) {
+  animation-delay: calc(var(--duration-stagger) * 2);
+}
+.page > * > :nth-child(4) {
+  animation-delay: calc(var(--duration-stagger) * 3);
+}
+.page > * > :nth-child(5) {
+  animation-delay: calc(var(--duration-stagger) * 4);
+}
+.page > * > :nth-child(6) {
+  animation-delay: calc(var(--duration-stagger) * 5);
+}
+.page > * > :nth-child(7) {
+  animation-delay: calc(var(--duration-stagger) * 6);
+}
+.page > * > :nth-child(n + 8) {
+  animation-delay: calc(var(--duration-stagger) * 7);
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-2));
+  }
+}
+/* The side bar's brick marker stands up on the page you move to and drops, quicker, from the one you leave. */
+.sidenav a {
+  position: relative;
+}
+.sidenav a::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(-1 * var(--spacing-1));
+  inline-size: var(--spacing-1);
+  background: var(--color-action-default);
+  transform: scaleY(0);
+  transition: transform var(--duration-exit) var(--ease-exit);
+}
+.sidenav a.active::before {
+  transform: none;
+  transition: transform var(--duration-base) var(--ease-enter);
+}
+/* Tabs: the brick line slides to the chosen tab (placed by Tabs in ui.tsx, which measures in physical pixels). */
+.tabs {
+  position: relative;
+}
+.tabs-line {
+  position: absolute;
+  inset-block-end: 0;
+  left: 0;
+  block-size: var(--spacing-1);
+  background: var(--color-action-default);
+  pointer-events: none;
+  transition:
+    transform var(--duration-slow) var(--ease-standard),
+    inline-size var(--duration-slow) var(--ease-standard);
+}
+.tabs.has-line .tab.active {
+  border-block-end-color: transparent;
+}
+/* A headline figure rises into place when it first shows and whenever it changes. */
+.money-big {
+  display: inline-block;
+  animation: figure-rise var(--duration-slow) var(--ease-enter) both;
+}
+@keyframes figure-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-3));
+  }
+}
+/* Copied: the tick is drawn in reading direction. */
+.icon-drawn {
+  animation: lay-bar var(--duration-slow) var(--ease-enter) both;
+}
+@keyframes lay-bar {
+  from {
+    clip-path: var(--lay-from);
+  }
+}
+.drawer-backdrop {
+  animation: fade-in var(--duration-base) var(--ease-standard) both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 /* ---------- responsive */

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ApiError } from "../api/client";
 import type { BlockingRow, ComponentLine, PriceSource } from "../api/types";
 import { useI18n, type TKey } from "../lib/i18n";
@@ -86,8 +86,24 @@ export function Field({ label, children, hint, htmlFor }: { label: ReactNode; ch
 }
 
 export function Tabs<K extends string>({ tabs, value, onChange }: { tabs: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
+  // The brick line under the chosen tab slides to the next one (motion guideline), so it needs the tab's place.
+  const listRef = useRef<HTMLDivElement>(null);
+  const [line, setLine] = useState<{ x: number; w: number } | null>(null);
+  const labels = tabs.map((tb) => tb.label).join("\n");
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const place = () => {
+      const tab = list.querySelector<HTMLElement>('[aria-selected="true"]');
+      setLine(tab ? { x: tab.offsetLeft, w: tab.offsetWidth } : null);
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(list);
+    return () => ro.disconnect();
+  }, [value, labels]);
   return (
-    <div className="tabs" role="tablist">
+    <div className={line ? "tabs has-line" : "tabs"} role="tablist" ref={listRef}>
       {tabs.map((tb) => (
         <button
           key={tb.key}
@@ -100,6 +116,7 @@ export function Tabs<K extends string>({ tabs, value, onChange }: { tabs: { key:
           {tb.label}
         </button>
       ))}
+      {line ? <span className="tabs-line" aria-hidden style={{ inlineSize: line.w, transform: `translateX(${line.x}px)` }} /> : null}
     </div>
   );
 }
@@ -170,7 +187,8 @@ export function Money({ v, big, suffix }: { v: Decimalish; big?: boolean; suffix
   const s = formatToman(v, lang);
   if (s === null) return <PriceUnavailableBadge />;
   return (
-    <span className={big ? "money money-big" : "money"}>
+    // a headline figure is a new element when it changes, so it rises into place again (motion guideline)
+    <span className={big ? "money money-big" : "money"} key={big ? s : undefined}>
       {s}
       {suffix ? <span className="muted"> {suffix}</span> : null}
     </span>

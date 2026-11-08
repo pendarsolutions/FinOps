@@ -234,7 +234,7 @@ export function HowItWorksPublic() {
     <div className="hw-public">
       <header className="hw-public-bar">
         <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
-          <Lockup />
+          <Lockup laid />
         </Link>
         <div className="row gap">
           <Button variant="ghost" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")}>

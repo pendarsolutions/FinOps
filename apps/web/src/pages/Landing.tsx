@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useI18n, type TKey } from "../lib/i18n";
 import { useSession } from "../lib/session";
@@ -7,6 +7,7 @@ import { providerColor } from "../lib/viz";
 import { ShareBar, TooltipLayer } from "../components/viz";
 import { Lockup, PoweredBy } from "../components/Brand";
 import { Icon, type IconName } from "../components/Icon";
+import { useReveal } from "../lib/motion";
 
 // Real engine output for data/seeds/sample_inventory.json (also asserted in tests/api/test_flow.py).
 const DEMO = {
@@ -31,12 +32,32 @@ const PROVIDER_STRIP = [
   ["ابرها", "Abrha"],
 ];
 
-/** The hero copy arrives once, one line after another (motion guideline). */
-const stagger = (n: number) => ({ animationDelay: `calc(var(--duration-stagger) * ${n * 2})` }) as CSSProperties;
+/** An item's place in its group, for the stagger in experience.css (one by one, in reading order). */
+const at = (i: number) => ({ "--i": i }) as CSSProperties;
+
+/** Each word in its own box, so a heading can arrive, or light up, word by word in reading order. */
+function Words({ text, from = 0 }: { text: string; from?: number }) {
+  return (
+    <>
+      {text.split(" ").map((w, i) => (
+        <Fragment key={i}>
+          {i > 0 ? " " : null}
+          <span className="w" style={at(from + i)}>
+            {w}
+          </span>
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/** The closing band's top edge: a course of bricks that rises as the band scrolls in. */
+const EDGE = Array.from({ length: 16 }, (_, i) => i);
 
 export function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { session } = useSession();
+  useReveal();
   if (session) return <Navigate to="/" replace />;
   const pick = (pair: string[]) => (lang === "fa" ? pair[0] : pair[1]);
 
@@ -60,7 +81,7 @@ export function LandingPage() {
     <div className="lp">
       <header className="lp-nav">
         <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
-          <Lockup large />
+          <Lockup large laid />
         </Link>
         <nav className="lp-links" aria-label="Landing">
           <Link to="/how-it-works">{t("navHowItWorks")}</Link>
@@ -82,16 +103,17 @@ export function LandingPage() {
 
       <section className="lp-hero">
         <div className="lp-hero-copy">
-          <span className="badge lp-new rise" style={stagger(0)}>
-            {t("lpBadge")}
-          </span>
-          <h1 className="rise" style={stagger(1)}>
-            {t("lpHeroA")} <span className="lp-accent">{t("lpHeroB")}</span>
+          <span className="badge lp-new">{t("lpBadge")}</span>
+          <h1>
+            <Words text={t("lpHeroA")} />{" "}
+            <span className="lp-accent">
+              <Words text={t("lpHeroB")} from={t("lpHeroA").split(" ").length} />
+            </span>
           </h1>
-          <p className="lp-sub rise" style={stagger(2)}>
+          <p className="lp-sub hero-in" style={at(0)}>
             {t("lpHeroSub")}
           </p>
-          <div className="lp-ctas rise" style={stagger(3)}>
+          <div className="lp-ctas hero-in" style={at(1)}>
             <Link className="btn btn-primary btn-lg" to="/register">
               {t("lpCtaStart")} <Icon name="arrow-forward" />
             </Link>
@@ -102,7 +124,7 @@ export function LandingPage() {
         </div>
 
         <TooltipLayer>
-          <div className="lp-preview" aria-label={t("lpPreviewLabel")}>
+          <div className="lp-preview hero-in" style={at(2)} aria-label={t("lpPreviewLabel")}>
             <small className="muted">{t("lpPreviewLabel")}</small>
             <div className="lp-preview-stats">
               <div>
@@ -129,20 +151,26 @@ export function LandingPage() {
         </TooltipLayer>
       </section>
 
-      <section className="lp-strip" aria-label={t("lpProvidersTitle")}>
-        <p className="muted">{t("lpProvidersTitle")}</p>
+      <section className="lp-strip" aria-label={t("lpProvidersTitle")} data-reveal>
+        <p className="muted reveal" style={at(0)}>
+          {t("lpProvidersTitle")}
+        </p>
         <ul className="lp-providers">
-          {PROVIDER_STRIP.map((p) => (
-            <li key={p[1]}>{pick(p)}</li>
+          {PROVIDER_STRIP.map((p, i) => (
+            <li key={p[1]} className="reveal" style={at(i + 1)}>
+              {pick(p)}
+            </li>
           ))}
         </ul>
       </section>
 
-      <section id="how" className="lp-section">
-        <h2>{t("lpHowTitle")}</h2>
+      <section id="how" className="lp-section" data-reveal>
+        <h2 className="reveal" style={at(0)}>
+          {t("lpHowTitle")}
+        </h2>
         <ol className="lp-steps">
           {steps.map(([title, body], i) => (
-            <li key={title}>
+            <li key={title} className="reveal" style={at(i + 1)}>
               <span className="lp-step-n">{formatDecimal(String(i + 1), lang)}</span>
               <h3>{t(title)}</h3>
               <p>{t(body)}</p>
@@ -151,11 +179,13 @@ export function LandingPage() {
         </ol>
       </section>
 
-      <section id="features" className="lp-section">
-        <h2>{t("lpFeatTitle")}</h2>
+      <section id="features" className="lp-section" data-reveal>
+        <h2 className="reveal" style={at(0)}>
+          {t("lpFeatTitle")}
+        </h2>
         <div className="lp-features">
-          {features.map(([icon, title, body]) => (
-            <article key={title} className="lp-feature">
+          {features.map(([icon, title, body], i) => (
+            <article key={title} className="lp-feature reveal" style={at(i + 1)}>
               <span className="lp-icon">
                 <Icon name={icon} />
               </span>
@@ -166,11 +196,13 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="trust" className="lp-section lp-trust">
-        <h2>{t("lpTrustTitle")}</h2>
+      <section id="trust" className="lp-section lp-trust" data-reveal>
+        <h2 className="reveal" style={at(0)}>
+          {t("lpTrustTitle")}
+        </h2>
         <ul>
-          {(["lpT1", "lpT2", "lpT3", "lpT4"] as TKey[]).map((k) => (
-            <li key={k}>
+          {(["lpT1", "lpT2", "lpT3", "lpT4"] as TKey[]).map((k, i) => (
+            <li key={k} className="reveal" style={at(i + 1)}>
               <Icon name="ban" className="lp-x" />
               {t(k)}
             </li>
@@ -178,10 +210,20 @@ export function LandingPage() {
         </ul>
       </section>
 
-      <section className="lp-final">
-        <h2>{t("lpFinalTitle")}</h2>
-        <p>{t("lpFinalBody")}</p>
-        <div className="lp-ctas">
+      <section className="lp-final" data-reveal>
+        <div className="lp-edge" aria-hidden>
+          {EDGE.map((i) => (
+            <span key={i} style={at(i)} />
+          ))}
+        </div>
+        <Lockup large laid />
+        <h2 className="lp-statement">
+          <Words text={t("lpFinalTitle")} />
+        </h2>
+        <p className="reveal" style={at(1)}>
+          {t("lpFinalBody")}
+        </p>
+        <div className="lp-ctas reveal" style={at(2)}>
           <Link className="btn btn-lg btn-primary" to="/register">
             {t("lpCtaStart")}
           </Link>
