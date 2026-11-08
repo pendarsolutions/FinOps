@@ -97,8 +97,20 @@ def test_confirm_quote_compare_recommend_report(client, auth, demo_inv):
     for lang in ("fa", "en"):
         html = client.get(f"/api/v1/inventories/{inv_id}/report?lang={lang}", headers=auth)
         assert html.status_code == 200
-        assert "20,574,439" in html.text
         assert ("dir=\"rtl\"" in html.text) == (lang == "fa")
+    en = client.get(f"/api/v1/inventories/{inv_id}/report?lang=en", headers=auth).text
+    fa = client.get(f"/api/v1/inventories/{inv_id}/report?lang=fa", headers=auth).text
+    assert "20,574,439" in en and "<th>Resource</th>" in en
+    # the Persian report is Persian: digits and separators, headers, Solar Hijri dates (voice guideline)
+    assert "۲۰٬۵۷۴٬۴۳۹ تومان" in fa and "20,574,439" not in fa
+    assert "<th>منبع</th>" in fa and "<th>Resource</th>" not in fa
+    import re
+
+    assert not re.search(r"\b20\d\d-\d\d-\d\d\b", fa), "a Gregorian date in the Persian report"
+    assert re.search(r"۱۴۰[۴-۹]/[۰-۹]{2}/[۰-۹]{2}", fa)
+    # names and plan codes stay exactly as written
+    skus = [r["sku"] for r in client.get(f"/api/v1/inventories/{inv_id}", headers=auth).json()["resources"] if r["sku"]]
+    assert skus and all(s in fa for s in skus)
 
 
 def test_editing_after_confirmation_requires_reconfirmation(client, auth, demo_inv):

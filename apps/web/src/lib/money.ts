@@ -109,8 +109,43 @@ export function compareDecimal(a: Decimalish, b: Decimalish): number {
   return fx === fy ? 0 : (fx < fy ? -1 : 1) * flip;
 }
 
-export function formatDate(iso: string | null | undefined, lang: Lang): string {
+// ------------------------------------------------------------------ dates
+
+const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const HAS_OFFSET = /(?:[zZ]|[+-]\d{2}:?\d{2})$/;
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatter(lang: Lang, dayOnly: boolean, withTime: boolean): Intl.DateTimeFormat {
+  const key = `${lang}${dayOnly}${withTime}`;
+  let f = formatters.get(key);
+  if (!f) {
+    // Persian: Solar Hijri calendar with Persian digits (voice guideline); English: Gregorian with Latin digits
+    f = new Intl.DateTimeFormat(lang === "fa" ? "fa-IR-u-ca-persian-nu-arabext" : "en-CA-u-ca-gregory-nu-latn", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      ...(withTime ? { hour: "2-digit", minute: "2-digit", hourCycle: "h23" } : {}),
+      // a calendar day from the API is the same day everywhere; a moment is shown in the reader's own time
+      ...(dayOnly ? { timeZone: "UTC" } : {}),
+    });
+    formatters.set(key, f);
+  }
+  return f;
+}
+
+/**
+ * A date from the API for people to read: ۱۴۰۵/۰۸/۱۷ in Persian, 2026-11-08 in English. Moments (with a time) are
+ * shown in the reader's time zone, with the time unless `dayOnly`. The API sends UTC; a time without an offset
+ * (as SQLite stores it) is UTC too.
+ */
+export function formatDate(iso: string | null | undefined, lang: Lang, opts: { dayOnly?: boolean } = {}): string {
   if (!iso) return "—";
-  const s = iso.length > 10 && iso[10] === "T" ? iso.slice(0, 16).replace("T", " ") : iso;
-  return localizeDigits(s, lang);
+  const isDay = DAY_ONLY.test(iso);
+  const at = new Date(isDay ? `${iso}T00:00:00Z` : HAS_OFFSET.test(iso) ? iso : `${iso}Z`);
+  if (Number.isNaN(at.getTime())) return localizeDigits(iso, lang);
+  const p: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
+  for (const part of formatter(lang, isDay, !isDay && !opts.dayOnly).formatToParts(at)) p[part.type] = part.value;
+  const sep = lang === "fa" ? "/" : "-";
+  const day = `${p.year}${sep}${p.month}${sep}${p.day}`;
+  return p.hour === undefined ? day : `${day} ${p.hour}:${p.minute}`;
 }

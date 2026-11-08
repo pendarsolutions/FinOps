@@ -4,7 +4,7 @@ import { useI18n, type TKey } from "../lib/i18n";
 import { useSession } from "../lib/session";
 import { Advisor } from "./Advisor";
 import { Button } from "./ui";
-import { localizeDigits } from "../lib/money";
+import { formatDate } from "../lib/money";
 import { usePlain } from "../lib/plain";
 import { TourProvider, useTour } from "./Tour";
 import { TooltipLayer } from "./viz";
@@ -71,7 +71,7 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
             {!inventories?.length && <option value="">{t("noInventory")}</option>}
             {inventories?.map((i) => (
               <option key={i.id} value={i.id}>
-                {i.name} · {i.status === "confirmed" ? t("stConfirmed") : t("draft")} · {localizeDigits(i.created_at.slice(0, 10), lang)}
+                {i.name} · {i.status === "confirmed" ? t("stConfirmed") : t("draft")} · {formatDate(i.created_at, lang, { dayOnly: true })}
               </option>
             ))}
           </select>
