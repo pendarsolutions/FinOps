@@ -174,7 +174,7 @@ what was done for each.
 | Type | `--font-sans`; `--type-display`, `--type-heading-large/medium/small`, `--type-body-large/default/small`, `--type-action`, `--type-label`, `--type-caption`; `--font-weight-*` |
 | Spacing | `--spacing-1` … `--spacing-20` for padding, gaps, offsets, icon and control sizes |
 | Corners, shadow | `--radius-control`, `--radius-card`; `--shadow-overlay` (overlays only) |
-| Motion | `--duration-quick` / `-base` / `-slow` / `-exit` / `-stagger`; `--ease-standard` / `-enter` / `-exit` |
+| Motion | `--duration-quick` / `-base` / `-slow` / `-exit` / `-stagger` / `-lay` / `-glaze`; `--ease-standard` / `-enter` / `-exit` / `-settle` (brand moments only) / `-glaze` |
 
 ### What Pendar didn't cover, and what was done instead
 
@@ -184,7 +184,8 @@ what was done for each.
 | Overlay backdrop and tour spotlight | A scrim colour | `--scrim`: `--color-neutral-950` at 45% (`color-mix`). |
 | Control heights 44/36/52px, icon frame 24px | Size tokens | Built from spacing tokens (`--spacing-10` + `--spacing-1`, and so on), as the buttons and icons guidelines give them. |
 | Lockup proportions | Tokens | Measured in bricks, exactly as the products guideline states (1.5, 0.2 by 4, 3.2 bricks, rule at 35%). |
-| Loader delays | Tokens | 250ms and 500ms, the values the symbol guideline gives. |
+| Loader and logo tile delays | A tile-gap token | `--glaze-gap`: ten `--duration-lay` (250ms), the gap the symbol guideline and Pendar's animated logo use. |
+| Entrances on the public pages | A duration above `--duration-slow` | `--duration-brand`: `--duration-slow` × 2.5 (800ms), as pendarsolutions.ir uses for its hero. Only on the landing page; the app stays within 120–320ms. |
 | Hairlines and the focus ring | Border-width tokens | 1px lines; 2px focus ring with a 2px offset. |
 | Layout | Width and breakpoint tokens | The existing values are kept: side navigation (232px), drawers (460px, 900px), sign-in card, inventory picker, form and chart columns, and breakpoints at 960, 900, 760, 640 and 600px. |
 | Dimmed legend items, hidden inputs | Opacity tokens | `opacity` 0.35 and 0.65 in two places, and 0 for visually hidden inputs. |
@@ -231,3 +232,67 @@ Before: [`pendar-redesign/before/`](pendar-redesign/before/). After: [`pendar-re
   are restyled to match it instead. Adopting the package later would replace them.
 - **There is no theme switch.** The app never had one. Dark mode follows the system, and `data-theme` is supported.
 - **Charts** use the brand ramps until Pendar publishes chart tokens.
+
+## 4. Motion
+
+Added after the redesign, following Pendar's motion guideline and the way pendarsolutions.ir moves. Pendar moves
+"like a builder": things arrive and settle, several arrive one by one in reading order, and only loaders repeat. No
+library was added. Everything is CSS on the motion tokens, plus two small pieces of script: one marks a landing section
+the first time it scrolls into view, and one places the sliding tab line.
+
+### What moves
+
+| Where | What happens | Timing |
+|---|---|---|
+| Wordmark (landing, sign-in, How it works, app start) | Laid brick by brick in writing order, as in Pendar's animated logo; then the rule stands, the product name slides in from the wordmark's side, and the three tiles of «پ» glaze one by one | a brick every `--duration-lay`, each settling over `--duration-base` with `--ease-settle`; tiles `--glaze-gap` apart over `--duration-slow`; about 1.8s |
+| Landing hero | After pendarsolutions.ir: the headline arrives word by word, then the lead, the actions and the preview (whose bars are laid last), and the navigation drops in at the end | `--duration-brand`, staggered from `--duration-stagger` |
+| Landing sections | Rise once, item by item, the first time they scroll into view. Sections already in view on load wait for the hero, so everything arrives in reading order | `--duration-brand`, three staggers apart, no more than eight waiting |
+| Landing closing band | A course of 16 bricks rises along its top edge and the statement lights up word by word, both following the scroll; its lockup is laid when it comes into view. On umber the logo is the reverse one | scroll-driven (`view-timeline`); where unsupported, the edge stands and the words rise once |
+| App pages | A page's blocks arrive one by one when they first appear | `--duration-slow`, a stagger apart, eight at most |
+| Side navigation | The brick marker stands up on the page you move to and drops, quicker, from the one you leave | `--duration-base` in, `--duration-exit` out |
+| Tabs | The brick line slides to the chosen tab | `--duration-slow`, `--ease-standard` |
+| Charts | Bars are laid in reading direction, one after another, instead of being stretched (stretching squashed the brick pattern) | `--duration-slow`, a stagger apart |
+| Headline figures | Rise into place when they first show and whenever they change | `--duration-slow` |
+| Tooltips, drawer backdrop | Tooltip comes up from slightly below; the backdrop fades in | `--duration-base` |
+| Copy button | The tick is drawn in reading direction when the command is copied | `--duration-slow` |
+
+### Reduced motion, print, and no script
+
+With reduced motion on, nothing travels or waits: delays and durations are zero, the wordmark is whole with its tiles
+glazed from the start, the closing edge stands, and the words are lit. Landing sections only wait out of sight while
+the reveal script is running, so without it, and when printing, everything is simply there.
+
+### Not done
+
+- **No exit animations for the drawer or the tour.** They would delay unmounting, which changes when focus returns.
+- **No skeletons, toasts or pull to refresh.** The app has none of these to animate. Waits keep the glazing wall.
+- **The physical `left` on the tab line** is deliberate: the line is placed from measured, physical positions.
+
+### Verification
+
+- **Filmstrips.** A scripted browser pauses every animation and seeks it to fixed times:
+  [`pendar-redesign/motion/`](pendar-redesign/motion/).
+- **Motion checks,** 20, all passing:
+    - the hero and the wordmark end fully in place, with the tiles glazed
+    - sections below the fold wait, and all are revealed after scrolling
+    - the closing edge and statement end complete
+    - the English wordmark lays its 71 Latin bricks
+    - the side bar marker is only on the current page, and the tab line ends under the chosen tab
+    - under reduced motion everything is in place at once
+    - no external requests, failed requests or console errors
+- **Behaviour.** The 22 behaviour checks from the redesign pass again.
+- **Overflow.** No horizontal overflow during or after the animations: landing, sign-in and How it works in Persian
+  and English at 390px and 1440px, and six app pages at 390px.
+
+| | |
+|---|---|
+| The wordmark laid (Persian) | ![Twelve frames of the Persian wordmark laid brick by brick, then the rule, the name, and the three tiles glazing](pendar-redesign/motion/lockup-laying.png) |
+| Landing hero | ![Eight frames of the landing hero arriving: lockup, headline word by word, lead, actions, preview, navigation](pendar-redesign/motion/landing-hero.png) |
+| Closing band on scroll | ![Five scroll positions: the brick course rising along the band's edge and the statement lighting up](pendar-redesign/motion/closing-band-scroll.png) |
+| Tab line | ![The brick line sliding from one tab to another](pendar-redesign/motion/tabs-line.png) |
+
+### Fixed on the way
+
+On the dev server the welcome tour opened on every page load, even after it was dismissed. A dev-only helper read
+`?tourStep=N` from the address, and when the parameter was missing `Number(null)` gave 0, so it opened the tour at
+step 0. It now reads the parameter only when it is there. Production builds never ran that code.
