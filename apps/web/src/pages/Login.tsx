@@ -74,6 +74,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
             </Field>
           </>
         )}
+        {mode === "login" && <Link to="/forgot-password">{t("forgotPassword")}</Link>}
         <ErrorBox error={m.error} />
         {closed && <p className="alert alert-bad">{t("registrationClosed")}</p>}
         <Button type="submit" variant="primary" busy={m.isPending} disabled={closed}>

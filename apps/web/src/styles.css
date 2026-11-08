@@ -729,7 +729,13 @@ ul.plain {
   grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
   gap: var(--spacing-3);
   margin-block: var(--spacing-3);
-  align-items: end;
+  /* labels line up at the top, so a hint under one field never pushes its neighbours out of line */
+  align-items: start;
+}
+/* the form's action gets its own row, under the fields */
+.form-grid > .btn {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 .toggle {
   display: inline-flex;

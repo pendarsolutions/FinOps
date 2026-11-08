@@ -361,9 +361,30 @@ export function ReviewBadge({ s }: { s: string }) {
   return <StatusChip tone="bad" label={t("stUnresolved")} />;
 }
 
+/** Server messages people meet often, in their language; anything else is shown as the server wrote it. */
+const API_MESSAGES: Record<string, TKey> = {
+  "invalid email or password": "apiBadLogin",
+  "email already registered": "apiEmailTaken",
+  "the current password is wrong": "apiWrongCurrent",
+  "this reset link has expired or was already used": "apiResetExpired",
+  "you can't change your own membership; ask another admin": "apiOwnMembership",
+  "you can only manage members whose role is below yours": "apiOutranked",
+  "this person also belongs to another organization, so only they can change it": "apiOtherOrg",
+  "session ended; sign in again": "apiSessionEnded",
+  "no organization membership": "apiNoMembership",
+  "registration is closed; ask an admin to add you": "apiRegistrationClosed",
+};
+
 export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useI18n();
   if (!error) return null;
+  if (error instanceof ApiError && typeof error.detail === "string" && API_MESSAGES[error.detail]) {
+    return (
+      <div className="alert alert-bad" role="alert">
+        {t(API_MESSAGES[error.detail])}
+      </div>
+    );
+  }
   let title = t("errGeneric");
   let body: ReactNode = error instanceof Error ? error.message : String(error);
   if (error instanceof ApiError) {

@@ -44,11 +44,24 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(dk, base64.b64decode(dk_b64))
 
 
-def issue_token(user_id: str, org_id: str) -> str:
+def issue_token(user_id: str, org_id: str, session_version: int = 0) -> str:
     s = get_settings()
-    payload = {"sub": user_id, "org": org_id, "exp": datetime.now(UTC) + timedelta(minutes=s.jwt_ttl_minutes),
-               "iat": datetime.now(UTC)}
+    payload = {"sub": user_id, "org": org_id, "sv": session_version,
+               "exp": datetime.now(UTC) + timedelta(minutes=s.jwt_ttl_minutes), "iat": datetime.now(UTC)}
     return jwt.encode(payload, s.jwt_secret, algorithm="HS256")
+
+
+def set_password(user: User, password: str) -> None:
+    """New password; every session signed in with the old one ends, and any reset link stops working."""
+    user.password_hash = hash_password(password)
+    user.session_version = (user.session_version or 0) + 1
+    user.reset_token_hash = None
+    user.reset_expires_at = None
+
+
+def outranks(actor_role: str, target_role: str) -> bool:
+    """Whether someone may manage a member with `target_role`: only roles below their own (an owner, all but owners)."""
+    return ROLES.index(actor_role) > ROLES.index(target_role)
 
 
 @dataclass
@@ -72,7 +85,10 @@ def current_principal(authorization: str | None = Header(default=None), db: Sess
                                            Membership.organization_id == payload["org"]))
     if m is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not a member of this organization")
-    return Principal(user=db.get(User, m.user_id), org=db.get(Organization, m.organization_id), role=m.role)
+    user = db.get(User, m.user_id)
+    if payload.get("sv", 0) != (user.session_version or 0):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "session ended; sign in again")
+    return Principal(user=user, org=db.get(Organization, m.organization_id), role=m.role)
 
 
 def require(minimum: str):

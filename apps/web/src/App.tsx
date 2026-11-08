@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { Layout } from "./components/Layout";
 import { useSession } from "./lib/session";
 import { LoginPage } from "./pages/Login";
+import { ForgotPasswordPage, ResetPasswordPage } from "./pages/PasswordReset";
 import { LandingPage } from "./pages/Landing";
 import { OverviewPage } from "./pages/Overview";
 import { InfrastructurePage } from "./pages/Infrastructure";
@@ -34,6 +35,8 @@ export function App() {
       <Route path="/how-it-works" element={<HowItWorksPublic />} />
       <Route path="/login" element={<LoginPage mode="login" />} />
       <Route path="/register" element={<LoginPage mode="register" />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         element={
           <RequireAuth>

@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     alert_email_to: str | None = None
     bale_bot_token: str | None = None
     bale_chat_id: str | None = None
+    #: the address people open the app at, such as https://finops.example.ir. Links in emails (password reset) are
+    #: built from this, never from the request, so a forged Host header can't redirect them. Without it, people ask
+    #: an admin to reset their password instead.
+    public_url: str | None = None
+    password_reset_minutes: int = 30
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
     #: open sign-up. The first account can always register; later users are added by an admin.
     allow_registration: bool = False

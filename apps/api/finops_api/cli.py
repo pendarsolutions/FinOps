@@ -57,6 +57,31 @@ def cmd_seed_demo_user(args: argparse.Namespace) -> None:
     print(f"created {args.email}")
 
 
+def cmd_reset_password(args: argparse.Namespace) -> None:
+    """For when nobody can sign in: sets a new password and ends that person's sessions."""
+    import secrets
+
+    from .orm import AuditLog
+    from .security import set_password
+
+    email = args.email.lower().strip()
+    password = sys.stdin.readline().rstrip("\r\n") if args.password_stdin else secrets.token_urlsafe(12)
+    if len(password) < 10:
+        sys.exit("the password needs at least 10 characters")
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        if user is None:
+            sys.exit(f"no account uses {email}")
+        set_password(user, password)
+        db.add(AuditLog(user_id=user.id, action="auth.password_reset_cli", entity_type="user", entity_id=user.id,
+                        detail={}))
+        db.commit()
+    if args.password_stdin:
+        print(f"password changed for {email}; their other sessions have ended")
+    else:
+        print(f"new password for {email}: {password}\nthey can change it under Settings after signing in")
+
+
 def cmd_sync(args: argparse.Namespace) -> None:
     with SessionLocal() as db:
         ids = [args.provider] if args.provider else [p.id for p in db.scalars(select(ProviderRow))]
@@ -142,6 +167,10 @@ def main() -> None:
     d.add_argument("--email", default="demo@finops-agent.local")
     d.add_argument("--password", default="demo-password-1")
     d.set_defaults(fn=cmd_seed_demo_user)
+    rp = sub.add_parser("reset-password", help="set a new password for an account (prints a generated one)")
+    rp.add_argument("--email", required=True)
+    rp.add_argument("--password-stdin", action="store_true", help="read the new password from standard input")
+    rp.set_defaults(fn=cmd_reset_password)
     s = sub.add_parser("sync-prices")
     s.add_argument("--provider")
     s.add_argument("--strict", action="store_true", help="exit 1 if any sync failed or was quarantined")

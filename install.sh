@@ -142,6 +142,8 @@ write_env() {
     sed -i "s|^FINOPS_APP_IMAGE=.*|FINOPS_APP_IMAGE=$APP_IMAGE|; s|^FINOPS_WEB_IMAGE=.*|FINOPS_WEB_IMAGE=$WEB_IMAGE|" "$env_file"
     sed -i "/^FINOPS_HTTPS_PORT=/d; /^FINOPS_HTTP_BIND=/d" "$env_file"
     printf 'FINOPS_HTTPS_PORT=%s\nFINOPS_HTTP_BIND=%s\n' "$HTTPS_PORT" "$HTTP_BIND" >> "$env_file"
+    # added in 0.3.0: the address that emailed links (password reset) point at
+    grep -q '^FINOPS_PUBLIC_URL=' "$env_file" || printf 'FINOPS_PUBLIC_URL=%s\n' "$(url "$site")" >> "$env_file"
     return
   fi
   ( umask 077
@@ -152,6 +154,7 @@ POSTGRES_PASSWORD=$(secret)
 FINOPS_JWT_SECRET=$(secret)
 FINOPS_CREDENTIALS_KEY=$(fernet_key)
 FINOPS_CORS_ORIGINS=["$(url "$site")"]
+FINOPS_PUBLIC_URL=$(url "$site")
 FINOPS_AI_PROVIDER=offline
 FINOPS_HTTPS_PORT=$HTTPS_PORT
 FINOPS_HTTP_BIND=$HTTP_BIND

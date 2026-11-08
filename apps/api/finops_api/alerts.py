@@ -23,13 +23,23 @@ BALE_API = "https://tapi.bale.ai"
 MAX_LISTED_CHANGES = 10
 
 
-def _send_email(subject: str, body: str) -> None:
+def email_configured() -> bool:
+    return bool(get_settings().smtp_host)
+
+
+def send_email(to: str, subject: str, body: str) -> None:
+    """Send one email to one person. Raises if it can't be delivered; callers decide what to tell the user."""
+    _send_email(subject, body, to)
+
+
+def _send_email(subject: str, body: str, to: str | None = None) -> None:
     s = get_settings()
-    if not (s.smtp_host and s.alert_email_to):
+    to = to or s.alert_email_to
+    if not (s.smtp_host and to):
         return
     msg = EmailMessage()
-    msg["Subject"], msg["To"] = subject, s.alert_email_to
-    msg["From"] = s.smtp_from or s.smtp_user or s.alert_email_to
+    msg["Subject"], msg["To"] = subject, to
+    msg["From"] = s.smtp_from or s.smtp_user or s.alert_email_to or to
     msg.set_content(body)
     with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=15) as smtp:
         if s.smtp_starttls:

@@ -61,6 +61,11 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(300))
     locale: Mapped[str] = mapped_column(String(5), default="fa")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    #: goes up when the password changes; sign-in tokens carry it, so older tokens stop working
+    session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    #: an emailed password-reset link: only the SHA-256 of its token is kept, and it expires
+    reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    reset_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Membership(Base):

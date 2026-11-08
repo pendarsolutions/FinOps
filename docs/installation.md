@@ -60,6 +60,27 @@ FINOPS_BALE_CHAT_ID=...
 You'll hear about price changes (naming your servers on those plans), failed price updates, price moves that need
 review, and renewals 7, 3 and 1 days ahead.
 
+## Members and passwords
+
+Admins add people under **Settings → Members**, choose their role, give them a temporary password, or remove them.
+Removing someone ends their access at once and keeps everything they did. Admins manage only roles below their own,
+so an admin can't change another admin or the owner.
+
+Anyone can change their own password under **Settings → Your account**, which signs them out everywhere else.
+
+**Forgotten passwords.** With email set up (see [Alerts](#alerts)), the sign-in page offers a link that emails a
+one-time reset link, valid for 30 minutes. The link points at `FINOPS_PUBLIC_URL`, which the installer sets from your
+domain or IP address. Without email, an admin sets a temporary password instead. If the owner is the one locked out,
+run this on the server:
+
+```bash
+cd /opt/finops-agent
+sudo docker compose exec api python -m finops_api.cli reset-password --email you@example.ir
+```
+
+It prints a new password and signs that person out everywhere. To choose the password yourself, add
+`--password-stdin` and type it.
+
 ## Sharing one price catalog
 
 One installation can scrape prices and publish a signed catalog, so the others don't each have to scrape.

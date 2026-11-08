@@ -89,7 +89,11 @@ const post = <T>(p: string, b: unknown = {}) => request<T>("POST", p, b);
 const V = "/api/v1";
 
 export const api = {
-  authStatus: () => get<{ registration_open: boolean; demo_user: boolean }>(`${V}/auth/status`),
+  authStatus: () => get<{ registration_open: boolean; demo_user: boolean; password_reset_email: boolean }>(`${V}/auth/status`),
+  forgotPassword: (email: string) => post<{ status: string }>(`${V}/auth/forgot-password`, { email }),
+  resetPassword: (token: string, password: string) => post<{ status: string }>(`${V}/auth/reset-password`, { token, password }),
+  changePassword: (current_password: string, new_password: string) =>
+    post<Session>(`${V}/auth/change-password`, { current_password, new_password }),
   login: (email: string, password: string) => post<Session>(`${V}/auth/login`, { email, password }),
   register: (b: { email: string; password: string; name: string; organization_name: string }) =>
     post<Session>(`${V}/auth/register`, b),
@@ -158,6 +162,9 @@ export const api = {
 
   members: () => get<Member[]>(`${V}/members`),
   addMember: (b: { email: string; password: string; name: string; role: string }) => post<Member>(`${V}/members`, b),
+  setMemberRole: (id: string, role: string) => request<Member>("PATCH", `${V}/members/${id}`, { role }),
+  removeMember: (id: string) => request<{ status: string }>("DELETE", `${V}/members/${id}`),
+  setMemberPassword: (id: string, password: string) => post<{ status: string }>(`${V}/members/${id}/password`, { password }),
 
   settings: () => get<OrgSettings>(`${V}/settings`),
   putSettings: (b: { engineer_day_rate_toman?: string | null; default_language?: string | null }) =>
