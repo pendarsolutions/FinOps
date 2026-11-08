@@ -116,3 +116,118 @@ Tailwind or JS token files, and the component images in Specimen serve as the vi
 Known gaps already visible in the tokens: no chart palette, no layout widths (side navigation, content and drawer
 width, breakpoints), no scrim colour for overlays, and no border-width or focus-ring-width tokens. Section 3 records
 what was done for each.
+
+## 3. Report
+
+### What changed
+
+- **Design system in the repo.** `scripts/pull-pendar.sh` (with `scripts/pendar_assets.py`) downloads Pendar version 3
+  from Specimen and writes `apps/web/src/pendar/` (tokens, Estedad with its OFL license, the icon sprite and mirror
+  list, the wordmark and symbol paths) and the favicons in `apps/web/public/`. The key stays on the developer's
+  machine. The built site contains no Specimen address and no key, and makes no request outside its own origin.
+- **Foundation.** `tokens.css` is imported first, and Estedad is self-hosted with `font-display: swap`. The
+  `@fontsource/vazirmatn` dependency is removed. The page follows the system's dark mode through the tokens' own media
+  query, and `data-theme` on `<html>` overrides it. The app had no theme switch, so none was added. Base styles are
+  rebuilt from tokens: body text at 16px with line height 1.8 and no letter spacing, headings at weights 700–900,
+  links, the focus ring, selection, scrollbars, `color-scheme` and reduced motion.
+- **Brand.** Every page shows the product lockup (Pendar's wordmark, a thin rule, then the product name in Estedad 800),
+  drawn from the generated paths in `--color-logo-brick` and `--color-logo-glaze`, so dark mode reverses it. English
+  screens use the Latin wordmark. Pendar's favicons and apple-touch icon replace the old ones. Waits show Pendar's wall
+  with its tiles glazing in turn. «قدرت‌گرفته از پندار» sits at the foot of the app and the landing page.
+- **Icons.** Every Unicode symbol (✓ ✕ ⚠ ⓘ ▲ ▼ ☰ ↻ Σ ▸ ← ↗ ⬇ ● …) and both hand-drawn SVG sets are replaced by
+  Pendar icons through one `Icon` component. Icons are 24px beside text and 12px inside badges (one pixel per brick, so
+  the edges stay sharp). Directional icons mirror in English, and nothing else does.
+- **Components.** Buttons follow the buttons guideline: brick primary, outlined secondary, quiet, and solid red danger,
+  at 44px (36px in tables, lists and the app bar), pressing down 1px. Fields get a visible label and a 44px box with
+  the control line. Badges and status chips use small corners and the status roles. Alerts have a coloured line at the
+  start. The selected tab has a brick line. Cards, tables, lists and the stat tiles are flat with a sand line, and
+  table heads sit on the sunken surface over a control line. The side navigation has icons and a brick bar on the
+  current item. The switch has a square thumb and turns brick when on. Overlays (drawer, tooltip, tour, the floating
+  action bar) are the only things with a shadow. Bars in charts and meters are drawn as bricks, like Pendar's chart and
+  meter.
+- **Pages.** The landing page drops its gradients, blurred shapes, glass buttons, looping logo strip and scroll
+  animations. It now uses the plaster brand band, flat cards and an umber closing band. The overview's headline figure
+  sits on the umber tile instead of a green gradient. The reports page keeps one primary button. Nineteen selectors for
+  classes nothing uses were removed. Routes, API calls, data handling and permissions are unchanged.
+
+### Files touched
+
+`scripts/pull-pendar.sh`, `scripts/pendar_assets.py` (new); everything in `apps/web/src/pendar/` and the favicons in
+`apps/web/public/` (generated); `apps/web/index.html`, `package.json`, `package-lock.json`, `src/main.tsx`;
+`src/styles.css`, `src/experience.css`, `src/review.css`; `src/components/Icon.tsx` and `Brand.tsx` (new), `Layout.tsx`,
+`ui.tsx`, `viz.tsx`, `ReviewTable.tsx`, `Builder.tsx`, `Advisor.tsx`; `src/pages/Landing.tsx`, `Login.tsx`,
+`HowItWorks.tsx`, `Opportunities.tsx`, `Costs.tsx`, `Catalog.tsx`, `Servers.tsx`, `Settings.tsx`, `Integrations.tsx`,
+`Reports.tsx`; `src/lib/i18n.tsx` (new strings: «پیش‌نویس», «رفتن به محتوا», «قدرت‌گرفته از پندار», the check labels).
+
+### Tokens by role
+
+| UI role | Tokens |
+|---|---|
+| Page, cards, wells, brand band | `--color-surface-page`, `-raised`, `-sunken`, `-plaster` |
+| Headline tile, closing band, tooltips | `--color-surface-inverse` with `--color-ink-inverse` |
+| Text, secondary text, links | `--color-ink-default`, `--color-ink-muted`, `--color-ink-link` |
+| Lines and dividers; field and button outlines | `--color-line-default`; `--color-line-control` |
+| Primary button, current nav item, selected tab | `--color-action-default` / `-hover` / `-pressed`, `--color-action-subtle`, `--color-ink-action`, `--color-ink-on-action` |
+| Focus ring, progress, "new" | `--color-focus`, `--color-accent-default` / `-strong` / `-soft` |
+| Errors, warnings, success, information | `--color-danger-*`, `--color-warning-*`, `--color-success-*`, `--color-info-*` |
+| Logo and loader | `--color-logo-brick`, `--color-logo-glaze`, `--duration-glaze`, `--ease-glaze` |
+| Type | `--font-sans`; `--type-display`, `--type-heading-large/medium/small`, `--type-body-large/default/small`, `--type-action`, `--type-label`, `--type-caption`; `--font-weight-*` |
+| Spacing | `--spacing-1` … `--spacing-20` for padding, gaps, offsets, icon and control sizes |
+| Corners, shadow | `--radius-control`, `--radius-card`; `--shadow-overlay` (overlays only) |
+| Motion | `--duration-quick` / `-base` / `-slow` / `-exit` / `-stagger`; `--ease-standard` / `-enter` / `-exit` |
+
+### What Pendar didn't cover, and what was done instead
+
+| Need | No token for | Done instead |
+|---|---|---|
+| Chart series (one colour per provider and environment) | A chart palette | Steps of Pendar's own ramps: brick, turquoise and umber at 600, 300 and 900 (dark: 400, 200, 700). The status hues are left out, because the colour guideline keeps them for status. Every chart also prints labels and exact values. Worth asking the design-system team for chart tokens. |
+| Overlay backdrop and tour spotlight | A scrim colour | `--scrim`: `--color-neutral-950` at 45% (`color-mix`). |
+| Control heights 44/36/52px, icon frame 24px | Size tokens | Built from spacing tokens (`--spacing-10` + `--spacing-1`, and so on), as the buttons and icons guidelines give them. |
+| Lockup proportions | Tokens | Measured in bricks, exactly as the products guideline states (1.5, 0.2 by 4, 3.2 bricks, rule at 35%). |
+| Loader delays | Tokens | 250ms and 500ms, the values the symbol guideline gives. |
+| Hairlines and the focus ring | Border-width tokens | 1px lines; 2px focus ring with a 2px offset. |
+| Layout | Width and breakpoint tokens | The existing values are kept: side navigation (232px), drawers (460px, 900px), sign-in card, inventory picker, form and chart columns, and breakpoints at 960, 900, 760, 640 and 600px. |
+| Dimmed legend items, hidden inputs | Opacity tokens | `opacity` 0.35 and 0.65 in two places, and 0 for visually hidden inputs. |
+| Physical sides on purpose | | The tour spotlight is placed from script in viewport coordinates (`left`/`top`). The unit label inside number fields stays on the right, because number fields are left to right in both languages. |
+
+### Verification
+
+- Type-check and production build pass, all 196 Python tests pass, and `ruff` and `shellcheck` are clean. The web
+  app has no lint script and no tests of its own.
+- **Hard-coded values.** A scan of the app's CSS and TSX (outside the generated `src/pendar/`) finds no colour
+  literals and no font other than `--font-sans`. Every `var(--…)` the app references is defined.
+- **Every route.** All 14 routes, in light and dark, at 1440px and 390px, in RTL: no horizontal overflow; the
+  catalog's filter row scrolls sideways on phones by design.
+- **Behaviour,** in a scripted browser session (22 checks, all passing): the sign-in form submits and opens the app.
+  Navigation works. "Calculate cost" and "Run analysis" call the same API endpoints as before, and the data loads.
+  The drawer closes with Escape and returns focus. Keyboard focus shows the ring. English turns the page left to right
+  and mirrors only the directional icons. Dark mode follows the system, and `data-theme` overrides it.
+- **Network.** 136 requests recorded: none left the app's own origin, none went to Specimen, none carried a key,
+  none failed, and there were no console errors.
+- **Contrast.** Every colour pair the app combines itself is at least 4.5:1 for text and 3:1 for lines and focus,
+  in both themes. Pendar validates its own token pairs.
+
+Before: [`pendar-redesign/before/`](pendar-redesign/before/). After: [`pendar-redesign/after/`](pendar-redesign/after/)
+(light at 1440px and 390px for nine pages, dark for four).
+
+| | Before | After |
+|---|---|---|
+| Landing | ![Landing page before: green gradients and blurred shapes](pendar-redesign/before/welcome-light-1440.png) | ![Landing page after: plaster brand band, product lockup, flat preview card](pendar-redesign/after/welcome-light-1440.png) |
+| Overview | ![Overview before: green headline tile and blue bars](pendar-redesign/before/overview-light-1440.png) | ![Overview after: umber headline tile, brick bars, Pendar icons in the navigation](pendar-redesign/after/overview-light-1440.png) |
+| Overview, dark | | ![Overview after, dark theme](pendar-redesign/after/overview-dark-1440.png) |
+| Opportunities | ![Opportunities before](pendar-redesign/before/opportunities-light-1440.png) | ![Opportunities after: suggestion bars laid as bricks](pendar-redesign/after/opportunities-light-1440.png) |
+
+### Remaining issues
+
+- **Dates are Gregorian.** The fields and voice guidelines ask for Solar Hijri dates in Persian, but the app still shows
+  Gregorian dates with Persian digits. Changing how dates are formatted goes beyond a visual redesign, so it's left
+  for a separate change.
+- **Some text from the API stays English.** Sync statuses show as `OK`, `WARNING` and `FAILED`, and the demo
+  workspace's note is in English.
+- **The product name** is still "FinOps agent". It's set in `PRODUCT_NAME` (`components/Brand.tsx`), `appName`
+  (`lib/i18n.tsx`) and `<title>` (`index.html`). A rename would also need Pendar's sub-brand in Specimen ("New
+  sub-brand"), and an accent colour if the product wants its own tiles.
+- **`@pendar/ui` isn't used,** because it needs Tailwind 4 and would be new dependencies. The app's own components
+  are restyled to match it instead. Adopting the package later would replace them.
+- **There is no theme switch.** The app never had one. Dark mode follows the system, and `data-theme` is supported.
+- **Charts** use the brand ramps until Pendar publishes chart tokens.
