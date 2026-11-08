@@ -3,6 +3,48 @@
 All notable changes to FinOps agent. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versions follow [Semantic Versioning](https://semver.org/). Until 1.0, a minor version can change behaviour.
 
+## [0.3.0] — unreleased
+
+A team can now run its own installation without touching the database, and the interface follows the Pendar design
+system.
+
+### Added
+
+- **Backups.** A nightly backup at 03:30 that keeps the newest 14, and one command to back up or restore
+  (`/opt/finops-agent/backup.sh`). A backup holds the database, the uploaded invoices and the settings with the keys
+  that decrypt stored SSH keys. A restore asks first, backs up the current data before changing anything, and keeps
+  the settings that belong to the machine. `--no-daily-backup` turns the nightly backup off.
+- **Getting back in.** With email set up, "Forgot your password?" sends a one-time link that works for 30 minutes.
+  Without email, an admin sets a temporary password, and a server command resets a locked-out owner's password.
+- **Members.** Admins change roles and remove members. They manage only roles below their own, and nobody changes
+  their own membership. Removed members lose access at once and can be added back.
+- **Change your password** under Settings. It signs you out everywhere else.
+- **Motion** from Pendar's motion guideline. The wordmark is laid brick by brick, page blocks arrive in reading
+  order, and chart bars are laid instead of stretched. With reduced motion turned on, everything is in place at once.
+
+### Changed
+
+- **Pendar design system** (version 3): Estedad replaces Vazirmatn, with Pendar's colours, icons, wordmark and
+  loader. Dark mode follows the system.
+- **Solar Hijri dates** throughout the Persian interface (۱۴۰۵/۰۸/۱۷), with moments shown in the reader's time.
+- **The Persian report is Persian:** headers, status words, Persian digits and separators, and Solar Hijri dates.
+- Price update statuses are written out ("Updated", "Held for review") instead of `OK` and `FAILED`, and common
+  error messages appear in Persian.
+- Form fields line up at the top, with each form's button on its own row.
+- The installer writes `FINOPS_PUBLIC_URL` (used for links in emails) and passes `FINOPS_SMTP_FROM` and
+  `FINOPS_SMTP_STARTTLS` to the app.
+
+### Fixed
+
+- `sudo ./install.sh` failed with "Permission denied" on a fresh clone: the scripts weren't executable in git.
+- A password change didn't end sessions that were already signed in.
+- On a development server, the welcome tour opened on every page load, even after it was dismissed.
+
+### Upgrading
+
+Run the new installer as before. The database is upgraded when the app starts, the nightly backup is set up, and
+`FINOPS_PUBLIC_URL` is added to your settings from your domain or IP address.
+
 ## [0.2.0] — 2026-11-05
 
 First public release.
