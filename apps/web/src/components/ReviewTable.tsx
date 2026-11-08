@@ -5,6 +5,7 @@ import type { InventoryView, ResourceView } from "../api/types";
 import { useI18n, type TKey } from "../lib/i18n";
 import { environmentColor, providerColor } from "../lib/viz";
 import { ConfidenceRing, Initial, Rec, RecList, ServiceIcon } from "./records";
+import { Loader } from "./Brand";
 import { useInventoryMutation, useProviders } from "../lib/hooks";
 import { localizeDigits } from "../lib/money";
 import { Badge, Button, Card, Date_, ErrorBox, ReviewBadge } from "./ui";
@@ -542,7 +543,7 @@ export function ReviewTable({ inv }: { inv: InventoryView }) {
             <span>
               <strong>{d(nConfirmed)}</strong> / {d(total)} {t("rvConfirmedOf")}
             </span>
-            {patchM.isPending && <span className="spinner" role="status" aria-label={t("loading")} />}
+            {patchM.isPending && <Loader label={t("loading")} />}
           </div>
           <div
             className="rv-progress"

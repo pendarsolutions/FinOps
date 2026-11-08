@@ -131,7 +131,7 @@ function Bar({ row, max, emphasisMode }: { row: BarRow; max: Decimalish; emphasi
         {row.value === null || row.value === undefined ? (
           <span className="rank-missing">PRICE_UNAVAILABLE</span>
         ) : (
-          <span className="rank-bar" style={{ inlineSize: `max(${share * 100}%, 3px)`, background: color }} />
+          <span className="rank-bar bricks" style={{ inlineSize: `max(${share * 100}%, var(--spacing-1))`, "--bar": color } as CSSProperties} />
         )}
       </div>
       <div className="rank-value">
@@ -171,8 +171,8 @@ export function BeforeAfter({ current, after, saving }: { current: Decimalish; a
   if (current === null || current === undefined || after === null || after === undefined) return null;
   return (
     <div className="meter-ba">
-      <div className="meter-track" aria-hidden={false} role="img" aria-label={`${t("currentCost")} ${formatToman(current, lang)}، ${t("afterChange")} ${formatToman(after, lang)}`}>
-        <span className="meter-fill" style={{ inlineSize: `${Math.max(share * 100, 1)}%` }} tabIndex={0} {...afterTip} />
+      <div className="meter-track bricks" aria-hidden={false} role="img" aria-label={`${t("currentCost")} ${formatToman(current, lang)}، ${t("afterChange")} ${formatToman(after, lang)}`}>
+        <span className="meter-fill bricks" style={{ inlineSize: `${Math.max(share * 100, 1)}%` }} tabIndex={0} {...afterTip} />
         <span className="meter-gap-label">
           −<Money v={saving} />
         </span>
@@ -193,8 +193,8 @@ export function BeforeAfter({ current, after, saving }: { current: Decimalish; a
 export function PartMeter({ part, whole, label }: { part: Decimalish; whole: Decimalish; label: string }) {
   const share = visualShare(part, whole);
   return (
-    <div className="meter-part" role="img" aria-label={label}>
-      <span style={{ inlineSize: `${Math.max(share * 100, part ? 1 : 0)}%` }} />
+    <div className="meter-part bricks" role="img" aria-label={label}>
+      <span className="bricks" style={{ inlineSize: `${Math.max(share * 100, part ? 1 : 0)}%` }} />
     </div>
   );
 }

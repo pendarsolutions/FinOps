@@ -1,35 +1,12 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useI18n, type TKey } from "../lib/i18n";
 import { useSession } from "../lib/session";
 import { formatDecimal, localizeDigits } from "../lib/money";
 import { providerColor } from "../lib/viz";
 import { ShareBar, TooltipLayer } from "../components/viz";
-
-/** Adds `.in` to every [data-reveal] descendant when it scrolls into view (CSS does the motion). */
-function useReveal() {
-  const root = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const els = root.current?.querySelectorAll<HTMLElement>("[data-reveal]") ?? [];
-    if (!("IntersectionObserver" in window)) {
-      els.forEach((e) => e.classList.add("in"));
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((en) => {
-          if (en.isIntersecting) {
-            en.target.classList.add("in");
-            io.unobserve(en.target);
-          }
-        }),
-      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" },
-    );
-    els.forEach((e) => io.observe(e));
-    return () => io.disconnect();
-  }, []);
-  return root;
-}
+import { Lockup, PoweredBy } from "../components/Brand";
+import { Icon, type IconName } from "../components/Icon";
 
 // Real engine output for data/seeds/sample_inventory.json (also asserted in tests/api/test_flow.py).
 const DEMO = {
@@ -54,27 +31,12 @@ const PROVIDER_STRIP = [
   ["ابرها", "Abrha"],
 ];
 
-const ICONS: Record<string, ReactNode> = {
-  exact: <path d="M4 12l5 5L20 6" />,
-  equal: <path d="M5 9h14M5 15h14M17 4L7 20" />,
-  evidence: <path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />,
-  history: <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 3" />,
-  advisor: <path d="M4 5h16v11H9l-5 4zM8 9h8M8 12h5" />,
-  lang: <path d="M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c0 3-2 7-6 9M13 21l4-9 4 9M14.5 18h5" />,
-};
-
-function Icon({ name }: { name: string }) {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      {ICONS[name]}
-    </svg>
-  );
-}
+/** The hero copy arrives once, one line after another (motion guideline). */
+const stagger = (n: number) => ({ animationDelay: `calc(var(--duration-stagger) * ${n * 2})` }) as CSSProperties;
 
 export function LandingPage() {
   const { t, lang, setLang } = useI18n();
   const { session } = useSession();
-  const root = useReveal();
   if (session) return <Navigate to="/" replace />;
   const pick = (pair: string[]) => (lang === "fa" ? pair[0] : pair[1]);
 
@@ -85,31 +47,21 @@ export function LandingPage() {
     ["lpStep4T", "lpStep4B"],
     ["lpStep5T", "lpStep5B"],
   ];
-  const features: [string, TKey, TKey][] = [
-    ["exact", "lpF1T", "lpF1B"],
-    ["equal", "lpF2T", "lpF2B"],
-    ["evidence", "lpF3T", "lpF3B"],
-    ["history", "lpF4T", "lpF4B"],
-    ["advisor", "lpF5T", "lpF5B"],
-    ["lang", "lpF6T", "lpF6B"],
+  const features: [IconName, TKey, TKey][] = [
+    ["check", "lpF1T", "lpF1B"],
+    ["rank", "lpF2T", "lpF2B"],
+    ["file", "lpF3T", "lpF3B"],
+    ["clock", "lpF4T", "lpF4B"],
+    ["chat", "lpF5T", "lpF5B"],
+    ["globe", "lpF6T", "lpF6B"],
   ];
 
   return (
-    <div className="lp" ref={root}>
-      <div className="lp-bg" aria-hidden>
-        <span className="blob b1" />
-        <span className="blob b2" />
-        <span className="blob b3" />
-        <span className="grid-fade" />
-      </div>
-
+    <div className="lp">
       <header className="lp-nav">
-        <div className="brand">
-          <span className="logo" aria-hidden>
-            P
-          </span>
-          <span>{t("appName")}</span>
-        </div>
+        <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
+          <Lockup large />
+        </Link>
         <nav className="lp-links" aria-label="Landing">
           <Link to="/how-it-works">{t("navHowItWorks")}</Link>
           <a href="#features">{t("lpNavFeatures")}</a>
@@ -122,7 +74,7 @@ export function LandingPage() {
           <Link className="btn btn-ghost" to="/login">
             {t("lpCtaLogin")}
           </Link>
-          <Link className="btn btn-primary" to="/register">
+          <Link className="btn" to="/register">
             {t("lpCtaStart")}
           </Link>
         </div>
@@ -130,32 +82,27 @@ export function LandingPage() {
 
       <section className="lp-hero">
         <div className="lp-hero-copy">
-          <span className="lp-pill rise" style={{ animationDelay: "0ms" }}>
-            <span className="pulse-dot" aria-hidden /> {t("lpBadge")}
+          <span className="badge lp-new rise" style={stagger(0)}>
+            {t("lpBadge")}
           </span>
-          <h1 className="rise" style={{ animationDelay: "80ms" }}>
-            {t("lpHeroA")} <span className="lp-grad">{t("lpHeroB")}</span>
+          <h1 className="rise" style={stagger(1)}>
+            {t("lpHeroA")} <span className="lp-accent">{t("lpHeroB")}</span>
           </h1>
-          <p className="lp-sub rise" style={{ animationDelay: "160ms" }}>
+          <p className="lp-sub rise" style={stagger(2)}>
             {t("lpHeroSub")}
           </p>
-          <div className="lp-ctas rise" style={{ animationDelay: "240ms" }}>
+          <div className="lp-ctas rise" style={stagger(3)}>
             <Link className="btn btn-primary btn-lg" to="/register">
-              {t("lpCtaStart")} <span aria-hidden>{lang === "fa" ? "←" : "→"}</span>
+              {t("lpCtaStart")} <Icon name="arrow-forward" />
             </Link>
-            <a className="btn btn-lg btn-glass" href="#how">
+            <a className="btn btn-lg" href="#how">
               {t("lpCtaHow")}
             </a>
           </div>
         </div>
 
         <TooltipLayer>
-          <div className="lp-preview float-in" aria-label={t("lpPreviewLabel")}>
-            <div className="lp-preview-chrome" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </div>
+          <div className="lp-preview" aria-label={t("lpPreviewLabel")}>
             <small className="muted">{t("lpPreviewLabel")}</small>
             <div className="lp-preview-stats">
               <div>
@@ -184,22 +131,18 @@ export function LandingPage() {
 
       <section className="lp-strip" aria-label={t("lpProvidersTitle")}>
         <p className="muted">{t("lpProvidersTitle")}</p>
-        <div className="marquee">
-          <div className="marquee-track">
-            {[...PROVIDER_STRIP, ...PROVIDER_STRIP].map((p, i) => (
-              <span key={i} className="marquee-item" aria-hidden={i >= PROVIDER_STRIP.length}>
-                {pick(p)}
-              </span>
-            ))}
-          </div>
-        </div>
+        <ul className="lp-providers">
+          {PROVIDER_STRIP.map((p) => (
+            <li key={p[1]}>{pick(p)}</li>
+          ))}
+        </ul>
       </section>
 
       <section id="how" className="lp-section">
-        <h2 data-reveal>{t("lpHowTitle")}</h2>
+        <h2>{t("lpHowTitle")}</h2>
         <ol className="lp-steps">
           {steps.map(([title, body], i) => (
-            <li key={title} data-reveal style={{ transitionDelay: `${i * 90}ms` }}>
+            <li key={title}>
               <span className="lp-step-n">{formatDecimal(String(i + 1), lang)}</span>
               <h3>{t(title)}</h3>
               <p>{t(body)}</p>
@@ -209,10 +152,10 @@ export function LandingPage() {
       </section>
 
       <section id="features" className="lp-section">
-        <h2 data-reveal>{t("lpFeatTitle")}</h2>
+        <h2>{t("lpFeatTitle")}</h2>
         <div className="lp-features">
-          {features.map(([icon, title, body], i) => (
-            <article key={title} className="lp-feature" data-reveal style={{ transitionDelay: `${(i % 3) * 90}ms` }}>
+          {features.map(([icon, title, body]) => (
+            <article key={title} className="lp-feature">
               <span className="lp-icon">
                 <Icon name={icon} />
               </span>
@@ -223,28 +166,26 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="trust" className="lp-section lp-trust" data-reveal>
+      <section id="trust" className="lp-section lp-trust">
         <h2>{t("lpTrustTitle")}</h2>
         <ul>
           {(["lpT1", "lpT2", "lpT3", "lpT4"] as TKey[]).map((k) => (
             <li key={k}>
-              <span className="lp-x" aria-hidden>
-                ✕
-              </span>
+              <Icon name="ban" className="lp-x" />
               {t(k)}
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="lp-final" data-reveal>
+      <section className="lp-final">
         <h2>{t("lpFinalTitle")}</h2>
         <p>{t("lpFinalBody")}</p>
         <div className="lp-ctas">
-          <Link className="btn btn-lg btn-light" to="/register">
+          <Link className="btn btn-lg btn-primary" to="/register">
             {t("lpCtaStart")}
           </Link>
-          <Link className="btn btn-lg btn-glass-dark" to="/login">
+          <Link className="btn btn-lg btn-on-inverse" to="/login">
             {t("lpCtaLogin")}
           </Link>
         </div>
@@ -253,7 +194,8 @@ export function LandingPage() {
       <footer className="lp-footer">
         <span>{t("lpFooter")}</span>
         <Link to="/how-it-works">{t("navHowItWorks")}</Link>
-        <span className="muted">© {localizeDigits("2026", lang)}</span>
+        <span>© {localizeDigits("2026", lang)}</span>
+        <PoweredBy />
       </footer>
     </div>
   );

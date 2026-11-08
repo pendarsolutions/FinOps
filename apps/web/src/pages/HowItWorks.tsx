@@ -3,6 +3,7 @@ import examples from "../lib/howItWorksExamples.json";
 import { useI18n, type TKey } from "../lib/i18n";
 import { useSession } from "../lib/session";
 import { Button, Card, Money, Num, Pct } from "../components/ui";
+import { Lockup } from "../components/Brand";
 
 const STEPS: [TKey, TKey][] = [
   ["hwStep1T", "hwStep1B"],
@@ -232,11 +233,8 @@ export function HowItWorksPublic() {
   return (
     <div className="hw-public">
       <header className="hw-public-bar">
-        <Link to="/welcome" className="brand brand-link">
-          <span className="logo" aria-hidden>
-            F
-          </span>
-          <span>{t("appName")}</span>
+        <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
+          <Lockup />
         </Link>
         <div className="row gap">
           <Button variant="ghost" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")}>

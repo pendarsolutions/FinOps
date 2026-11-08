@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { useI18n } from "../lib/i18n";
 import { useSession } from "../lib/session";
 import { Button, ErrorBox, Field } from "../components/ui";
+import { Lockup } from "../components/Brand";
 
 export function LoginPage({ mode }: { mode: "login" | "register" }) {
   const { t, lang, setLang } = useI18n();
@@ -39,11 +40,8 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
     <div className="auth-page">
       <form className="card auth-card stack" onSubmit={submit}>
         <div className="row between">
-          <Link to="/welcome" className="brand brand-link">
-            <span className="logo" aria-hidden>
-              F
-            </span>
-            <span>{t("appName")}</span>
+          <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
+            <Lockup />
           </Link>
           <Button variant="ghost" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")}>
             {lang === "fa" ? "EN" : "فا"}
