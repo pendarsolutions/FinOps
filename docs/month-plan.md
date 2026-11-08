@@ -22,19 +22,21 @@ before optimisation helps, so the month is ordered that way.
 
 ## Week 1 (8–14 Nov): a stranger can install it
 
+**Status, 8 Nov:** the code is done. Also fixed on the way: `./install.sh` wasn't executable in git, so the README's install command failed on a fresh clone. What's left needs the maintainer.
+
 **Goal:** someone following the README gets a working, maintainable installation.
 
 | | Item | Why | Status |
 |---|---|---|---|
-| P0 | Publish **0.2.0**: tag it, so CI publishes the images, the offline bundle and the release page | The README's "latest release" link is dead and `install.sh` falls back to building from Docker Hub, which is often blocked in Iran | |
-| P0 | Merge the Pendar redesign and motion into `main`; delete the stale `finops-agent-iran` branch on GitHub | `main` is the public source; the redesign exists only on one machine | |
-| P0 | **Password reset**: an admin CLI command, and an emailed reset link when email is set up | There is no way back in after a forgotten password | |
-| P0 | **Members**: change a member's role, remove a member | Members can only be added today | |
-| P0 | **Backup and restore**: one command each (database, settings, uploads), plus a daily backup option and docs | Losing the database loses all price history and saved quotes | |
-| P1 | Jalali dates throughout the Persian interface | The README promises them; the app shows Gregorian dates | |
-| P1 | Translate the remaining English statuses (`OK`, `WARNING`, `FAILED`) | Mixed languages confuse Persian users | |
-| P0 | Publish **0.3.0** (redesign, motion, the items above) | | |
-| P0 | Clean install test on a fresh Iranian VPS with Docker Hub blocked, notes fixed in the docs | The real first-time path has never been walked end to end | |
+| P0 | Publish **0.2.0**: tag it, so CI publishes the images, the offline bundle and the release page | The README's "latest release" link is dead and `install.sh` falls back to building from Docker Hub, which is often blocked in Iran | Waiting on maintainer: push the tag |
+| P0 | Merge the Pendar redesign and motion into `main`; delete the stale `finops-agent-iran` branch on GitHub | `main` is the public source; the redesign exists only on one machine | Merged locally; Waiting on maintainer: push `main`, delete the branch |
+| P0 | **Password reset**: an admin CLI command, and an emailed reset link when email is set up | There is no way back in after a forgotten password | Done |
+| P0 | **Members**: change a member's role, remove a member | Members can only be added today | Done |
+| P0 | **Backup and restore**: one command each (database, settings, uploads), plus a daily backup option and docs | Losing the database loses all price history and saved quotes | Done; full round trip on the test VPS |
+| P1 | Jalali dates throughout the Persian interface | The README promises them; the app shows Gregorian dates | Done, and the Persian report |
+| P1 | Translate the remaining English statuses (`OK`, `WARNING`, `FAILED`) | Mixed languages confuse Persian users | Done |
+| P0 | Publish **0.3.0** (redesign, motion, the items above) | | Notes ready; after the VPS test |
+| P0 | Clean install test on a fresh Iranian VPS with Docker Hub blocked, notes fixed in the docs | The real first-time path has never been walked end to end | Waiting on maintainer: a fresh VPS |
 
 ## Week 2 (15–21 Nov): what you actually paid
 
