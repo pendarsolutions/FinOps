@@ -10,14 +10,27 @@ import { Badge, Card, Date_, Drawer, ErrorBox, FreshnessBadge, Loading, Money, N
 import { Initial, Rec, RecList, ServiceIcon } from "../components/records";
 import { Icon } from "../components/Icon";
 
+/** A price update's outcome in words; an unlisted status is shown as the server wrote it. */
+const SYNC_LABEL: Record<string, TKey> = {
+  ok: "syncOk",
+  success: "syncOk",
+  warning: "syncWarning",
+  failed: "syncFailed",
+  quarantined: "syncQuarantined",
+  applied_after_review: "syncApplied",
+  not_implemented: "syncNotImplemented",
+  running: "syncRunning",
+};
+
 export function SyncStatusBadge({ status }: { status: string | null | undefined }) {
+  const { t } = useI18n();
   if (!status) return <Badge>—</Badge>;
   const bad = ["failed", "quarantined"].includes(status);
   const warn = status === "warning";
   return (
-    <Badge tone={bad ? "bad" : warn ? "warn" : status === "success" || status === "ok" ? "good" : "info"}>
+    <Badge tone={bad ? "bad" : warn ? "warn" : status === "success" || status === "ok" ? "good" : "info"} title={status}>
       {bad || warn ? <Icon name="warning" small /> : null}
-      {status.toUpperCase()}
+      {SYNC_LABEL[status] ? t(SYNC_LABEL[status]) : status}
     </Badge>
   );
 }
