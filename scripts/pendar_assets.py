@@ -41,6 +41,36 @@ def mark(svg: str, brick: str, glaze: str) -> dict[str, object]:
     return {"viewBox": view_box(svg), "brick": fills[brick], "glaze": tiles}
 
 
+def laying(svg: str, brick: str, tokens: str) -> dict[str, object]:
+    """The animated wordmark's bricks in the order they are laid, each with the order its tile glazes (-1: no tile).
+
+    The app times the animation with the motion tokens, so this checks the file keeps the same rhythm:
+    a brick every --duration-lay, and tiles glazing ten bricks apart once the last brick has settled.
+    """
+    lay = int(token_value(tokens, "duration-lay").removesuffix("ms"))
+    base = int(token_value(tokens, "duration-base").removesuffix("ms"))
+    rows = []
+    for attrs in re.findall(r"<rect([^>]*)/>", svg):
+        a = dict(re.findall(r'([\w-]+)="([^"]*)"', attrs))
+        if a.get("fill", "").lower() != brick:
+            sys.exit(f"unexpected brick colour {a.get('fill')} in the animated wordmark")
+        delays = [int(d) for d in re.findall(r"(\d+)ms", a.get("style", ""))]
+        tile = "t" in a.get("class", "").split()
+        if len(delays) != (2 if tile else 1):
+            sys.exit(f"unexpected timing {a.get('style')!r} in the animated wordmark")
+        rows.append((delays[0], [int(a[k]) for k in ("x", "y", "width", "height")], delays[1] if tile else None))
+    rows.sort(key=lambda r: r[0])
+    glaze_at = sorted(g for _, _, g in rows if g is not None)
+    for i, (at, _, _) in enumerate(rows):
+        if at != i * lay:
+            sys.exit(f"brick {i} is laid at {at}ms, not every --duration-lay ({lay}ms)")
+    for i, at in enumerate(glaze_at):
+        if at != len(rows) * lay + base + i * 10 * lay:
+            sys.exit(f"tile {i} glazes at {at}ms, which the app's timing doesn't match")
+    bricks = [[*box, glaze_at.index(g) if g is not None else -1] for _, box, g in rows]
+    return {"viewBox": view_box(svg), "bricks": bricks}
+
+
 def main() -> None:
     tmp, out, public, version = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4]
     header = HEADER.format(v=version)
@@ -83,10 +113,26 @@ def main() -> None:
         "wordmarkEn": mark(logo["wordmark-en-color.svg"].decode("utf-8"), brick, glaze),
         "symbol": mark(symbol["symbol-color.svg"].decode("utf-8"), brick, glaze),
     }
+    # the wordmarks laid brick by brick, from the animated SVGs in the Motion collection
+    motion = read_zip(tmp / "motion.zip")
+    build = {
+        "fa": laying(motion["pendar-fa-animated.svg"].decode("utf-8"), brick, tokens),
+        "en": laying(motion["pendar-en-animated.svg"].decode("utf-8"), brick, tokens),
+    }
+    entries = []
+    for key, plan in build.items():  # one brick per line pair, not one number per line
+        bricks = ", ".join(json.dumps(b) for b in plan["bricks"])
+        entries.append(f'  "{key}": {{\n    "viewBox": "{plan["viewBox"]}",\n    "bricks": [{bricks}]\n  }}')
+    build_ts = "{\n" + ",\n".join(entries) + "\n}"
     (out / "logo.ts").write_text(
         f"// {header}\n"
         "/** Pendar's wordmarks and symbol, as paths: draw them with --color-logo-brick and --color-logo-glaze. */\n"
-        f"export const MARKS = {json.dumps(marks, indent=2)} as const;\n", encoding="utf-8", newline="\n")
+        f"export const MARKS = {json.dumps(marks, indent=2)} as const;\n\n"
+        "/**\n"
+        " * The wordmarks as Pendar's animated logo lays them (Motion collection): [x, y, width, height, tile],\n"
+        " * in laying order, one every --duration-lay. `tile` is the order the brick glazes in, or -1.\n"
+        " */\n"
+        f"export const LAYING = {build_ts} as const;\n", encoding="utf-8", newline="\n")
 
     # favicons and the home-screen icon, under the names browsers ask for
     fav = read_zip(tmp / "favicons.zip")
@@ -100,7 +146,8 @@ def main() -> None:
         "- `tokens.css`: colours, type, spacing, radii, shadows and motion, light and dark.\n"
         "- `fonts/`: Estedad, under the SIL Open Font License 1.1 (`OFL.txt`).\n"
         "- `icons.svg`, `icons.ts`: the icon sprite, and which icons mirror in left-to-right text.\n"
-        "- `logo.ts`: the wordmarks and the symbol as paths.\n", encoding="utf-8", newline="\n")
+        "- `logo.ts`: the wordmarks and the symbol as paths, and the order the animated logo lays its bricks.\n",
+        encoding="utf-8", newline="\n")
     print(f"  wrote {len(icons)} icons, {len(marks)} marks, {len(fav) + 1} favicons and the font")
 
 

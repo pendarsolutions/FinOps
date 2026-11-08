@@ -34,7 +34,7 @@ fetch() {
 
 echo "Pendar v$VERSION from Specimen:"
 fetch "tokens.css?version=$VERSION" "$TMP/tokens.css"
-for collection in estedad icons favicons logo symbol; do
+for collection in estedad icons favicons logo symbol motion; do
   fetch "collections/$collection.zip?version=$VERSION" "$TMP/$collection.zip"
 done
 curl -fsS --retry 3 -o "$TMP/OFL.txt" "$ESTEDAD_LICENSE"
