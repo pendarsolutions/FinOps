@@ -8,6 +8,7 @@ import { ConfidenceRing, Initial, Rec, RecList, ServiceIcon } from "./records";
 import { useInventoryMutation, useProviders } from "../lib/hooks";
 import { localizeDigits } from "../lib/money";
 import { Badge, Button, Card, Date_, ErrorBox, ReviewBadge } from "./ui";
+import { Icon } from "./Icon";
 
 const DEC_RE = /^\d+(\.\d+)?$/;
 export const ENVIRONMENTS = ["production", "staging", "development", "test", "ci", "other"];
@@ -313,9 +314,7 @@ function ResourceCard({
     <article className={`rv-card rv-${r.review_status} ${open ? "is-open" : ""}`} style={{ "--prov": prov.css } as CSSProperties}>
       <header className="rv-head">
         <button type="button" className="rv-toggle" aria-expanded={open} aria-controls={bodyId} onClick={onToggle} aria-label={r.name}>
-          <span className="rv-chevron" aria-hidden>
-            ▸
-          </span>
+          <Icon name={open ? "chevron-down" : "chevron-forward"} className="rv-chevron" />
         </button>
         <span className="rv-avatar" aria-hidden>
           <ServiceIcon type={r.service_type} />
@@ -418,7 +417,7 @@ function ResourceCard({
           </div>
           <div className="rv-foot">
             <button type="button" className="linkish" aria-expanded={more} onClick={() => setMore(!more)}>
-              {more ? "▾" : "▸"} {t("moreFields")}
+              <Icon name={more ? "chevron-down" : "chevron-forward"} small /> {t("moreFields")}
             </button>
             <Button variant="ghost" className="rv-delete" busy={deleting} onClick={onDelete}>
               {t("deleteResource")}
@@ -641,7 +640,7 @@ export function ReviewTable({ inv }: { inv: InventoryView }) {
           aria-describedby="analyze-why"
           onClick={() => (confirmed ? nav("/costs") : confirmM.mutate(undefined))}
         >
-          {t("analyzeCosts")} {lang === "fa" ? "←" : "→"}
+          {t("analyzeCosts")} <Icon name="arrow-forward" />
         </Button>
       </div>
     </div>

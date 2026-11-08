@@ -8,6 +8,7 @@ import { compareDecimal } from "../lib/money";
 import { providerColor } from "../lib/viz";
 import { Badge, Card, Date_, Drawer, ErrorBox, FreshnessBadge, Loading, Money, Num, StatusChip } from "../components/ui";
 import { Initial, Rec, RecList, ServiceIcon } from "../components/records";
+import { Icon } from "../components/Icon";
 
 export function SyncStatusBadge({ status }: { status: string | null | undefined }) {
   if (!status) return <Badge>—</Badge>;
@@ -15,7 +16,7 @@ export function SyncStatusBadge({ status }: { status: string | null | undefined 
   const warn = status === "warning";
   return (
     <Badge tone={bad ? "bad" : warn ? "warn" : status === "success" || status === "ok" ? "good" : "info"}>
-      {bad || warn ? "⚠ " : ""}
+      {bad || warn ? <Icon name="warning" small /> : null}
       {status.toUpperCase()}
     </Badge>
   );
@@ -151,7 +152,7 @@ function History({ item }: { item: CatalogItem }) {
               meta={
                 <>
                   <span>
-                    {t("validRange")}: <Date_ v={v.valid_from} /> → {v.valid_to ? <Date_ v={v.valid_to} /> : "…"}
+                    {t("validRange")}: <Date_ v={v.valid_from} /> – {v.valid_to ? <Date_ v={v.valid_to} /> : "…"}
                   </span>
                   <span>
                     {t("retrieved")}: <Date_ v={v.source_retrieved_at} />

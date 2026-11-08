@@ -171,7 +171,7 @@ export function BeforeAfter({ current, after, saving }: { current: Decimalish; a
   if (current === null || current === undefined || after === null || after === undefined) return null;
   return (
     <div className="meter-ba">
-      <div className="meter-track" aria-hidden={false} role="img" aria-label={`${t("currentCost")} ${formatToman(current, lang)} → ${t("afterChange")} ${formatToman(after, lang)}`}>
+      <div className="meter-track" aria-hidden={false} role="img" aria-label={`${t("currentCost")} ${formatToman(current, lang)}، ${t("afterChange")} ${formatToman(after, lang)}`}>
         <span className="meter-fill" style={{ inlineSize: `${Math.max(share * 100, 1)}%` }} tabIndex={0} {...afterTip} />
         <span className="meter-gap-label">
           −<Money v={saving} />

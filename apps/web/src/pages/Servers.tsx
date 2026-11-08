@@ -10,6 +10,7 @@ import { useSession } from "../lib/session";
 import { Badge, Button, Card, Date_, Drawer, Empty, ErrorBox, Field, LinesTable, Loading, Money, Num, Pct, PriceUnavailableBadge, StatusChip, type Tone } from "../components/ui";
 import { Initial, Rec, RecList, RecStat } from "../components/records";
 import { providerColor } from "../lib/viz";
+import { Icon } from "../components/Icon";
 
 const STATUS: Record<ServerView["status"], { tone: Tone; key: TKey }> = {
   online: { tone: "good", key: "srvOnline" },
@@ -33,7 +34,7 @@ function CopyBox({ text }: { text: string }) {
             setDone(true);
           }}
         >
-          {done ? `✓ ${t("copied")}` : t("copy")}
+          <Icon name={done ? "check" : "copy"} /> {done ? t("copied") : t("copy")}
         </Button>
       </div>
     </div>
@@ -328,7 +329,7 @@ function ServerDrawer({ id, onClose, canEdit }: { id: string; onClose: () => voi
 
           <div className="row gap wrap">
             <Button disabled={!canEdit} busy={check.isPending} onClick={() => check.mutate()}>
-              ↻ {t("checkNow")}
+              <Icon name="refresh" /> {t("checkNow")}
             </Button>
             <Button variant="ghost" className="rec-danger" disabled={!canEdit} busy={remove.isPending} onClick={() => remove.mutate()}>
               {t("removeServer")}

@@ -7,6 +7,7 @@ import { Button, Card, Date_, ErrorBox, Loading, Num, StatusChip } from "../comp
 import { Initial, Rec, RecList, RecStat } from "../components/records";
 import { providerColor } from "../lib/viz";
 import { SyncStatusBadge } from "./Catalog";
+import { Icon } from "../components/Icon";
 
 export function IntegrationsPage() {
   const { t, lang } = useI18n();
@@ -72,7 +73,7 @@ export function IntegrationsPage() {
                       busy={sync.isPending && sync.variables === a.provider_id}
                       onClick={() => sync.mutate(a.provider_id)}
                     >
-                      ↻ {t("syncNow")}
+                      <Icon name="refresh" /> {t("syncNow")}
                     </Button>
                   }
                 >

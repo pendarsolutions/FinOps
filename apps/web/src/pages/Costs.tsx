@@ -11,6 +11,7 @@ import { ConfirmedInventory } from "../components/Guard";
 import { RankedBars, ShareBar } from "../components/viz";
 import { Rec, RecList } from "../components/records";
 import { Button, Card, Date_, ErrorBox, LineStatusBadge, Loading, Money, Num, PriceUnavailableBadge, SourceInfo, StatusChip, freshnessFor } from "../components/ui";
+import { Icon } from "../components/Icon";
 
 /** One grouped table: a summary row per resource (click to expand), component lines nested beneath. */
 function BreakdownTable({ q }: { q: QuoteView }) {
@@ -56,9 +57,7 @@ function BreakdownTable({ q }: { q: QuoteView }) {
                 <tr className="group-head" onClick={() => toggle(b.resource_id)}>
                   <th scope="rowgroup" colSpan={2}>
                     <button type="button" className="disclosure" aria-expanded={isOpen} onClick={(e) => (e.stopPropagation(), toggle(b.resource_id))}>
-                      <span className="chev" aria-hidden>
-                        ▸
-                      </span>
+                      <Icon name={isOpen ? "chevron-down" : "chevron-forward"} className="chev" />
                       <i className="swatch" style={{ background: providerColor(b.provider_id).css }} aria-hidden />
                       <strong>{b.resource_name}</strong>
                     </button>
@@ -283,7 +282,7 @@ function CostsInner({ inv }: { inv: InventoryView }) {
                 key={q.id}
                 selected={q.id === selected}
                 tone={q.complete ? undefined : "bad"}
-                icon={<span aria-hidden>Σ</span>}
+                icon={<Icon name="file" />}
                 title={<Money v={q.total_toman} />}
                 meta={
                   <>

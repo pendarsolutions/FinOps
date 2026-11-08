@@ -4,6 +4,8 @@ import type { BlockingRow, ComponentLine, PriceSource } from "../api/types";
 import { useI18n, type TKey } from "../lib/i18n";
 import { formatDate, formatDecimal, formatPercent, formatToman, localizeDigits, type Decimalish } from "../lib/money";
 import { usePlain } from "../lib/plain";
+import { Loader } from "./Brand";
+import { Icon, type IconName } from "./Icon";
 
 // ------------------------------------------------------------------ basics
 
@@ -18,7 +20,7 @@ export function Button({ variant = "secondary", busy, className, children, disab
       aria-busy={busy || undefined}
       {...rest}
     >
-      {busy ? <span className="spinner" aria-hidden /> : null}
+      {busy ? <Loader /> : null}
       {children}
     </button>
   );
@@ -34,15 +36,13 @@ export function Badge({ tone = "neutral", children, title }: { tone?: Tone; chil
   );
 }
 
-const TONE_ICON: Record<Tone, string> = { good: "✓", warn: "!", bad: "✕", info: "i", neutral: "•" };
+const TONE_ICON: Record<Tone, IconName | null> = { good: "check", warn: "warning", bad: "error", info: "info", neutral: null };
 
 /** Status = icon + label + tone. Never color alone. */
 export function StatusChip({ tone, label, title }: { tone: Tone; label: ReactNode; title?: string }) {
   return (
     <span className={`status-chip status-chip-${tone}`} title={title}>
-      <span className="status-chip-icon" aria-hidden>
-        {TONE_ICON[tone]}
-      </span>
+      {TONE_ICON[tone] ? <Icon name={TONE_ICON[tone]} small className="status-chip-icon" /> : null}
       {label}
     </span>
   );
@@ -65,8 +65,8 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
 export function Loading() {
   const { t } = useI18n();
   return (
-    <p className="muted" role="status">
-      <span className="spinner" aria-hidden /> {t("loading")}
+    <p className="loading muted" role="status">
+      <Loader /> {t("loading")}
     </p>
   );
 }
@@ -133,8 +133,8 @@ export function Drawer({ open, onClose, title, children, wide }: { open: boolean
       >
         <header className="drawer-head">
           <h2 id={titleId}>{title}</h2>
-          <Button variant="ghost" onClick={onClose} aria-label={t("close")}>
-            ✕
+          <Button variant="ghost" className="btn-icon" onClick={onClose} aria-label={t("close")} title={t("close")}>
+            <Icon name="close" />
           </Button>
         </header>
         <div className="drawer-body">{children}</div>
@@ -159,7 +159,7 @@ export function PriceUnavailableBadge() {
   const { t } = useI18n();
   return (
     <span className="price-unavailable" title="PRICE_UNAVAILABLE">
-      ⚠ {t("priceUnavailable")}
+      <Icon name="warning" small /> {t("priceUnavailable")}
     </span>
   );
 }
@@ -216,7 +216,7 @@ export function SourceInfo({
   return (
     <details className="source-info">
       <summary title={tip}>
-        ⓘ {t("source")}
+        <Icon name="info" small /> {t("source")}
         {freshness ? <FreshnessBadge f={freshness} /> : null}
       </summary>
       <dl className="kv">

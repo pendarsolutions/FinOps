@@ -8,6 +8,7 @@ import { useSession } from "../lib/session";
 import { Badge, Button, Card, Date_, ErrorBox, Field, Loading, Money } from "../components/ui";
 import { normalizeDigits } from "../components/ReviewTable";
 import { Rec, RecList } from "../components/records";
+import { Icon } from "../components/Icon";
 
 export function SettingsPage() {
   const { t, lang, setLang } = useI18n();
@@ -89,7 +90,11 @@ export function SettingsPage() {
               <Button type="submit" variant="primary" disabled={!isAdmin || !valid} busy={save.isPending}>
                 {t("save")}
               </Button>
-              {save.isSuccess && <Badge tone="good">✓ {t("saved")}</Badge>}
+              {save.isSuccess && (
+                <Badge tone="good">
+                  <Icon name="check" small /> {t("saved")}
+                </Badge>
+              )}
               {!isAdmin && <small className="muted">{t("adminOnly")}</small>}
             </div>
           </form>
@@ -110,7 +115,7 @@ export function SettingsPage() {
             {audit.data?.map((a) => (
               <Rec
                 key={a.id}
-                icon={<span aria-hidden>{a.action.includes("delete") ? "✕" : a.action.includes("confirm") ? "✓" : "•"}</span>}
+                icon={<Icon name={a.action.includes("delete") ? "trash" : a.action.includes("confirm") ? "check" : "edit"} />}
                 tone={a.action.includes("delete") ? "bad" : undefined}
                 title={<code dir="ltr">{a.action}</code>}
                 meta={

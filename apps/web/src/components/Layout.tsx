@@ -8,19 +8,21 @@ import { localizeDigits } from "../lib/money";
 import { usePlain } from "../lib/plain";
 import { TourProvider, useTour } from "./Tour";
 import { TooltipLayer } from "./viz";
+import { Lockup, PoweredBy } from "./Brand";
+import { Icon, type IconName } from "./Icon";
 
-const NAV: { to: string; key: TKey; tour: string }[] = [
-  { to: "/", key: "navOverview", tour: "nav-overview" },
-  { to: "/servers", key: "navServers", tour: "nav-servers" },
-  { to: "/infrastructure", key: "navInfrastructure", tour: "nav-infrastructure" },
-  { to: "/costs", key: "navCosts", tour: "nav-costs" },
-  { to: "/opportunities", key: "navOpportunities", tour: "nav-opportunities" },
-  { to: "/compare", key: "navCompare", tour: "nav-compare" },
-  { to: "/reports", key: "navReports", tour: "nav-reports" },
-  { to: "/catalog", key: "navCatalog", tour: "nav-catalog" },
-  { to: "/integrations", key: "navIntegrations", tour: "nav-integrations" },
-  { to: "/settings", key: "navSettings", tour: "nav-settings" },
-  { to: "/guide", key: "navHowItWorks", tour: "nav-guide" },
+const NAV: { to: string; key: TKey; tour: string; icon: IconName }[] = [
+  { to: "/", key: "navOverview", tour: "nav-overview", icon: "home" },
+  { to: "/servers", key: "navServers", tour: "nav-servers", icon: "database" },
+  { to: "/infrastructure", key: "navInfrastructure", tour: "nav-infrastructure", icon: "building" },
+  { to: "/costs", key: "navCosts", tour: "nav-costs", icon: "money" },
+  { to: "/opportunities", key: "navOpportunities", tour: "nav-opportunities", icon: "target" },
+  { to: "/compare", key: "navCompare", tour: "nav-compare", icon: "rank" },
+  { to: "/reports", key: "navReports", tour: "nav-reports", icon: "file" },
+  { to: "/catalog", key: "navCatalog", tour: "nav-catalog", icon: "list" },
+  { to: "/integrations", key: "navIntegrations", tour: "nav-integrations", icon: "link" },
+  { to: "/settings", key: "navSettings", tour: "nav-settings", icon: "settings" },
+  { to: "/guide", key: "navHowItWorks", tour: "nav-guide", icon: "help" },
 ];
 
 const INVENTORY_PAGES = ["/", "/infrastructure", "/costs", "/opportunities", "/compare", "/reports"];
@@ -52,18 +54,15 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
   return (
     <div className="shell">
       <a href="#main" className="skip">
-        Skip to content
+        {t("skipToContent")}
       </a>
       <header className="topbar">
         <Button variant="ghost" className="nav-toggle" aria-expanded={navOpen} aria-controls="sidenav" onClick={() => setNavOpen((o) => !o)}>
-          ☰ <span className="sr-only">{t("menu")}</span>
+          <Icon name="menu" label={t("menu")} />
         </Button>
-        <div className="brand">
-          <span className="logo" aria-hidden>
-            F
-          </span>
-          <span>{t("appName")}</span>
-        </div>
+        <NavLink to="/" className="brand" aria-label={t("appName")}>
+          <Lockup />
+        </NavLink>
         <div className="topbar-inv" data-tour="inventory">
           <label htmlFor="inv-select" className="sr-only">
             {t("selectInventory")}
@@ -72,19 +71,19 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
             {!inventories?.length && <option value="">{t("noInventory")}</option>}
             {inventories?.map((i) => (
               <option key={i.id} value={i.id}>
-                {i.name} · {i.status === "confirmed" ? "✓" : "…"} {localizeDigits(i.created_at.slice(0, 10), lang)}
+                {i.name} · {i.status === "confirmed" ? t("stConfirmed") : t("draft")} · {localizeDigits(i.created_at.slice(0, 10), lang)}
               </option>
             ))}
           </select>
         </div>
         <div className="topbar-actions">
           {onInventoryPage && activeId ? (
-            <Button variant="primary" onClick={() => setAdvisorOpen(true)} data-tour="advisor">
-              {t("advisor")}
+            <Button onClick={() => setAdvisorOpen(true)} data-tour="advisor">
+              <Icon name="chat" /> {t("advisor")}
             </Button>
           ) : null}
           <Button variant="ghost" onClick={() => tour.start()} data-tour="help" title={t("tourRestart")}>
-            ? <span className="hide-sm">{t("tourHelp")}</span>
+            <Icon name="help" /> <span className="hide-sm">{t("tourHelp")}</span>
           </Button>
           <Button variant="ghost" data-tour="lang" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")} lang={lang === "fa" ? "en" : "fa"}>
             {lang === "fa" ? "EN" : "فا"}
@@ -92,8 +91,8 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
           <span className="who" title={session?.user.email}>
             {session?.organization.name} · <small>{plain.role(session?.role)}</small>
           </span>
-          <Button variant="ghost" onClick={signOut}>
-            {t("logout")}
+          <Button variant="ghost" onClick={signOut} title={t("logout")}>
+            <Icon name="logout" /> <span className="hide-sm">{t("logout")}</span>
           </Button>
         </div>
       </header>
@@ -102,7 +101,7 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
           {NAV.map((n) => (
             <li key={n.to}>
               <NavLink to={n.to} end={n.to === "/"} onClick={() => setNavOpen(() => false)} data-tour={n.tour}>
-                {t(n.key)}
+                <Icon name={n.icon} /> {t(n.key)}
               </NavLink>
             </li>
           ))}
@@ -110,6 +109,7 @@ function Shell({ navOpen, setNavOpen }: { navOpen: boolean; setNavOpen: (f: (o: 
       </nav>
       <main id="main" className="main">
         <Outlet />
+        <PoweredBy />
       </main>
       {activeId ? <Advisor open={advisorOpen} onClose={() => setAdvisorOpen(false)} inventoryId={activeId} /> : null}
     </div>

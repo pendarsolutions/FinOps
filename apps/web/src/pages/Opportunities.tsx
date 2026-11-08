@@ -8,13 +8,14 @@ import { recTitle, usePlain } from "../lib/plain";
 import { ConfirmedInventory } from "../components/Guard";
 import { Badge, Button, Card, ErrorBox, LinesTable, Loading, Money, Num, Pct, ToneBadge } from "../components/ui";
 import { BeforeAfter, RankedBars } from "../components/viz";
+import { Icon, type IconName } from "../components/Icon";
 
-const VERDICT: Record<string, { mark: string; key: "vBetter" | "vWorse" | "vSame" | "vDifferent" | "vUnknown" }> = {
-  better: { mark: "▲", key: "vBetter" },
-  worse: { mark: "▼", key: "vWorse" },
-  same: { mark: "=", key: "vSame" },
-  different: { mark: "≠", key: "vDifferent" },
-  unknown: { mark: "?", key: "vUnknown" },
+const VERDICT: Record<string, { icon: IconName; key: "vBetter" | "vWorse" | "vSame" | "vDifferent" | "vUnknown" }> = {
+  better: { icon: "arrow-up", key: "vBetter" },
+  worse: { icon: "arrow-down", key: "vWorse" },
+  same: { icon: "check", key: "vSame" },
+  different: { icon: "minus", key: "vDifferent" },
+  unknown: { icon: "help", key: "vUnknown" },
 };
 
 /** Verdict = shape mark + word + tone (never color alone). */
@@ -23,7 +24,7 @@ export function VerdictBadge({ v }: { v: string }) {
   const meta = VERDICT[v] ?? VERDICT.unknown;
   return (
     <span className={`verdict verdict-${v}`}>
-      <span aria-hidden>{meta.mark}</span> {t(meta.key)}
+      <Icon name={meta.icon} small /> {t(meta.key)}
     </span>
   );
 }
@@ -46,7 +47,9 @@ export function ConstraintsList({ items }: { items: ConstraintResult[] }) {
         const unknown = c.passed && c.detail === "cpu class: unknown";
         return (
           <li key={c.constraint_id}>
-            <Badge tone={unknown ? "warn" : c.passed ? "good" : "bad"}>{unknown ? "?" : c.passed ? "✓" : "✗"}</Badge>{" "}
+            <Badge tone={unknown ? "warn" : c.passed ? "good" : "bad"}>
+              <Icon name={unknown ? "help" : c.passed ? "check" : "close"} small label={unknown ? t("vUnknown") : c.passed ? t("checkMet") : t("checkNotMet")} />
+            </Badge>{" "}
             {unknown ? t("cpuTypeUnknown") : p.check(c)}
             {!c.passed && c.constraint_id === "HC-PRICEABLE" ? <div className="note">{p.note(c.detail)}</div> : null}
           </li>

@@ -8,6 +8,7 @@ import { providerColor } from "../lib/viz";
 import { Rec, RecList, ServiceIcon } from "./records";
 import { ENVIRONMENTS, SERVICE_TYPES, normalizeDigits } from "./ReviewTable";
 import { Badge, Button, Card, Empty, ErrorBox, Field, Money, Num, SourceInfo } from "./ui";
+import { Icon } from "./Icon";
 
 type Item = Partial<ResourceDraft> & { name: string; service_type: ServiceType; unknown_fields: string[] };
 
@@ -311,8 +312,8 @@ export function Builder({ onCreated }: { onCreated: (v: InventoryView) => void }
                   </>
                 }
                 aside={
-                  <Button variant="ghost" className="rec-danger" aria-label={t("delete")} onClick={() => setCart(cart.filter((_, j) => j !== i))}>
-                    ✕
+                  <Button variant="ghost" className="rec-danger btn-icon" aria-label={t("delete")} title={t("delete")} onClick={() => setCart(cart.filter((_, j) => j !== i))}>
+                    <Icon name="trash" />
                   </Button>
                 }
               >

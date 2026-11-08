@@ -5,6 +5,7 @@ import type { AdvisorAnswer } from "../api/types";
 import { useI18n } from "../lib/i18n";
 import { useInventory } from "../lib/hooks";
 import { Badge, Button, Drawer, ErrorBox } from "./ui";
+import { Icon } from "./Icon";
 
 interface Turn {
   q: string;
@@ -41,7 +42,9 @@ export function Advisor({ open, onClose, inventoryId }: { open: boolean; onClose
               <div className="pre">{tn.a.answer}</div>
               <div className="row gap wrap">
                 {tn.a.guard.ok ? (
-                  <Badge tone="good">✓ {t("guardOk")}</Badge>
+                  <Badge tone="good">
+                    <Icon name="check" small /> {t("guardOk")}
+                  </Badge>
                 ) : (
                   <Badge tone="bad">
                     {t("guardFail")}: {(tn.a.guard.unsupported_numbers ?? []).join(", ")}
@@ -63,7 +66,7 @@ export function Advisor({ open, onClose, inventoryId }: { open: boolean; onClose
               )}
               {tn.a.tool_calls.length > 0 && (
                 <small className="muted" dir="ltr">
-                  {t("toolCalls")}: {tn.a.tool_calls.map((c) => c.tool + (c.error ? " ⚠" : "")).join(", ")}
+                  {t("toolCalls")}: {tn.a.tool_calls.map((c) => c.tool + (c.error ? ` (${t("errGeneric")})` : "")).join(", ")}
                 </small>
               )}
             </div>
