@@ -60,6 +60,34 @@ FINOPS_BALE_CHAT_ID=...
 You'll hear about price changes (naming your servers on those plans), failed price updates, price moves that need
 review, and renewals 7, 3 and 1 days ahead.
 
+## Backups
+
+The installer sets up a nightly backup at 03:30. It keeps the newest 14 in `/var/backups/finops-agent`, readable only
+by root. Each backup is one file with the database, the uploaded invoices, and the settings file. The settings file
+holds the keys that decrypt the SSH keys stored for your servers, so keep backups as safe as the server.
+
+```bash
+sudo /opt/finops-agent/backup.sh                          # back up now
+sudo /opt/finops-agent/backup.sh --restore FILE           # put a backup back
+```
+
+**Copy backups off the server.** A backup on the same disk doesn't survive losing the server. For example, from
+another machine:
+
+```bash
+rsync -a root@your-server:/var/backups/finops-agent/ ./finops-backups/
+```
+
+**Restoring** asks for confirmation (or add `--yes`). It first backs up the current data, so a restore can be undone
+with that file. It then puts back the database, the invoices and the settings. Settings that belong to the machine stay as
+they are: the image versions, ports, address and database password. A backup from an older version is upgraded when
+the app starts.
+
+**Moving to a new server:** install there with `install.sh`, copy a backup over, and restore it.
+
+To turn the nightly backup off, run the installer with `--no-daily-backup` (and `--daily-backup` to turn it back on).
+`FINOPS_BACKUP_DIR` changes where backups go.
+
 ## Members and passwords
 
 Admins add people under **Settings → Members**, choose their role, give them a temporary password, or remove them.

@@ -5,6 +5,8 @@
 #   sudo ./install.sh --domain finops.ir      use a domain with an automatic certificate
 #   sudo ./install.sh --bundle images.tar.gz  offline: no container registry needed
 #
+# It also sets up a daily backup (see deploy/backup.sh); --no-daily-backup turns that off.
+#
 # Safe on a server that already runs other things: if ports 80 and 443 are taken, it picks a free port and
 # changes nothing else. Running it again upgrades and keeps your settings, secrets and data.
 set -euo pipefail
@@ -19,6 +21,7 @@ HTTP_BIND=""
 BUNDLE=""
 MIRROR=""
 FORCE_BUILD=0
+DAILY_BACKUP=""
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 say()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -37,6 +40,7 @@ Usage: sudo ./install.sh [options]
   --build                 Build the application images here from source
   --dir PATH              Install directory (default: $INSTALL_DIR)
   --version VERSION       Application image version (default: $VERSION)
+  --no-daily-backup       Don't back up every night (turn it back on with --daily-backup)
 EOF
 }
 
@@ -50,6 +54,8 @@ while [ $# -gt 0 ]; do
     --build) FORCE_BUILD=1; shift ;;
     --dir) INSTALL_DIR="${2:?--dir needs a path}"; shift 2 ;;
     --version) VERSION="${2:?--version needs a value}"; shift 2 ;;
+    --daily-backup) DAILY_BACKUP=true; shift ;;
+    --no-daily-backup) DAILY_BACKUP=false; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
   esac
@@ -142,8 +148,10 @@ write_env() {
     sed -i "s|^FINOPS_APP_IMAGE=.*|FINOPS_APP_IMAGE=$APP_IMAGE|; s|^FINOPS_WEB_IMAGE=.*|FINOPS_WEB_IMAGE=$WEB_IMAGE|" "$env_file"
     sed -i "/^FINOPS_HTTPS_PORT=/d; /^FINOPS_HTTP_BIND=/d" "$env_file"
     printf 'FINOPS_HTTPS_PORT=%s\nFINOPS_HTTP_BIND=%s\n' "$HTTPS_PORT" "$HTTP_BIND" >> "$env_file"
-    # added in 0.3.0: the address that emailed links (password reset) point at
+    # added in 0.3.0: the address that emailed links (password reset) point at, and daily backups
     grep -q '^FINOPS_PUBLIC_URL=' "$env_file" || printf 'FINOPS_PUBLIC_URL=%s\n' "$(url "$site")" >> "$env_file"
+    if [ -n "$DAILY_BACKUP" ]; then sed -i '/^FINOPS_DAILY_BACKUP=/d' "$env_file"; fi
+    grep -q '^FINOPS_DAILY_BACKUP=' "$env_file" || printf 'FINOPS_DAILY_BACKUP=%s\n' "${DAILY_BACKUP:-true}" >> "$env_file"
     return
   fi
   ( umask 077
@@ -158,8 +166,30 @@ FINOPS_PUBLIC_URL=$(url "$site")
 FINOPS_AI_PROVIDER=offline
 FINOPS_HTTPS_PORT=$HTTPS_PORT
 FINOPS_HTTP_BIND=$HTTP_BIND
+FINOPS_DAILY_BACKUP=${DAILY_BACKUP:-true}
 EOF
   )
+}
+
+# The backup script goes next to the settings it reads, and cron runs it every night unless that was turned off.
+install_backups() {
+  local cron=/etc/cron.d/finops-agent-backup
+  if [ ! -f "$SOURCE_DIR/deploy/backup.sh" ]; then
+    warn "this copy has no deploy/backup.sh, so backups weren't set up"
+    return 0
+  fi
+  install -m 700 "$SOURCE_DIR/deploy/backup.sh" "$INSTALL_DIR/backup.sh"
+  if [ "$(env_value FINOPS_DAILY_BACKUP)" = false ]; then
+    rm -f "$cron"
+    return 0
+  fi
+  if [ ! -d /etc/cron.d ]; then
+    warn "no /etc/cron.d here, so there's no daily backup. Run $INSTALL_DIR/backup.sh --keep 14 from your own scheduler."
+    return 0
+  fi
+  printf '%s\n' "# FinOps agent: back up every night at 03:30 and keep the newest 14 (see $INSTALL_DIR/backup.sh)" \
+    "30 3 * * * root $INSTALL_DIR/backup.sh --keep 14 >> /var/log/finops-agent-backup.log 2>&1" > "$cron"
+  chmod 644 "$cron"
 }
 
 write_caddyfile() {
@@ -224,6 +254,7 @@ choose_ports
 SITE="$(site_address)"
 cp "$SOURCE_DIR/deploy/compose.install.yml" "$INSTALL_DIR/compose.yml"
 write_env "$SITE"
+install_backups
 write_caddyfile "$SITE"
 prepare_images
 
@@ -243,7 +274,9 @@ FinOps agent is running.
   Next:       create the first account there. Sign-up closes after it.
   Add servers from the Servers page.
 
-  Settings:   $INSTALL_DIR/.env  (back this up: it holds the keys that decrypt your data)
+  Settings:   $INSTALL_DIR/.env  (it holds the keys that decrypt your data)
+  Backups:    $(if [ "$(env_value FINOPS_DAILY_BACKUP)" = false ]; then echo "off; back up with: sudo $INSTALL_DIR/backup.sh"; else echo "every night to /var/backups/finops-agent; now: sudo $INSTALL_DIR/backup.sh"; fi)
+              copy them off this server too; restore with: sudo $INSTALL_DIR/backup.sh --restore FILE
   Logs:       cd $INSTALL_DIR && docker compose logs
   Upgrade:    run this installer again
 EOF

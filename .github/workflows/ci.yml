@@ -56,4 +56,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck --severity=warning install.sh scripts/*.sh
+      - run: shellcheck --severity=warning install.sh scripts/*.sh deploy/*.sh
