@@ -142,7 +142,7 @@ function History({ item }: { item: CatalogItem }) {
               selected={current}
               tone={v.availability === "sold_out" ? "bad" : undefined}
               accent={providerColor(item.provider_id).css}
-              icon={<span aria-hidden>{current ? "●" : "○"}</span>}
+              icon={<Icon name={current ? "check" : "clock"} />}
               title={
                 <>
                   <PriceCell c={v} />
@@ -167,7 +167,7 @@ function History({ item }: { item: CatalogItem }) {
                   <StatusChip tone={v.availability === "available" ? "good" : "bad"} label={v.availability === "sold_out" ? t("soldOut") : t("available")} />
                   {v.source_url && (
                     <a className="btn btn-ghost" href={v.source_url} target="_blank" rel="noreferrer noopener" title={v.source_url}>
-                      {t("source")} ↗
+                      {t("source")} <Icon name="external" />
                     </a>
                   )}
                 </>
@@ -252,7 +252,7 @@ function CatalogRow({ c, onOpen }: { c: CatalogItem; onOpen: () => void }) {
         </button>
         {c.source_url && (
           <a href={c.source_url} target="_blank" rel="noreferrer noopener" title={c.source_url}>
-            {t("source")} ↗
+            {t("source")} <Icon name="external" />
           </a>
         )}
       </div>

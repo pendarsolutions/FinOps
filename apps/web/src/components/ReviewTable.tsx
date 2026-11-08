@@ -217,7 +217,7 @@ const ENV_KEY: Record<string, TKey> = {
 };
 
 /** Labelled field with an optional unit suffix; the control is the existing EditCell. */
-function Field({ label, unit, children, wide }: { label: string; unit?: string; children: ReactNode; wide?: boolean }) {
+function Field({ label, unit, children, wide }: { label: ReactNode; unit?: string; children: ReactNode; wide?: boolean }) {
   return (
     <label className={wide ? "rv-field rv-field-wide" : "rv-field"}>
       <span className="rv-label">{label}</span>
@@ -398,10 +398,10 @@ function ResourceCard({
             <fieldset className="rv-group">
               <legend>{t("rvGroupUsage")}</legend>
               <div className="rv-pair">
-                <Field label={`↓ ${t("rvDownload")}`} unit={t("rvPerMonth")}>
+                <Field label={<><Icon name="download" small /> {t("rvDownload")}</>} unit={t("rvPerMonth")}>
                   <EditCell r={r} field="expected_monthly_download_gb" kind="dec" patch={patch} label={lbl("expected_monthly_download_gb")} wide />
                 </Field>
-                <Field label={`↑ ${t("rvUpload")}`} unit={t("rvPerMonth")}>
+                <Field label={<><Icon name="upload" small /> {t("rvUpload")}</>} unit={t("rvPerMonth")}>
                   <EditCell r={r} field="expected_monthly_upload_gb" kind="dec" patch={patch} label={lbl("expected_monthly_upload_gb")} wide />
                 </Field>
               </div>

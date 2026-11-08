@@ -4,6 +4,7 @@ import type { InventoryView } from "../api/types";
 import { useI18n } from "../lib/i18n";
 import { ConfirmedInventory } from "../components/Guard";
 import { Button, Card, ErrorBox } from "../components/ui";
+import { Icon } from "../components/Icon";
 
 function saveBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -29,10 +30,10 @@ function ReportsInner({ inv }: { inv: InventoryView }) {
       <p>{t("reportBody")}</p>
       <div className="row gap wrap">
         <Button variant="primary" busy={m.isPending && m.variables === "fa"} onClick={() => m.mutate("fa")}>
-          ⬇ {t("downloadFa")}
+          <Icon name="download" /> {t("downloadFa")}
         </Button>
-        <Button variant="primary" busy={m.isPending && m.variables === "en"} onClick={() => m.mutate("en")}>
-          ⬇ {t("downloadEn")}
+        <Button busy={m.isPending && m.variables === "en"} onClick={() => m.mutate("en")}>
+          <Icon name="download" /> {t("downloadEn")}
         </Button>
       </div>
       <ErrorBox error={m.error} />
