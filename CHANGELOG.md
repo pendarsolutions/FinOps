@@ -3,7 +3,7 @@
 All notable changes to FinOps agent. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versions follow [Semantic Versioning](https://semver.org/). Until 1.0, a minor version can change behaviour.
 
-## [0.3.0] — unreleased
+## [0.3.0] — 2026-11-09
 
 A team can now run its own installation without touching the database, and the interface follows the Pendar design
 system.

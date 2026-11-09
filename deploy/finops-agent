@@ -7,7 +7,7 @@
 # Everything it changes lives in /opt/finops-agent: .env (settings and secrets), compose.yml, Caddyfile, backup.sh.
 set -euo pipefail
 
-VERSION="0.2.0"                         # the version `setup` installs; scripts/bump-version.sh sets it
+VERSION="0.3.0"                         # the version `setup` installs; scripts/bump-version.sh sets it
 IMAGE_PREFIX="ghcr.io/pendarsolutions"  # where the release workflow publishes the images
 REPO="pendarsolutions/FinOps"
 
