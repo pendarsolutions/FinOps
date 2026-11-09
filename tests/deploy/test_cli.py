@@ -29,13 +29,15 @@ case "$*" in
   "image inspect "*) [ -z "${FAKE_NO_IMAGES:-}" ] || exit 1 ;;
   "create "*) echo new-container ;;
   "load") cat > /dev/null ;;
+  "compose up"*) echo " Container finops-agent-api-1  Waiting" >&2
+                 [ -z "${FAKE_UP_FAILS:-}" ] || { echo "Error: port is already allocated" >&2; exit 1; } ;;
 esac
 if [ "$1" = cp ]; then cp -r "$FAKE_DEPLOY/." "$3"; fi
 exit 0
 """,
     "id": "#!/usr/bin/env bash\necho 0\n",
     "ss": '#!/usr/bin/env bash\np="${2##*:}"; for b in ${FAKE_BUSY:-}; do [ "$b" = "$p" ] && echo "LISTEN 0 4096 *:$p"; done; exit 0\n',
-    "hostname": "#!/usr/bin/env bash\necho 203.0.113.10 10.0.0.5\n",
+    "hostname": "#!/usr/bin/env bash\necho 203.0.113.10 10.0.0.5 172.17.0.1\n",
     "systemctl": "#!/usr/bin/env bash\nexit 0\n",
     "getent": "#!/usr/bin/env bash\necho \"203.0.113.10 STREAM $3\"\n",
     "curl": r"""#!/usr/bin/env bash
@@ -133,11 +135,16 @@ def test_fresh_install_with_a_domain(box):
 
 
 def test_busy_ports_are_left_alone(box):
-    box.ok("setup", "--yes", extra={"FAKE_BUSY": "80 443"})
+    r = box.ok("setup", "--yes", extra={"FAKE_BUSY": "80 443"})
+    assert "https://10.0.0.5:8443" in r.stdout and "ssh -L 8443:127.0.0.1:8443" in r.stdout
     env = box.env()
     assert env["FINOPS_ADDRESS"] == "203.0.113.10" and env["FINOPS_PUBLIC_URL"] == "https://203.0.113.10:8443"
     assert env["FINOPS_HTTPS_PORT"] == "8443" and env["FINOPS_HTTP_BIND"] == "127.0.0.1:18080"
-    assert "default_sni 203.0.113.10" in box.caddyfile() and "tls internal" in box.caddyfile()
+    caddy = box.caddyfile()
+    assert "default_sni 203.0.113.10" in caddy and "tls internal" in caddy
+    # also on the server's other address (a VPN, say) and on localhost, for an SSH tunnel; not on Docker's networks
+    assert ("https://203.0.113.10:8443, https://10.0.0.5:8443, https://localhost:8443, https://127.0.0.1:8443 {"
+            in caddy) and "172.17" not in caddy
 
 
 def test_running_again_keeps_secrets_address_and_ports(box):
@@ -257,7 +264,7 @@ def test_changing_the_address(box):
     env = box.env()
     assert env["FINOPS_PUBLIC_URL"] == "https://198.51.100.7:9443" and env["FINOPS_HTTPS_BIND"] == "9443"
     assert env["FINOPS_CORS_ORIGINS"] == "'[\"https://198.51.100.7:9443\"]'"
-    assert "https://198.51.100.7:9443 {" in box.caddyfile()
+    assert "\nhttps://198.51.100.7:9443, " in box.caddyfile()
     assert "docker compose restart caddy" in box.calls()
     assert box.ok("address").stdout.strip() == "https://198.51.100.7:9443"
 
@@ -314,6 +321,10 @@ def test_status_and_doctor(box):
     box.ok("setup", "--yes")
     status = box.ok("status").stdout
     assert "https://203.0.113.10" in status and "Email:    not set up" in status
+    assert "newest: none yet" in status
+    (box.tmp / "backups").mkdir(exist_ok=True)
+    (box.tmp / "backups" / "finops-agent-20261109-031500.tar.gz").write_bytes(b"x")
+    assert "newest: finops-agent-20261109-031500.tar.gz\n" in box.ok("status").stdout
     doctor = box.ok("doctor").stdout
     assert "all services are running" in doctor and "the dashboard answers" in doctor
     r = box.run("doctor", extra={"FAKE_RUNNING": "postgres redis api beat web caddy", "FAKE_LATEST": "9.9.9"})
@@ -397,3 +408,10 @@ def test_versions_compare_like_semver(tmp_path):
     for (a, b), older in cases.items():
         r = subprocess.run([BASH, "-c", f'source "$0"; version_lt {a} {b}', _sh_path(lib)], timeout=30)
         assert (r.returncode == 0) is older, (a, b)
+
+
+def test_compose_chatter_shows_only_when_something_fails(box):
+    r = box.ok("setup", "--yes")
+    assert "Waiting" not in r.stdout + r.stderr
+    r = box.run("config", "set", "SMTP_HOST=mail.example.ir", extra={"FAKE_UP_FAILS": "1"})
+    assert r.returncode != 0 and "port is already allocated" in r.stderr and "couldn't start" in r.stderr

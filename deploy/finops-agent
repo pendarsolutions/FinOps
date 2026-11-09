@@ -107,6 +107,15 @@ need_installed() {
     die "FinOps agent isn't installed in $DIR. Install it with: curl -fsSL https://github.com/$REPO/releases/latest/download/install.sh | sudo bash"
 }
 compose() { (cd "$DIR" && docker compose "$@"); }
+# quietly COMMAND...: run it and show its output only if it fails (Compose prints a line per container per step)
+quietly() {
+  local out rc=0
+  out="$(mktemp)"
+  "$@" >"$out" 2>&1 || rc=$?
+  [ "$rc" = 0 ] || cat "$out" >&2
+  rm -f "$out"
+  return "$rc"
+}
 
 # The settings file: KEY=VALUE lines, a value in single quotes when it has characters Compose would read otherwise.
 env_get() {
@@ -147,6 +156,11 @@ fernet_key() { head -c 32 /dev/urandom | base64 | tr '+/' '-_'; }
 port_in_use() { ss -ltnH "sport = :$1" 2>/dev/null | grep -q .; }
 # Helpers used inside $(...) never fail: under pipefail a failing pipe there would end the script without a word.
 detect_ip() { hostname -I 2>/dev/null | awk '{print $1}' || true; }
+# This server's other IPv4 addresses, such as a VPN or LAN one, leaving out Docker's own networks (172.16.0.0/12).
+other_ips() {
+  hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+(\.[0-9]+){3}$' |
+    grep -vE '^172\.(1[6-9]|2[0-9]|3[01])\.' | grep -vxF "$ADDRESS" || true
+}
 is_ip() { [[ "$1" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || { [[ "$1" == *:* ]] && [[ "$1" =~ ^[0-9A-Fa-f:]+$ ]]; }; }
 is_domain() { [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$ ]] && ! is_ip "$1"; }
 url_host() { local h="${1#*://}"; h="${h%%/*}"; printf '%s' "${h%%:*}"; }
@@ -292,7 +306,7 @@ install_cron() {
 # Start whatever changed (Compose recreates only the services whose settings differ) and wait until it's healthy.
 apply() {
   say "Applying"
-  compose up -d --quiet-pull >/dev/null || die "couldn't start; see: sudo finops-agent logs"
+  quietly compose up -d --quiet-pull || die "couldn't start; see: sudo finops-agent logs"
   wait_healthy
 }
 
@@ -420,8 +434,11 @@ write_caddyfile() {
       echo "$ADDRESS {"
     else
       # browsers send no hostname when connecting to an IP address, so Caddy must be told which certificate to use.
-      # a public certificate needs port 443, so any other port uses Caddy's own.
-      printf '{\n  default_sni %s\n}\nhttps://%s:%s {\n  tls internal\n' "$ADDRESS" "$ADDRESS" "$HTTPS_PORT"
+      # a public certificate needs port 443, so any other port uses Caddy's own. With its own certificate it can also
+      # answer on this server's other addresses (a VPN, the LAN) and on localhost, for an SSH tunnel.
+      local names="https://$ADDRESS:$HTTPS_PORT" extra
+      for extra in $(other_ips) localhost 127.0.0.1; do names="$names, https://$extra:$HTTPS_PORT"; done
+      printf '{\n  default_sni %s\n}\n%s {\n  tls internal\n' "$ADDRESS" "$names"
     fi
     cat <<'EOF'
   encode gzip
@@ -442,7 +459,7 @@ EOF
 
 restart_caddy() {
   # compose doesn't notice a changed Caddyfile
-  compose restart caddy >/dev/null 2>&1 || warn "couldn't restart Caddy; run: sudo finops-agent restart caddy"
+  quietly compose restart caddy || warn "couldn't restart Caddy; run: sudo finops-agent restart caddy"
 }
 
 # ------------------------------------------------------------------ setup
@@ -584,7 +601,7 @@ cmd_setup() {
   prepare_images
 
   say "Starting (the first start takes a minute or two)"
-  compose up -d --pull missing --quiet-pull >/dev/null ||
+  quietly compose up -d --pull missing --quiet-pull ||
     die "couldn't start. If Docker Hub isn't reachable, use a registry mirror (install.sh --registry-mirror URL) or --bundle"
   wait_healthy
   restart_caddy
@@ -619,7 +636,12 @@ EOF
       echo "Your browser will warn about the certificate. With a domain and port 443 free, it gets a real one:"
       echo "  sudo finops-agent address --domain finops.example.ir"
     fi
-    [ "$HTTPS_PORT" = 443 ] || echo "If this server has a firewall, open port $HTTPS_PORT."
+    if [ "$HTTPS_PORT" != 443 ]; then
+      echo "If a firewall keeps port $HTTPS_PORT closed, open it, or use another address of this server:"
+      local extra
+      for extra in $(other_ips); do echo "  https://$extra:$HTTPS_PORT"; done
+      echo "  https://localhost:$HTTPS_PORT, through an SSH tunnel: ssh -L $HTTPS_PORT:127.0.0.1:$HTTPS_PORT you@$ADDRESS"
+    fi
   fi
 }
 
@@ -732,7 +754,8 @@ cmd_status() {
   if [ "$(env_get FINOPS_DAILY_BACKUP)" = false ]; then echo "Backups:  not nightly (sudo finops-agent backup)"
   else
     newest="$(ls -1t "$BACKUP_DIR"/finops-agent-*.tar.gz 2>/dev/null | head -1 || true)"
-    echo "Backups:  nightly to $BACKUP_DIR; newest: ${newest:+$(basename "$newest")}${newest:-none yet}"
+    if [ -n "$newest" ]; then newest="$(basename "$newest")"; else newest="none yet"; fi
+    echo "Backups:  nightly to $BACKUP_DIR; newest: $newest"
   fi
   if [ -n "$(env_get FINOPS_SMTP_HOST)" ]; then echo "Email:    $(env_get FINOPS_SMTP_HOST), alerts to $(env_get FINOPS_ALERT_EMAIL_TO)"
   else echo "Email:    not set up (sudo finops-agent config set SMTP_HOST=... ALERT_EMAIL_TO=...)"; fi
@@ -891,9 +914,9 @@ cmd_lifecycle() {
   need_root
   need_installed
   case "$action" in
-    start) compose up -d "$@" >/dev/null; wait_healthy; say "Started" ;;
-    stop) compose stop "$@"; say "Stopped. Start again with: sudo finops-agent start" ;;
-    restart) compose restart "$@" >/dev/null; wait_healthy; say "Restarted" ;;
+    start) quietly compose up -d "$@"; wait_healthy; say "Started" ;;
+    stop) quietly compose stop "$@"; say "Stopped. Start again with: sudo finops-agent start" ;;
+    restart) quietly compose restart "$@"; wait_healthy; say "Restarted" ;;
   esac
 }
 

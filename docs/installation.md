@@ -101,6 +101,13 @@ A domain gets a certificate from Let's Encrypt automatically when its DNS points
 are reachable. `finops-agent doctor` checks both. On any other port, or on an IP address, the app uses its own
 certificate, and browsers warn about it.
 
+**If a firewall keeps the port closed,** an installation with its own certificate also answers on the server's other
+addresses, such as a VPN or LAN address, and on `localhost` through an SSH tunnel:
+
+```bash
+ssh -L 8443:127.0.0.1:8443 you@your-server      # then open https://localhost:8443
+```
+
 ### Behind your own reverse proxy
 
 If nginx, Traefik or a load balancer already handles HTTPS on the server, the app can serve plain HTTP to it on a
