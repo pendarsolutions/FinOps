@@ -8,7 +8,7 @@ endif
 export PYTHONPATH := packages$(SEP)apps/api$(SEP)apps/worker
 COMPOSE ?= docker compose
 
-.PHONY: dev down install migrate seed-pricing seed-demo sync-prices test lint api web local-db purge-uploads
+.PHONY: dev down install migrate seed-pricing seed-demo sync-prices test lint api web site local-db purge-uploads
 
 ## Full stack (Postgres, Redis, API, worker, beat, web) with one command -> http://localhost:8080
 dev:
@@ -51,3 +51,7 @@ api: seed-demo
 
 web:
 	cd apps/web && npm run dev
+
+## The public website (site/), separate from the dashboard -> http://localhost:5174
+site:
+	cd site && npm install && npm run dev

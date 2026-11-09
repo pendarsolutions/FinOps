@@ -11,3 +11,6 @@ tests
 docs
 *.db
 .git
+site
+dist
+node_modules

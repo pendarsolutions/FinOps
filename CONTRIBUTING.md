@@ -9,6 +9,7 @@ make install
 make test
 make api      # http://localhost:8000/docs
 make web      # http://localhost:5173
+make site     # http://localhost:5174, the public website (site/README.md)
 ```
 
 On Windows without `make`, use `.\scripts\finops.ps1 <target>`.

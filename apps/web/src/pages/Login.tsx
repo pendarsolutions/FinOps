@@ -19,6 +19,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
   const [org, setOrg] = useState("");
   const status = useQuery({ queryKey: ["authStatus"], queryFn: api.authStatus });
   const closed = mode === "register" && status.data?.registration_open === false;
+  const setup = status.data?.setup_needed === true;
 
   const m = useMutation({
     mutationFn: () =>
@@ -30,6 +31,7 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
   });
 
   if (session) return <Navigate to={from} replace />;
+  if (setup && mode === "login") return <Navigate to="/register" replace />;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -40,15 +42,16 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
     <div className="auth-page">
       <form className="card auth-card stack" onSubmit={submit}>
         <div className="row between">
-          <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
+          <span className="brand">
             <Lockup laid />
-          </Link>
+          </span>
           <Button variant="ghost" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")}>
             {lang === "fa" ? "EN" : "فا"}
           </Button>
         </div>
         <p className="muted">{t("tagline")}</p>
-        <h1>{mode === "login" ? t("login") : t("register")}</h1>
+        <h1>{setup ? t("setupTitle") : mode === "login" ? t("login") : t("register")}</h1>
+        {setup && <p>{t("setupLead")}</p>}
         <Field label={t("email")} htmlFor="email">
           <input id="email" type="email" dir="ltr" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
@@ -78,9 +81,11 @@ export function LoginPage({ mode }: { mode: "login" | "register" }) {
         <ErrorBox error={m.error} />
         {closed && <p className="alert alert-bad">{t("registrationClosed")}</p>}
         <Button type="submit" variant="primary" busy={m.isPending} disabled={closed}>
-          {mode === "login" ? t("login") : t("register")}
+          {setup ? t("setupSubmit") : mode === "login" ? t("login") : t("register")}
         </Button>
-        <Link to={mode === "login" ? "/register" : "/login"}>{mode === "login" ? t("noAccount") : t("haveAccount")}</Link>
+        {/* where sign-up is closed, people are added by an admin, so there's nothing to link to */}
+        {mode === "login" && status.data?.registration_open && <Link to="/register">{t("noAccount")}</Link>}
+        {mode === "register" && !setup && <Link to="/login">{t("haveAccount")}</Link>}
         {mode === "login" && status.data?.demo_user && <small className="muted" dir="ltr">{t("demoHint")}</small>}
       </form>
     </div>

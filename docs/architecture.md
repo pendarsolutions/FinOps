@@ -35,7 +35,9 @@ The AI never sits on the path that produces a number. It can only (a) turn text 
 | `packages/ai_gateway` | Claude extraction (structured output) + advisor tool loop, offline parser/template, numeric guard. | anthropic |
 | `apps/api` | FastAPI: auth/orgs/roles, versioned catalog store, inventory, analysis, advisor, reports, audit. | all packages, SQLAlchemy |
 | `apps/worker` | Celery: nightly sync (03:15 Tehran), invoice purge (04:00). | apps/api |
-| `apps/web` | React + TS + Vite SPA, fa (RTL, default) / en. | API only |
+| `apps/web` | React + TS + Vite SPA, fa (RTL, default) / en. The dashboard only: signed-out visitors get sign-in, or first-account setup on a fresh installation. | API only |
+| `site` | The public website: landing page and install command. Its own Vite project, deployed separately (GitHub Pages or any static host); shares only the generated Pendar design system. | none |
+| `deploy` | What a server runs: `finops-agent` (install, settings, address, upgrade, doctor, backups), `compose.install.yml`, `backup.sh`. `scripts/make-installer.sh` embeds them in the one-file `install.sh`; the app image carries them too, for `finops-agent upgrade`. | Docker |
 | `data/seeds` | Build-pack dataset + authored policy files (see below). | — |
 | `migrations` | Alembic (single source of schema; includes Postgres immutability triggers). | — |
 

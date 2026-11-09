@@ -1,0 +1,1212 @@
+/*
+ * The public site's styles, on Pendar's tokens (@pendar/tokens.css, imported first in main.tsx).
+ * Forked from the app (apps/web/src/styles.css and experience.css) on 9 Nov 2026: base, brand marks, buttons,
+ * badges, the share bar and the landing page. The site is free to diverge from the app from here on.
+ */
+@font-face {
+  font-family: "Estedad";
+  src: url("@pendar/fonts/Estedad-wght.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+  /* What the app needs that Pendar has no token for; listed in docs/pendar-redesign.md. */
+  --nav-w: 232px;
+  --topbar-h: calc(var(--control-md) + var(--spacing-4));
+  /* Control heights from the buttons and fields guidelines (44, 36, 52px), and the icon frame (24px). */
+  --control-md: calc(var(--spacing-10) + var(--spacing-1));
+  --control-sm: calc(var(--spacing-8) + var(--spacing-1));
+  --control-lg: calc(var(--spacing-12) + var(--spacing-1));
+  --icon-size: var(--spacing-6);
+  --icon-size-sm: var(--spacing-3);
+  --focus-ring: 2px solid var(--color-focus);
+  --scrim: color-mix(in srgb, var(--color-neutral-950) 45%, transparent);
+  /* Motion built from the motion tokens (motion guideline). */
+  --glaze-gap: calc(var(--duration-lay) * 10); /* 250ms between tiles, as in Pendar's animated logo */
+  --duration-brand: calc(var(--duration-slow) * 2.5); /* 800ms: entrances on the public pages, as on pendarsolutions.ir */
+  --lay-start: 0ms; /* when a laid wordmark starts */
+  --lay-from: inset(0 100% 0 0); /* a bar laid in reading direction starts clipped to nothing at its start */
+  --start-sign: -1; /* the start side: left (-1) in English, right (1) in Persian */
+}
+[dir="rtl"] {
+  --lay-from: inset(0 0 0 100%);
+  --start-sign: 1;
+}
+[data-theme="light"] {
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: var(--color-surface-page);
+  color: var(--color-ink-default);
+  font: var(--type-body-default);
+  letter-spacing: 0;
+  -webkit-text-size-adjust: 100%;
+}
+h1,
+h2,
+h3,
+h4 {
+  color: var(--color-ink-default);
+  margin: 0;
+}
+h1 {
+  font: var(--type-heading-medium);
+}
+h2 {
+  font: var(--type-heading-small);
+}
+h3 {
+  font-size: var(--type-body-large-font-size);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--type-heading-small-line-height);
+  margin-block: var(--spacing-2);
+}
+h4 {
+  font: var(--type-action);
+  margin-block: var(--spacing-2) var(--spacing-1);
+}
+p {
+  margin-block: 0 var(--spacing-2);
+}
+a {
+  color: var(--color-ink-link);
+  text-underline-offset: var(--spacing-1);
+}
+a:hover {
+  color: var(--color-accent-strong);
+}
+code {
+  font-family: var(--font-sans);
+  font-size: var(--type-body-small-font-size);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-control);
+  padding-inline: var(--spacing-1);
+}
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-ink-default);
+}
+html {
+  scrollbar-color: var(--color-line-control) var(--color-surface-sunken);
+}
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+  letter-spacing: 0;
+}
+input,
+select,
+textarea {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-line-control);
+  border-radius: var(--radius-control);
+  padding-inline: var(--spacing-3);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  transition: border-color var(--duration-quick) var(--ease-standard);
+}
+input:not([type="checkbox"], [type="radio"], [type="range"]),
+select {
+  min-block-size: var(--control-md);
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-action-default);
+  inline-size: var(--spacing-5);
+  block-size: var(--spacing-5);
+  margin: 0;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-ink-muted);
+}
+textarea {
+  inline-size: 100%;
+  resize: vertical;
+  padding-block: var(--spacing-2);
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+}
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-focus);
+}
+input[aria-invalid="true"] {
+  border-color: var(--color-danger-line);
+}
+.sr-only,
+.skip:not(:focus) {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.skip:focus {
+  position: absolute;
+  inset-inline-start: var(--spacing-2);
+  inset-block-start: var(--spacing-2);
+  z-index: 100;
+  background: var(--color-surface-raised);
+  padding: var(--spacing-2);
+}
+/* Reduced motion: nothing travels or waits; everything is in place from the start (motion guideline). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- icons and brand marks */
+.icon {
+  inline-size: var(--icon-size);
+  block-size: var(--icon-size);
+  flex: none;
+  fill: currentColor;
+  vertical-align: middle;
+}
+.icon-sm {
+  inline-size: var(--icon-size-sm);
+  block-size: var(--icon-size-sm);
+}
+[dir="ltr"] [data-mirror="true"] {
+  transform: scaleX(-1);
+}
+.mark-brick {
+  fill: var(--color-logo-brick);
+}
+.mark-glaze {
+  fill: var(--color-logo-glaze);
+}
+.wordmark {
+  display: block;
+  block-size: var(--spacing-10);
+  inline-size: auto;
+  flex: none;
+}
+/* Product lockup (products guideline), measured in bricks: the wordmark is 10 bricks tall. */
+.lockup {
+  --brick: var(--spacing-1);
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--brick) * 1.5);
+  color: var(--color-logo-brick);
+  text-decoration: none;
+}
+.lockup .wordmark {
+  block-size: calc(var(--brick) * 10);
+}
+.lockup-lg {
+  --brick: calc(var(--spacing-1) * 1.5);
+}
+.lockup-rule {
+  inline-size: max(1px, calc(var(--brick) * 0.2));
+  block-size: calc(var(--brick) * 4);
+  background: color-mix(in srgb, var(--color-logo-brick) 35%, transparent);
+}
+.lockup-name {
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-heavy);
+  font-size: calc(var(--brick) * 3.2);
+  line-height: 1;
+  white-space: nowrap;
+}
+/*
+ * The laid wordmark (Pendar's animated logo, in tokens): each brick drops half its height and settles, one every
+ * --duration-lay in writing order; once the last has settled, the tiles glaze --glaze-gap apart. About 1.8s in all.
+ */
+.wordmark.is-laying rect {
+  transform-box: fill-box;
+  animation: lay var(--duration-base) var(--ease-settle) both;
+  animation-delay: calc(var(--lay-start) + var(--duration-lay) * var(--i));
+}
+.wordmark.is-laying .mark-glaze {
+  animation-name: lay, glaze-once;
+  animation-duration: var(--duration-base), var(--duration-slow);
+  animation-timing-function: var(--ease-settle), var(--ease-glaze);
+  animation-delay:
+    calc(var(--lay-start) + var(--duration-lay) * var(--i)),
+    calc(var(--lay-start) + var(--duration-lay) * var(--n) + var(--duration-base) + var(--glaze-gap) * var(--t));
+}
+@keyframes lay {
+  from {
+    opacity: 0;
+    transform: translateY(-50%);
+  }
+}
+@keyframes glaze-once {
+  from {
+    fill: var(--color-logo-brick);
+  }
+}
+/* then the rule stands up and the product name slides in from the wordmark's side */
+.lockup.is-laying .lockup-rule {
+  animation: rule-up var(--duration-base) var(--ease-enter) both;
+  animation-delay: calc(var(--lay-start) + var(--duration-lay) * var(--n));
+}
+.lockup.is-laying .lockup-name {
+  animation: name-in var(--duration-slow) var(--ease-enter) both;
+  animation-delay: calc(var(--lay-start) + var(--duration-lay) * var(--n) + var(--duration-quick));
+}
+@keyframes rule-up {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes name-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--start-sign) * var(--spacing-3)));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wordmark.is-laying rect,
+  .lockup.is-laying > * {
+    animation: none;
+  }
+}
+.powered {
+  color: var(--color-ink-muted);
+  font: var(--type-caption);
+  text-align: center;
+  padding-block: var(--spacing-6);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  flex: none;
+  text-decoration: none;
+  /* two bricks of clear space around the wordmark (logo guideline) */
+  padding: var(--spacing-2);
+}
+
+/* ---------- utilities */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.row {
+  display: flex;
+  align-items: center;
+}
+.row.between {
+  justify-content: space-between;
+}
+.row.center {
+  justify-content: center;
+}
+.gap {
+  gap: var(--spacing-2);
+}
+.gap-s {
+  gap: var(--spacing-1);
+}
+.wrap {
+  flex-wrap: wrap;
+}
+.spacer {
+  flex: 1;
+}
+.muted {
+  color: var(--color-ink-muted);
+}
+.small {
+  font-size: var(--type-body-small-font-size);
+}
+.center {
+  text-align: center;
+}
+.note {
+  font-size: var(--type-caption-font-size);
+  color: var(--color-ink-muted);
+}
+.pre {
+  white-space: pre-wrap;
+}
+code.pre {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.wrap-any {
+  word-break: break-all;
+}
+.ellipsis {
+  display: inline-block;
+  max-inline-size: 26ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+ul.plain {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+/* Buttons (buttons guideline): primary is brick, secondary is outlined, quiet (ghost) has no line, danger is red.
+   44px tall; 36px in dense rows; a press sets the button down one pixel. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  min-block-size: var(--control-md);
+  padding-inline: var(--spacing-4);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-line-control);
+  background: transparent;
+  color: var(--color-ink-default);
+  font: var(--type-action);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color var(--duration-quick) var(--ease-standard), border-color var(--duration-quick) var(--ease-standard),
+    color var(--duration-quick) var(--ease-standard);
+}
+.btn:hover:not(:disabled) {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-default);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled:not([aria-busy]) {
+  cursor: not-allowed;
+  background: var(--color-surface-sunken);
+  border-color: var(--color-line-default);
+  color: var(--color-ink-muted);
+}
+.btn[aria-busy] {
+  cursor: progress;
+}
+.btn-primary {
+  background: var(--color-action-default);
+  border-color: var(--color-action-default);
+  color: var(--color-ink-on-action);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-action-hover);
+  border-color: var(--color-action-hover);
+  color: var(--color-ink-on-action);
+}
+.btn-primary:active:not(:disabled) {
+  background: var(--color-action-pressed);
+  border-color: var(--color-action-pressed);
+}
+.btn-ghost {
+  border-color: transparent;
+  padding-inline: var(--spacing-3);
+}
+.btn-danger {
+  background: var(--color-danger-solid);
+  border-color: var(--color-danger-solid);
+  color: var(--color-ink-on-action);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-solid);
+  color: var(--color-ink-on-action);
+}
+.btn-sm,
+.table .btn,
+.rec .btn,
+.topbar .btn {
+  min-block-size: var(--control-sm);
+  padding-inline: var(--spacing-3);
+}
+.btn-lg {
+  min-block-size: var(--control-lg);
+  padding-inline: var(--spacing-6);
+}
+/* Badges (display guideline): one or two words, small corners, status colours only for status. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  border-radius: var(--radius-control);
+  padding-inline: var(--spacing-2);
+  font: var(--type-label);
+  background: var(--color-surface-plaster);
+  color: var(--color-ink-default);
+  white-space: nowrap;
+}
+.badge-good {
+  background: var(--color-success-surface);
+  color: var(--color-success-text);
+}
+.badge-warn {
+  background: var(--color-warning-surface);
+  color: var(--color-warning-text);
+}
+.badge-bad {
+  background: var(--color-danger-surface);
+  color: var(--color-danger-text);
+}
+.badge-info {
+  background: var(--color-info-surface);
+  color: var(--color-info-text);
+}
+.stat-label {
+  color: var(--color-ink-muted);
+  font-size: var(--type-body-small-font-size);
+}
+@keyframes lay-bar {
+  from {
+    clip-path: var(--lay-from);
+  }
+}
+
+/* =====================================================================
+   Chart colours. Pendar has no chart palette, so each slot is a step of the brand's own ramps (brick, turquoise,
+   umber); the status hues are left out because the colour guideline keeps them for status. A provider keeps its slot
+   on every chart, and every chart also prints its labels and exact values.
+   ===================================================================== */
+:root {
+  --series-1: var(--color-brick-600);
+  --series-2: var(--color-glaze-600);
+  --series-3: var(--color-neutral-700);
+  --series-4: var(--color-brick-300);
+  --series-5: var(--color-glaze-300);
+  --series-6: var(--color-neutral-400);
+  --series-7: var(--color-brick-900);
+  --series-8: var(--color-glaze-900);
+  --series-other: var(--color-neutral-200);
+  --viz-accent: var(--series-1);
+  --viz-deemph: var(--color-line-default);
+  /* bars are laid as bricks, like Pendar's chart and meter */
+  --brick-w: var(--spacing-4);
+  --brick-gap: calc(var(--spacing-1) / 2);
+  --bar-angle: 90deg;
+}
+[dir="rtl"] {
+  --bar-angle: 270deg;
+}
+[data-theme="dark"] {
+  --series-1: var(--color-brick-400);
+  --series-2: var(--color-glaze-400);
+  --series-3: var(--color-neutral-300);
+  --series-4: var(--color-brick-200);
+  --series-5: var(--color-glaze-200);
+  --series-6: var(--color-neutral-500);
+  --series-7: var(--color-brick-600);
+  --series-8: var(--color-glaze-700);
+  --series-other: var(--color-neutral-700);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --series-1: var(--color-brick-400);
+    --series-2: var(--color-glaze-400);
+    --series-3: var(--color-neutral-300);
+    --series-4: var(--color-brick-200);
+    --series-5: var(--color-glaze-200);
+    --series-6: var(--color-neutral-500);
+    --series-7: var(--color-brick-600);
+    --series-8: var(--color-glaze-700);
+    --series-other: var(--color-neutral-700);
+  }
+}
+.bricks {
+  background: repeating-linear-gradient(
+    var(--bar-angle),
+    var(--bar, var(--viz-accent)) 0 var(--brick-w),
+    transparent var(--brick-w) calc(var(--brick-w) + var(--brick-gap))
+  );
+}
+
+.swatch {
+  display: inline-block;
+  inline-size: var(--spacing-3);
+  block-size: var(--spacing-3);
+  border-radius: var(--radius-control);
+  flex: none;
+  vertical-align: middle;
+}
+.swatch-track {
+  background: var(--color-line-default);
+}
+.viz-key-line {
+  display: inline-block;
+  inline-size: var(--spacing-3);
+  block-size: var(--spacing-1);
+  border-radius: var(--radius-control);
+  margin-inline-end: var(--spacing-1);
+  vertical-align: middle;
+}
+
+/* shared tooltip: value leads, label follows */
+.viz-tip {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  background: var(--color-surface-inverse);
+  color: var(--color-ink-inverse);
+  border-radius: var(--radius-control);
+  padding: var(--spacing-2) var(--spacing-3);
+  box-shadow: var(--shadow-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-inline-size: calc(var(--spacing-20) * 3);
+  font-size: var(--type-caption-font-size);
+  /* comes up from slightly below (motion guideline); `translate` leaves the pointer-following transform alone */
+  animation: tip-in var(--duration-base) var(--ease-enter) both;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--spacing-1);
+  }
+}
+.viz-tip-value {
+  font-size: var(--type-body-default-font-size);
+  font-variant-numeric: tabular-nums;
+}
+.viz-tip-label {
+  color: var(--color-ink-inverse);
+}
+
+/* part-to-whole stacked bar: 2px surface gaps, rounded outer ends only */
+.share {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.share-bar {
+  display: flex;
+  gap: 0;
+  block-size: var(--spacing-4);
+  gap: var(--brick-gap);
+  overflow: hidden;
+}
+.share-seg {
+  min-inline-size: var(--spacing-1);
+  cursor: pointer;
+  outline: none;
+  transition: opacity var(--duration-base) var(--ease-standard), filter var(--duration-base) var(--ease-standard);
+  /* bars are laid in reading direction, one after another (lay-bar in styles.css), never stretched */
+  animation: lay-bar var(--duration-slow) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-stagger) * min(var(--i, 0), 7));
+}
+.share-seg:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.share-seg.dim,
+.legend-list li.dim {
+  opacity: 0.35;
+}
+.legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.legend-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding-block: var(--spacing-1);
+  border-block-end: 1px solid var(--color-line-default);
+  transition: opacity var(--duration-base) var(--ease-standard);
+}
+.legend-list li:last-child {
+  border-block-end: 0;
+}
+.legend-label {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.legend-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+   Landing: Pendar's plaster brand band for the header and hero, flat cards, the umber band to close.
+   Nothing loops and nothing moves on scroll (motion guideline); the hero copy arrives once.
+   ===================================================================== */
+.lp {
+  min-block-size: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-page);
+  color: var(--color-ink-default);
+}
+.lp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+  padding: var(--spacing-3) var(--spacing-6);
+  background: var(--color-surface-plaster);
+}
+.lp-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-5);
+}
+.lp-links a {
+  color: var(--color-ink-default);
+  text-decoration: none;
+}
+.lp-links a:hover {
+  color: var(--color-ink-action);
+}
+.lp-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.lp-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-10);
+  padding: var(--spacing-12) var(--spacing-6) var(--spacing-16);
+  background: var(--color-surface-plaster);
+  border-block-end: 1px solid var(--color-line-default);
+}
+.lp-hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-5);
+}
+.lp-hero h1 {
+  font: var(--type-display);
+}
+.lp-accent {
+  color: var(--color-ink-action);
+}
+.lp-new {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+.lp-sub {
+  font: var(--type-body-large);
+  color: var(--color-ink-muted);
+  margin: 0;
+}
+.lp-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+.lp-preview {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-line-default);
+  border-radius: var(--radius-card);
+  padding: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-inline-size: 0;
+}
+.lp-preview-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-3);
+}
+.lp-preview-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-control);
+}
+.lp-figure {
+  font: var(--type-heading-small);
+  font-variant-numeric: tabular-nums;
+}
+.lp-figure small {
+  font: var(--type-body-small);
+  color: var(--color-ink-muted);
+}
+.lp-figure-accent {
+  color: var(--color-ink-action);
+}
+.lp-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-8) var(--spacing-6);
+  border-block-end: 1px solid var(--color-line-default);
+  text-align: center;
+}
+.lp-strip p {
+  margin: 0;
+}
+.lp-providers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-2) var(--spacing-6);
+  font-size: var(--type-body-large-font-size);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-ink-muted);
+}
+.lp-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  inline-size: 100%;
+  max-inline-size: calc(var(--spacing-20) * 15);
+  margin-inline: auto;
+  padding: var(--spacing-16) var(--spacing-6);
+}
+.lp-section > h2 {
+  font: var(--type-heading-large);
+  text-align: center;
+}
+.lp-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(calc(var(--spacing-20) * 2.5), 100%), 1fr));
+  gap: var(--spacing-6);
+}
+.lp-steps li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.lp-step-n {
+  display: grid;
+  place-items: center;
+  inline-size: var(--spacing-10);
+  block-size: var(--spacing-10);
+  background: var(--color-action-default);
+  color: var(--color-ink-on-action);
+  border-radius: var(--radius-control);
+  font: var(--type-heading-small);
+}
+.lp-steps h3,
+.lp-feature h3 {
+  margin: 0;
+}
+.lp-steps p,
+.lp-feature p {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+.lp-features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+.lp-feature {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-line-default);
+  border-radius: var(--radius-card);
+}
+/* the icon tile of Pendar's empty state */
+.lp-icon {
+  display: grid;
+  place-items: center;
+  inline-size: var(--spacing-12);
+  block-size: var(--spacing-12);
+  background: var(--color-surface-plaster);
+  border-radius: var(--radius-card);
+}
+.lp-trust {
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-card);
+  margin-block-end: var(--spacing-16);
+}
+.lp-trust ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4) var(--spacing-8);
+}
+.lp-trust li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+}
+.lp-x {
+  color: var(--color-ink-action);
+}
+.lp-final {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-16) var(--spacing-6);
+  background: var(--color-surface-inverse);
+  color: var(--color-ink-inverse);
+  text-align: center;
+}
+.lp-final h2 {
+  font: var(--type-heading-large);
+  color: var(--color-ink-inverse);
+}
+.lp-final p {
+  margin: 0;
+  max-inline-size: 60ch;
+}
+.btn-on-inverse {
+  border-color: var(--color-ink-inverse);
+  color: var(--color-ink-inverse);
+}
+.btn-on-inverse:hover:not(:disabled) {
+  background: transparent;
+  color: var(--color-ink-inverse);
+}
+.lp-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-2) var(--spacing-5);
+  padding: var(--spacing-6);
+  color: var(--color-ink-muted);
+  font: var(--type-body-small);
+}
+.lp-footer .powered {
+  padding: 0;
+}
+
+/* ---------- landing motion, after pendarsolutions.ir, timed with the motion tokens (motion guideline) */
+/*
+ * The hero, once: the lockup is laid, the headline arrives word by word, then the lead, the actions and the preview,
+ * whose bars are laid last; the navigation drops into place at the end.
+ */
+.lp {
+  --lay-start: var(--duration-quick);
+}
+.lp-hero .lp-new {
+  animation: hero-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: var(--duration-quick);
+}
+.lp-hero h1 .w {
+  display: inline-block;
+  animation: word-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-slow) + var(--duration-stagger) * 2 * min(var(--i), 7));
+}
+.hero-in {
+  animation: hero-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-slow) * 2 + var(--duration-stagger) * 3 * var(--i));
+}
+.lp-preview .share-seg {
+  animation-delay: calc(var(--duration-slow) * 3 + var(--duration-stagger) * 2 * min(var(--i, 0), 7));
+}
+.lp-links,
+.lp-actions {
+  animation: nav-in var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-slow) * 3);
+}
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-5));
+  }
+}
+@keyframes word-rise {
+  from {
+    opacity: 0;
+    transform: translateY(55%);
+  }
+}
+@keyframes nav-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--spacing-2)));
+  }
+}
+/* Sections rise once, as they first scroll in, an item three staggers after the last (lib/motion.ts). */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal-on] [data-reveal]:not([data-in]) .reveal {
+    opacity: 0;
+  }
+  [data-reveal-on] [data-reveal]:not([data-in]) .is-laying,
+  [data-reveal-on] [data-reveal]:not([data-in]) .is-laying * {
+    animation-play-state: paused;
+  }
+}
+[data-reveal][data-in] .reveal {
+  animation: hero-rise var(--duration-brand) var(--ease-enter) both;
+  animation-delay: calc(var(--duration-stagger) * 3 * min(var(--i, 0), 7));
+}
+/* in view when the page opens: wait for the hero above, so everything arrives in reading order */
+[data-reveal][data-in="load"] .reveal {
+  animation-delay: calc(var(--duration-slow) * 3 + var(--duration-stagger) * 3 * min(var(--i, 0), 7));
+}
+/*
+ * The closing band: a course of bricks rises along its top edge and its statement lights up word by word, both
+ * following the scroll; its lockup is laid when it comes into view. Without scroll-driven animation the edge simply
+ * stands and the words rise once.
+ */
+.lp-final {
+  position: relative;
+  view-timeline: --final block;
+  /* the logo on umber is the reverse one; on plaster (dark theme) the usual one */
+  --color-logo-brick: var(--color-neutral-100);
+  --color-logo-glaze: var(--color-product-400);
+}
+[data-theme="dark"] .lp-final {
+  --color-logo-brick: var(--color-brick-600);
+  --color-logo-glaze: var(--color-product-600);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .lp-final {
+    --color-logo-brick: var(--color-brick-600);
+    --color-logo-glaze: var(--color-product-600);
+  }
+}
+.lp-edge {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 100%;
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: var(--spacing-1);
+  block-size: clamp(var(--spacing-4), 2.6vw, var(--spacing-10));
+}
+.lp-edge span {
+  background: var(--color-surface-inverse);
+  transform-origin: bottom;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .lp-edge span {
+      animation: edge-rise linear both;
+      animation-timeline: --final;
+      animation-range: entry calc(var(--i) * 3%) entry calc(40% + var(--i) * 3%);
+    }
+    .lp-statement .w {
+      animation: word-light linear both;
+      animation-timeline: --final;
+      animation-range: entry calc(30% + var(--i) * 7%) entry calc(50% + var(--i) * 7%);
+    }
+  }
+}
+@supports not (animation-timeline: view()) {
+  .lp-statement .w {
+    display: inline-block;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal-on] [data-reveal]:not([data-in]) .lp-statement .w {
+      opacity: 0;
+    }
+  }
+  [data-reveal][data-in] .lp-statement .w {
+    animation: word-rise var(--duration-brand) var(--ease-enter) both;
+    animation-delay: calc(var(--duration-stagger) * 2 * min(var(--i), 7));
+  }
+}
+@keyframes edge-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes word-light {
+  from {
+    opacity: 0.14;
+  }
+}
+@media print {
+  .reveal,
+  .lp-statement .w,
+  .lp-edge span {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
+.brand-link {
+  color: inherit;
+  text-decoration: none;
+}
+@media (max-width: 960px) {
+  .lp-hero {
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: var(--spacing-8) var(--spacing-10);
+  }
+  .lp-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lp-links {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .lp-nav,
+  .lp-hero,
+  .lp-section,
+  .lp-strip,
+  .lp-final {
+    padding-inline: var(--spacing-4);
+  }
+  .lp-section {
+    padding-block: var(--spacing-10);
+  }
+  .lp-hero h1 {
+    font: var(--type-heading-large);
+  }
+  .lp-features,
+  .lp-trust ul,
+  .lp-preview-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lp-actions .btn-ghost:not(:first-child) {
+    display: none;
+  }
+}
+
+
+/* =====================================================================
+   The site's own: the install section. The command comes first, on the umber band like a terminal; then how an
+   installation is run from the command line. Pendar has no monospace font, so commands use the system's.
+   ===================================================================== */
+.lp-install {
+  gap: var(--spacing-5);
+}
+.lp-install > h2 {
+  text-align: start;
+}
+.lp-lead {
+  margin: 0;
+  max-inline-size: 70ch;
+  font: var(--type-body-large);
+}
+.lp-command {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-3) var(--spacing-5);
+  background: var(--color-surface-inverse);
+  color: var(--color-ink-inverse);
+  border-radius: var(--radius-card);
+  direction: ltr;
+}
+.lp-command code,
+.lp-manage code {
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.lp-command code {
+  flex: 1;
+  min-inline-size: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-block: var(--spacing-2);
+  background: none;
+  color: inherit;
+  font-size: var(--type-body-default-font-size);
+}
+.lp-command .btn {
+  flex: none;
+  border-color: var(--color-ink-inverse);
+  color: var(--color-ink-inverse);
+  background: transparent;
+}
+.lp-install > h3 {
+  margin-block-start: var(--spacing-4);
+}
+.lp-manage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4) var(--spacing-8);
+  margin: 0;
+}
+.lp-manage div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.lp-manage dt {
+  color: var(--color-ink-muted);
+  font: var(--type-body-small);
+}
+.lp-manage dd {
+  margin: 0;
+}
+.lp-manage code {
+  overflow-wrap: anywhere;
+}
+.lp-install-links {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-6);
+  margin: 0;
+  padding: 0;
+}
+.lp-install-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+@media (max-width: 720px) {
+  .lp-manage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lp-command {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--spacing-3);
+  }
+}

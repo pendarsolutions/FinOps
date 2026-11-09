@@ -44,14 +44,25 @@ comparison and savings you can check yourself. You don't need Terraform, tagging
 **Install on a server:**
 
 ```bash
-git clone https://github.com/pendarsolutions/FinOps.git
-cd FinOps
-sudo ./install.sh --domain finops.example.ir
+curl -fsSL https://github.com/pendarsolutions/FinOps/releases/latest/download/install.sh | sudo bash
 ```
 
-Then open your domain, create the first account, and add your other servers from the **Servers** page. If Docker Hub
-isn't reachable from your server, download the offline bundle from the [latest release](https://github.com/pendarsolutions/FinOps/releases/latest),
-or [use a mirror](docs/installation.md#if-foreign-registries-are-blocked).
+It asks a few questions (or takes them as options, such as `--domain finops.example.ir`), then prints the address of
+your dashboard. Open it, create the first account, and add your other servers from the **Servers** page.
+
+From then on, the `finops-agent` command runs the installation:
+
+```bash
+sudo finops-agent status                                   # what's running, the address, backups, alerts
+sudo finops-agent config set SMTP_HOST=mail.example.ir     # change a setting; it restarts what uses it
+sudo finops-agent upgrade                                  # back up, then move to the latest release
+sudo finops-agent doctor                                   # check everything, with how to fix it
+```
+
+If Docker Hub isn't reachable from your server, use the offline bundle from the
+[latest release](https://github.com/pendarsolutions/FinOps/releases/latest), or
+[a mirror](docs/installation.md#if-foreign-registries-are-blocked). The [installation guide](docs/installation.md) has
+the rest, including running behind your own reverse proxy.
 
 **Or try it on your computer** with [Docker](https://docs.docker.com/get-docker/):
 
@@ -138,7 +149,9 @@ Settings live in `.env`, and [`.env.example`](.env.example) lists all of them. T
 ```text
 apps/api        FastAPI service: auth, catalog, inventory, analysis, reports
 apps/worker     Scheduled price updates, server collection, alerts and cleanup
-apps/web        React and TypeScript dashboard
+apps/web        React and TypeScript dashboard: what an installation serves, and nothing else
+site/           The public website (landing page and install command), deployed on its own; never installed
+deploy/         What the installer puts on a server: the finops-agent command, the compose file, backups
 packages/       Pricing, recommendations, scrapers, server monitoring, AI and invoice parsing, independent of the web framework
 data/seeds      Starting price catalog and engine rules
 docs/           Architecture, pricing model, scrapers, AI safety and operations

@@ -1,5 +1,9 @@
 # Pendar redesign
 
+> Since 0.3.0 the landing page is not part of the app: it moved to the public website in `site/`, which an
+> installation never serves. The record below is of the redesign as it was done, when the landing page was still in
+> `apps/web`.
+
 The web app (`apps/web`) is restyled to follow the Pendar design system, version 3, from Specimen. This is a visual
 redesign only: routes, API calls, data handling, validation, permissions and business logic don't change.
 

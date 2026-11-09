@@ -1,9 +1,6 @@
-import { Link } from "react-router-dom";
 import examples from "../lib/howItWorksExamples.json";
 import { useI18n, type TKey } from "../lib/i18n";
-import { useSession } from "../lib/session";
-import { Button, Card, Money, Num, Pct } from "../components/ui";
-import { Lockup } from "../components/Brand";
+import { Card, Money, Num, Pct } from "../components/ui";
 
 const STEPS: [TKey, TKey][] = [
   ["hwStep1T", "hwStep1B"],
@@ -222,32 +219,6 @@ export function HowItWorksContent() {
       <Card title={t("hwLimitsTitle")}>
         <Bullets items={["hwLimit1", "hwLimit2", "hwLimit3", "hwLimit4"]} />
       </Card>
-    </div>
-  );
-}
-
-/** The same explanation for people who haven't signed in, linked from the landing page. */
-export function HowItWorksPublic() {
-  const { t, lang, setLang } = useI18n();
-  const { session } = useSession();
-  return (
-    <div className="hw-public">
-      <header className="hw-public-bar">
-        <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
-          <Lockup laid />
-        </Link>
-        <div className="row gap">
-          <Button variant="ghost" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")}>
-            {lang === "fa" ? "EN" : "فا"}
-          </Button>
-          <Link className="btn btn-primary" to={session ? "/" : "/login"}>
-            {session ? t("navOverview") : t("login")}
-          </Link>
-        </div>
-      </header>
-      <main className="hw-public-main">
-        <HowItWorksContent />
-      </main>
     </div>
   );
 }

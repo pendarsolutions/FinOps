@@ -7,7 +7,7 @@ import { Button, ErrorBox, Field, Loading } from "../components/ui";
 import { Lockup } from "../components/Brand";
 
 /** Run on the server when nobody can sign in (docs/installation.md). */
-export const RESET_COMMAND = "cd /opt/finops-agent && sudo docker compose exec api python -m finops_api.cli reset-password --email you@example.ir";
+export const RESET_COMMAND = "sudo finops-agent reset-password --email you@example.ir";
 
 /** The sign-in card's frame, shared by the two pages below. */
 function AuthFrame({ title, children }: { title: string; children: ReactNode }) {
@@ -16,9 +16,9 @@ function AuthFrame({ title, children }: { title: string; children: ReactNode }) 
     <div className="auth-page">
       <div className="card auth-card stack">
         <div className="row between">
-          <Link to="/welcome" className="brand brand-link" aria-label={t("appName")}>
+          <span className="brand">
             <Lockup laid />
-          </Link>
+          </span>
           <Button variant="ghost" onClick={() => setLang(lang === "fa" ? "en" : "fa")} aria-label={t("language")}>
             {lang === "fa" ? "EN" : "فا"}
           </Button>

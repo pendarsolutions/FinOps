@@ -1,0 +1,960 @@
+#!/usr/bin/env bash
+# finops-agent: install, configure and run FinOps agent on this server.
+# install.sh puts it at /opt/finops-agent/finops-agent and links it as /usr/local/bin/finops-agent.
+#
+#   sudo finops-agent help
+#
+# Everything it changes lives in /opt/finops-agent: .env (settings and secrets), compose.yml, Caddyfile, backup.sh.
+set -euo pipefail
+
+VERSION="0.2.0"                         # the version `setup` installs; scripts/bump-version.sh sets it
+IMAGE_PREFIX="ghcr.io/pendarsolutions"  # where the release workflow publishes the images
+REPO="pendarsolutions/FinOps"
+
+# The FINOPS_* overrides are for tests and unusual layouts.
+SELF="$(readlink -f "${BASH_SOURCE[0]:-$0}" 2>/dev/null || true)"  # empty when read from a pipe (install.sh --help)
+if [ -n "${FINOPS_DIR:-}" ]; then DIR="$FINOPS_DIR"
+elif [ -f "$(dirname "$SELF")/compose.yml" ]; then DIR="$(dirname "$SELF")"
+else DIR=/opt/finops-agent; fi
+ENV_FILE="$DIR/.env"
+BIN_DIR="${FINOPS_BIN_DIR:-/usr/local/bin}"
+CRON_DIR="${FINOPS_CRON_DIR:-/etc/cron.d}"
+BACKUP_DIR="${FINOPS_BACKUP_DIR:-/var/backups/finops-agent}"
+TTY="${FINOPS_TTY:-/dev/tty}"
+SERVICES="postgres redis api worker beat web caddy"
+
+if [ -t 2 ]; then B=$'\033[1;34m' Y=$'\033[1;33m' R=$'\033[1;31m' G=$'\033[1;32m' N=$'\033[0m'; else B="" Y="" R="" G="" N=""; fi
+say()  { printf '%s==>%s %s\n' "$B" "$N" "$*" >&2; }
+warn() { printf '%sWarning:%s %s\n' "$Y" "$N" "$*" >&2; }
+die()  { printf '%sError:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
+
+usage() {
+  cat <<EOF
+finops-agent $VERSION: run FinOps agent on this server.
+
+Usage: sudo finops-agent COMMAND [options]
+
+Set up
+  setup [options]            Install, or apply a new version's settings (the installer runs this; see setup --help)
+  address                    Show the address people open
+  address --domain NAME [--port PORT]
+  address --ip ADDRESS [--port PORT]
+  address --proxy URL [--listen [IP:]PORT]
+                             Change it. --proxy is for running behind your own nginx, Traefik or load balancer
+  config                     Show the settings (secrets hidden)
+  config keys                List what can be set, with a line about each
+  config get KEY
+  config set KEY=VALUE...    Change settings and restart what uses them. KEY on its own reads the value from
+                             standard input, which keeps passwords out of your shell history
+  config unset KEY...
+  test-alerts [--to EMAIL]   Send a test message through each alert channel that's set up
+
+Run
+  status                     What's running, the version, the address, backups and alerts
+  doctor                     Check everything this installation needs, and say how to fix what's wrong
+  logs [-f] [--tail N] [SERVICE...]
+                             Recent logs (services: $SERVICES)
+  restart | start | stop [SERVICE...]
+  upgrade [VERSION] [--bundle FILE] [--no-backup] [--yes]
+                             Back up, then move to VERSION (default: the latest release)
+  backup [--keep N]          Back up now, to $BACKUP_DIR
+  restore FILE [--yes]       Put a backup back (the current data is backed up first)
+  reset-password --email ADDRESS [--password-stdin]
+                             For when nobody can sign in: prints a new password and ends that person's sessions
+  compose ARGS...            Run docker compose in $DIR
+  version
+  uninstall [--delete-data] [--yes]
+
+Settings use the names in $ENV_FILE, with or without FINOPS_: smtp_host, SMTP_HOST and FINOPS_SMTP_HOST are the same.
+Docs: https://github.com/$REPO/blob/main/docs/installation.md
+EOF
+}
+
+setup_usage() {
+  cat <<EOF
+Usage: sudo finops-agent setup [options]
+
+In a terminal with no options it asks a few questions. With options, or without a terminal, it asks nothing.
+Run again, it keeps the settings, secrets and data, and applies any new version's settings.
+
+Address (default: what was set before, else this server's IP address)
+  --domain NAME           A domain pointing at this server; port 443 gets an automatic certificate
+  --ip ADDRESS            Serve on this IP address, with a certificate browsers will warn about
+  --port PORT             HTTPS port (default: 443, or a free one if 443 is taken)
+  --proxy URL             Behind your own reverse proxy that handles HTTPS: the address people open, such as
+                          https://finops.example.ir. The app then serves plain HTTP on --listen
+  --listen [IP:]PORT      Where to serve for the proxy (default: 127.0.0.1:8080; a bare port is 127.0.0.1)
+
+Images
+  --version VERSION       Application version (default: $VERSION)
+  --bundle FILE           Load the images from an offline bundle instead of a registry
+  --build                 Build the images here (needs --source, which the installer passes from a clone)
+  --image-prefix PREFIX   Registry and owner of the images (default: $IMAGE_PREFIX)
+
+Other
+  --set KEY=VALUE         Any setting from \`finops-agent config keys\`; repeat it for more
+  --daily-backup          Back up every night at 03:30, keeping 14 (the default)
+  --no-daily-backup       Don't
+  --yes                   Ask nothing; take the defaults
+EOF
+}
+
+# ------------------------------------------------------------------ helpers
+
+need_root() { [ "$(id -u)" = 0 ] || die "run this as root: sudo finops-agent ${CMD:-}"; }
+need_installed() {
+  [ -f "$ENV_FILE" ] && [ -f "$DIR/compose.yml" ] ||
+    die "FinOps agent isn't installed in $DIR. Install it with: curl -fsSL https://github.com/$REPO/releases/latest/download/install.sh | sudo bash"
+}
+compose() { (cd "$DIR" && docker compose "$@"); }
+
+# The settings file: KEY=VALUE lines, a value in single quotes when it has characters Compose would read otherwise.
+env_get() {
+  [ -f "$ENV_FILE" ] || return 0
+  local line
+  line="$(grep -m1 "^$1=" "$ENV_FILE" || true)"
+  line="${line#*=}"
+  if [ "${#line}" -ge 2 ] && [ "${line:0:1}" = "'" ] && [ "${line: -1}" = "'" ]; then line="${line:1:${#line}-2}"; fi
+  printf '%s' "$line"
+}
+env_quote() {
+  local v="$1"
+  case "$v" in *$'\n'* | *$'\r'*) return 1 ;; esac
+  if [[ "$v" =~ ^[A-Za-z0-9_./:@+,=-]*$ ]]; then printf '%s' "$v"
+  elif [[ "$v" != *"'"* ]]; then printf "'%s'" "$v"
+  else return 1; fi
+}
+env_set() {
+  local key="$1" val tmp
+  val="$(env_quote "$2")" || die "the value for $key can't contain a line break or a single quote (')"
+  tmp="$(mktemp "$ENV_FILE.XXXXXX")"
+  [ -f "$ENV_FILE" ] || : > "$ENV_FILE"
+  K="$key" V="$val" awk 'index($0, ENVIRON["K"] "=") == 1 { if (!done) print ENVIRON["K"] "=" ENVIRON["V"]; done = 1; next }
+    { print } END { if (!done) print ENVIRON["K"] "=" ENVIRON["V"] }' "$ENV_FILE" > "$tmp"
+  chmod 600 "$tmp"
+  mv -f "$tmp" "$ENV_FILE"
+}
+env_unset() {
+  local tmp
+  tmp="$(mktemp "$ENV_FILE.XXXXXX")"
+  K="$1" awk 'index($0, ENVIRON["K"] "=") != 1' "$ENV_FILE" > "$tmp"
+  chmod 600 "$tmp"
+  mv -f "$tmp" "$ENV_FILE"
+}
+
+secret() { head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+fernet_key() { head -c 32 /dev/urandom | base64 | tr '+/' '-_'; }
+port_in_use() { ss -ltnH "sport = :$1" 2>/dev/null | grep -q .; }
+# Helpers used inside $(...) never fail: under pipefail a failing pipe there would end the script without a word.
+detect_ip() { hostname -I 2>/dev/null | awk '{print $1}' || true; }
+is_ip() { [[ "$1" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || { [[ "$1" == *:* ]] && [[ "$1" =~ ^[0-9A-Fa-f:]+$ ]]; }; }
+is_domain() { [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$ ]] && ! is_ip "$1"; }
+url_host() { local h="${1#*://}"; h="${h%%/*}"; printf '%s' "${h%%:*}"; }
+origin_of() { printf '%s' "$1" | sed -E 's#^(https?://[^/]+).*#\1#'; }
+image_version() { local img; img="$(env_get FINOPS_APP_IMAGE)"; printf '%s' "${img##*:}"; }
+version_lt() { [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]; }
+latest_release() {
+  curl -fsSL --max-time 10 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null |
+    sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -1 || true
+}
+
+interactive() { [ -z "${ASSUME_YES:-}" ] && { [ -n "${FINOPS_TTY:-}" ] || (: < /dev/tty) 2>/dev/null; }; }
+# Questions read the terminal even when the installer itself came through a pipe (curl ... | sudo bash).
+ask() {  # ask VAR "question" [default] [secret]
+  local prompt="$2" def="${3:-}" __answer=""
+  [ -z "$def" ] || prompt="$prompt [$def]"
+  printf '%s: ' "$prompt" >&2
+  if [ -n "${4:-}" ]; then IFS= read -r -s -u 3 __answer || die "no answer; nothing was changed"; printf '\n' >&2
+  else IFS= read -r -u 3 __answer || die "no answer; nothing was changed"; fi
+  printf -v "$1" '%s' "${__answer:-$def}"
+}
+ask_yes() {  # ask_yes "question" y|n
+  local reply hint="y/N"
+  [ "$2" = y ] && hint="Y/n"
+  ask reply "$1 ($hint)" ""
+  case "${reply:-$2}" in [Yy]*) return 0 ;; *) return 1 ;; esac
+}
+
+wait_healthy() {
+  local cid _
+  for _ in $(seq 1 "${FINOPS_HEALTH_TRIES:-60}"); do
+    cid="$(compose ps -q api 2>/dev/null || true)"
+    if [ -n "$cid" ] && [ "$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null)" = healthy ]; then return 0; fi
+    sleep "${FINOPS_HEALTH_WAIT:-5}"
+  done
+  compose logs --tail 30 api >&2 || true
+  die "the app didn't become healthy. The logs are above; more with: sudo finops-agent logs"
+}
+
+# ------------------------------------------------------------------ settings people may change
+
+# KEY|kind|what it does. Kinds: text, secret, host, port, int, bool, email, url, ip, choice:a/b;
+# managed:COMMAND for keys a command owns; fixed for keys that must never change.
+SETTINGS="FINOPS_SMTP_HOST|host|Mail server for alerts and password-reset links
+FINOPS_SMTP_PORT|port|Mail server port (default 587)
+FINOPS_SMTP_USER|text|Mail server user name
+FINOPS_SMTP_PASSWORD|secret|Mail server password
+FINOPS_SMTP_FROM|email|Sender address (default: the user name)
+FINOPS_SMTP_STARTTLS|bool|Use STARTTLS (default true)
+FINOPS_ALERT_EMAIL_TO|email|Who gets alerts by email
+FINOPS_BALE_BOT_TOKEN|secret|Bale bot token, for alerts in Bale
+FINOPS_BALE_CHAT_ID|text|Bale chat that gets the alerts
+FINOPS_AI_PROVIDER|choice:offline/anthropic|The advisor: offline rules, or Claude (never used for prices)
+FINOPS_AI_MODEL|text|Claude model, when AI_PROVIDER is anthropic
+FINOPS_ANTHROPIC_API_KEY|secret|Anthropic API key, when AI_PROVIDER is anthropic
+FINOPS_INVOICE_RETENTION_DAYS|int|Days to keep uploaded invoice files (default 30)
+FINOPS_PASSWORD_RESET_MINUTES|int|How long an emailed reset link works (default 30)
+FINOPS_JWT_TTL_MINUTES|int|How long a sign-in lasts (default 720)
+FINOPS_LOGIN_RATE_LIMIT_PER_MINUTE|int|Sign-in attempts allowed per address per minute (default 10)
+FINOPS_COLLECTOR_SOURCE_IP|ip|Server keys then only work from this address
+FINOPS_CATALOG_URL|url|Use a shared signed price catalog instead of scraping
+FINOPS_CATALOG_PUBLIC_KEY|text|The shared catalog's public key
+FINOPS_CATALOG_PUBLISH_DIR|text|Publish a signed catalog: /app/var/catalog
+FINOPS_CATALOG_SIGNING_KEY|secret|Key that signs the published catalog
+FINOPS_DAILY_BACKUP|bool|Back up every night at 03:30, keeping 14 (default true)
+FINOPS_ADDRESS|managed:address|The domain or IP address people open
+FINOPS_BEHIND_PROXY|managed:address|Behind your own reverse proxy
+FINOPS_PUBLIC_URL|managed:address|The full address, used in emailed links
+FINOPS_CORS_ORIGINS|managed:address|Browsers allowed to call the API
+FINOPS_HTTPS_PORT|managed:address|The port the app is served on
+FINOPS_HTTPS_BIND|managed:address|Where that port listens on this machine
+FINOPS_HTTP_BIND|managed:address|Where port 80 (redirect to HTTPS) listens
+FINOPS_APP_IMAGE|managed:upgrade|Application image
+FINOPS_WEB_IMAGE|managed:upgrade|Dashboard image
+POSTGRES_PASSWORD|fixed|The database was created with it
+FINOPS_JWT_SECRET|fixed|Signs sign-ins
+FINOPS_CREDENTIALS_KEY|fixed|Decrypts the stored server keys: without it they're lost
+FINOPS_ENV|fixed|Set by the installation
+FINOPS_DATABASE_URL|fixed|Set by the installation
+FINOPS_REDIS_URL|fixed|Set by the installation
+FINOPS_SYNC_MODE|fixed|Set by the installation
+FINOPS_STORAGE_DIR|fixed|Set by the installation
+FINOPS_ALLOW_REGISTRATION|fixed|Set by the installation: after the first account, admins add people"
+
+setting_kind() { printf '%s\n' "$SETTINGS" | awk -F'|' -v k="$1" '$1 == k { print $2 }'; }
+is_secret() { case "$(setting_kind "$1")" in secret) return 0 ;; esac; case "$1" in POSTGRES_PASSWORD | FINOPS_JWT_SECRET | FINOPS_CREDENTIALS_KEY) return 0 ;; esac; return 1; }
+norm_key() {
+  local k
+  k="$(printf '%s' "$1" | tr '[:lower:]-' '[:upper:]_')"
+  case "$k" in FINOPS_* | POSTGRES_PASSWORD) ;; *) k="FINOPS_$k" ;; esac
+  [[ "$k" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "not a setting name: $1"
+  printf '%s' "$k"
+}
+
+# check_setting KEY VALUE -> the value to store (normalised), or dies saying why not
+check_setting() {
+  local key="$1" val="$2" kind
+  kind="$(setting_kind "$key")"
+  case "$kind" in
+    "") [ -n "${FORCE:-}" ] || die "$key isn't a setting this knows (see: finops-agent config keys); add --force to set it anyway"
+        printf '%s' "$val"; return ;;
+    managed:*) die "$key is set by: sudo finops-agent ${kind#managed:}" ;;
+    fixed) die "$key can't be changed here. $(printf '%s\n' "$SETTINGS" | awk -F'|' -v k="$key" '$1 == k { print $3 }')." ;;
+  esac
+  [ -n "$val" ] || { printf ''; return; }
+  case "$kind" in
+    host) [[ "$val" =~ ^[A-Za-z0-9.-]+$ ]] || die "$key: not a host name: $val" ;;
+    port) [[ "$val" =~ ^[0-9]+$ ]] && [ "$val" -ge 1 ] && [ "$val" -le 65535 ] || die "$key: not a port: $val" ;;
+    int) [[ "$val" =~ ^[0-9]+$ ]] || die "$key: not a whole number: $val" ;;
+    bool) case "$(printf '%s' "$val" | tr '[:upper:]' '[:lower:]')" in
+            true | yes | on | 1) val=true ;; false | no | off | 0) val=false ;; *) die "$key: use true or false" ;; esac ;;
+    email) [[ "$val" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]] || die "$key: not an email address: $val" ;;
+    url) [[ "$val" =~ ^https?://[^[:space:]]+$ ]] || die "$key: not an http(s) address: $val" ;;
+    ip) is_ip "$val" || die "$key: not an IP address: $val" ;;
+    choice:*) [[ "/${kind#choice:}/" == *"/$val/"* ]] || die "$key: one of ${kind#choice:}" ;;
+  esac
+  printf '%s' "$val"
+}
+
+show_value() { if is_secret "$1" && [ -n "$2" ]; then printf '(hidden)'; else printf '%s' "$2"; fi; }
+
+install_cron() {
+  local cron="$CRON_DIR/finops-agent-backup"
+  if [ "$(env_get FINOPS_DAILY_BACKUP)" = false ]; then rm -f "$cron"; return 0; fi
+  if [ ! -d "$CRON_DIR" ]; then
+    warn "no $CRON_DIR here, so there's no daily backup. Run 'finops-agent backup --keep 14' from your own scheduler."
+    return 0
+  fi
+  printf '%s\n' "# FinOps agent: back up every night at 03:30 and keep the newest 14 (sudo finops-agent backup)" \
+    "30 3 * * * root $DIR/backup.sh --keep 14 >> /var/log/finops-agent-backup.log 2>&1" > "$cron"
+  chmod 644 "$cron"
+}
+
+# Start whatever changed (Compose recreates only the services whose settings differ) and wait until it's healthy.
+apply() {
+  say "Applying"
+  compose up -d --quiet-pull >/dev/null || die "couldn't start; see: sudo finops-agent logs"
+  wait_healthy
+}
+
+# ------------------------------------------------------------------ the address
+
+# Before 0.3.0 the address was only in the Caddyfile.
+legacy_address() {
+  local f="$DIR/Caddyfile" a
+  [ -f "$f" ] || return 0
+  a="$(awk '$1 == "default_sni" { print $2; exit }' "$f")"
+  [ -n "$a" ] || a="$(awk 'NF == 2 && $2 == "{" && $1 !~ /^[{#]/ { print $1; exit }' "$f")"
+  printf '%s' "$a"
+}
+
+# Sets MODE (direct|proxy), ADDRESS and PROXY_URL from the options, else from what was saved, else this server's IP.
+resolve_address() {
+  local saved
+  saved="$(env_get FINOPS_ADDRESS)"
+  [ -n "$saved" ] || saved="$(legacy_address)"
+  SAVED_MODE=direct
+  [ "$(env_get FINOPS_BEHIND_PROXY)" = true ] && SAVED_MODE=proxy
+  if [ -n "$OPT_PROXY" ]; then
+    [[ "$OPT_PROXY" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]] ||
+      die "--proxy needs the address people open, such as https://finops.example.ir (the app is served at the root of its host)"
+    MODE=proxy PROXY_URL="${OPT_PROXY%/}" ADDRESS="$(url_host "$OPT_PROXY")"
+  elif [ -n "$OPT_DOMAIN" ]; then
+    is_domain "$OPT_DOMAIN" || die "not a domain name: $OPT_DOMAIN"
+    MODE=direct ADDRESS="$OPT_DOMAIN"
+  elif [ -n "$OPT_IP" ]; then
+    is_ip "$OPT_IP" || die "not an IP address: $OPT_IP"
+    MODE=direct ADDRESS="$OPT_IP"
+  elif [ -n "$saved" ]; then
+    MODE="$SAVED_MODE" ADDRESS="$saved"
+    [ "$MODE" = direct ] || PROXY_URL="$(env_get FINOPS_PUBLIC_URL)"
+  else
+    MODE=direct ADDRESS="$(detect_ip)"
+    [ -n "$ADDRESS" ] || die "couldn't detect this server's IP address; use --ip or --domain"
+  fi
+  if [ "$MODE" = direct ] && [ -n "$OPT_LISTEN" ]; then die "--listen goes with --proxy; for a direct address use --port"; fi
+  if [ "$MODE" = proxy ] && [ -n "$OPT_PORT" ]; then die "--port is for a direct address; behind a proxy use --listen"; fi
+}
+
+free_loopback() {
+  local saved p
+  saved="$(env_get FINOPS_HTTP_BIND)"
+  case "$saved" in 127.0.0.1:*) printf '%s' "$saved"; return ;; esac
+  for p in 18080 18081 18082 18083 18084 18085; do
+    if ! port_in_use "$p"; then printf '127.0.0.1:%s' "$p"; return; fi
+  done
+  die "no free local port for the HTTP redirect"
+}
+
+# Sets HTTPS_PORT (inside the container), HTTPS_BIND (on this machine) and HTTP_BIND. A re-run keeps this app's own
+# ports, which are in use by it; otherwise it only takes ports nothing else has.
+choose_ports() {
+  local saved_port saved_bind saved_http listen port p
+  saved_port="$(env_get FINOPS_HTTPS_PORT)"
+  saved_bind="$(env_get FINOPS_HTTPS_BIND)"
+  [ -n "$saved_bind" ] || saved_bind="$saved_port"
+  saved_http="$(env_get FINOPS_HTTP_BIND)"
+  if [ "$MODE" = proxy ]; then
+    listen="$OPT_LISTEN"
+    if [ -z "$listen" ]; then if [ "$SAVED_MODE" = proxy ] && [ -n "$saved_bind" ]; then listen="$saved_bind"; else listen=127.0.0.1:8080; fi; fi
+    [[ "$listen" =~ ^([0-9.]+:)?[0-9]+$ ]] || die "--listen takes a port or IP:PORT, such as 127.0.0.1:8080"
+    [[ "$listen" == *:* ]] || listen="127.0.0.1:$listen"
+    port="${listen##*:}"
+    if { [ "$SAVED_MODE" != proxy ] || [ "$listen" != "$saved_bind" ]; } && port_in_use "$port"; then
+      die "port $port is already in use; choose another with --listen"
+    fi
+    HTTPS_PORT="$port" HTTPS_BIND="$listen" HTTP_BIND="$(free_loopback)"
+    return
+  fi
+  if [ -n "$OPT_PORT" ]; then
+    [[ "$OPT_PORT" =~ ^[0-9]+$ ]] || die "not a port: $OPT_PORT"
+    port="$OPT_PORT"
+    if { [ "$SAVED_MODE" != direct ] || [ "$port" != "$saved_port" ]; } && port_in_use "$port"; then die "port $port is already in use"; fi
+  elif [ "$SAVED_MODE" = direct ] && [ -n "$saved_port" ]; then
+    port="$saved_port"
+  elif ! port_in_use 443; then
+    port=443
+  else
+    port=""
+    for p in 8443 9443 10443 18443 28443; do
+      if ! port_in_use "$p"; then port="$p"; break; fi
+    done
+    [ -n "$port" ] || die "no free HTTPS port found; choose one with --port"
+    say "Port 443 is in use, so this uses port $port and leaves the existing service alone"
+  fi
+  HTTPS_PORT="$port" HTTPS_BIND="$port"
+  # port 80 only redirects to HTTPS and answers certificate checks, so without it the app still works
+  if [ "$port" = 443 ] && { { [ "$SAVED_MODE" = direct ] && [ "$saved_http" = 80 ]; } || ! port_in_use 80; }; then
+    HTTP_BIND=80
+  else
+    HTTP_BIND="$(free_loopback)"
+  fi
+}
+
+public_url() {
+  if [ "$MODE" = proxy ]; then printf '%s' "$PROXY_URL"; return; fi
+  local host="$ADDRESS"
+  [[ "$host" != *:* ]] || host="[$host]"
+  if [ "$HTTPS_PORT" = 443 ]; then printf 'https://%s' "$host"; else printf 'https://%s:%s' "$host" "$HTTPS_PORT"; fi
+}
+
+save_address() {
+  local url
+  url="$(public_url)"
+  env_set FINOPS_ADDRESS "$ADDRESS"
+  env_set FINOPS_BEHIND_PROXY "$([ "$MODE" = proxy ] && echo true || echo false)"
+  env_set FINOPS_PUBLIC_URL "$url"
+  env_set FINOPS_CORS_ORIGINS "[\"$(origin_of "$url")\"]"
+  env_set FINOPS_HTTPS_PORT "$HTTPS_PORT"
+  env_set FINOPS_HTTPS_BIND "$HTTPS_BIND"
+  env_set FINOPS_HTTP_BIND "$HTTP_BIND"
+}
+
+write_caddyfile() {
+  local tmp
+  tmp="$(mktemp "$DIR/Caddyfile.XXXXXX")"
+  {
+    if [ "$MODE" = proxy ]; then
+      # your proxy handles HTTPS; trust the client address it forwards, so sign-in rate limits see real visitors
+      printf '{\n  auto_https off\n  servers {\n    trusted_proxies static private_ranges\n  }\n}\nhttp://:%s {\n' "$HTTPS_PORT"
+    elif is_domain "$ADDRESS" && [ "$HTTPS_PORT" = 443 ]; then
+      echo "$ADDRESS {"
+    else
+      # browsers send no hostname when connecting to an IP address, so Caddy must be told which certificate to use.
+      # a public certificate needs port 443, so any other port uses Caddy's own.
+      printf '{\n  default_sni %s\n}\nhttps://%s:%s {\n  tls internal\n' "$ADDRESS" "$ADDRESS" "$HTTPS_PORT"
+    fi
+    cat <<'EOF'
+  encode gzip
+  handle /catalog/* {
+    uri strip_prefix /catalog
+    root * /srv/catalog
+    file_server
+  }
+  handle {
+    reverse_proxy web:80
+  }
+}
+EOF
+  } > "$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$DIR/Caddyfile"
+}
+
+restart_caddy() {
+  # compose doesn't notice a changed Caddyfile
+  compose restart caddy >/dev/null 2>&1 || warn "couldn't restart Caddy; run: sudo finops-agent restart caddy"
+}
+
+# ------------------------------------------------------------------ setup
+
+wizard() {
+  local reply ip suggested
+  exec 3<"$TTY"
+  say "Setting up FinOps agent. Press Enter to take the suggestion in brackets."
+  ip="$(detect_ip)"
+  while :; do
+    ask reply "Domain name for the dashboard, or leave it empty to use this server's IP address ($ip)" ""
+    if [ -z "$reply" ]; then OPT_IP="$ip"; break; fi
+    if is_domain "$reply"; then OPT_DOMAIN="$reply"; break; fi
+    warn "that isn't a domain name, such as finops.example.ir"
+  done
+  if port_in_use 443; then suggested=8443; else suggested=443; fi
+  while :; do
+    ask reply "HTTPS port" "$suggested"
+    if [[ "$reply" =~ ^[0-9]+$ ]] && ! port_in_use "$reply"; then OPT_PORT="$reply"; break; fi
+    warn "port $reply isn't free; choose another"
+  done
+  if ask_yes "Back up every night at 03:30, keeping the newest 14" y; then DAILY_BACKUP=true; else DAILY_BACKUP=false; fi
+  if ask_yes "Send alerts and password-reset links by email" n; then
+    ask reply "  Mail server (SMTP) host" ""; SETS+=("SMTP_HOST=$reply")
+    ask reply "  Port" "587"; SETS+=("SMTP_PORT=$reply")
+    ask reply "  User name (empty for none)" ""; [ -z "$reply" ] || SETS+=("SMTP_USER=$reply")
+    ask reply "  Password" "" secret; [ -z "$reply" ] || SETS+=("SMTP_PASSWORD=$reply")
+    ask reply "  Send alerts to" ""; SETS+=("ALERT_EMAIL_TO=$reply")
+  fi
+  if ask_yes "Send alerts to a Bale chat" n; then
+    ask reply "  Bot token" "" secret; SETS+=("BALE_BOT_TOKEN=$reply")
+    ask reply "  Chat ID" ""; SETS+=("BALE_CHAT_ID=$reply")
+  fi
+  ask_yes "Install now" y || die "nothing was changed"
+  exec 3<&-
+}
+
+load_bundle() {
+  local member
+  member="$(tar -tzf "$1" 2>/dev/null | grep -m1 '/images\.tar\.gz$' || true)"
+  if [ -n "$member" ]; then
+    say "Loading the images from $1"
+    tar -xzOf "$1" "$member" | gunzip -c | docker load >/dev/null
+  else
+    say "Loading the images from $1"
+    gunzip -c "$1" | docker load >/dev/null
+  fi
+}
+
+prepare_images() {
+  if [ -n "$OPT_BUNDLE" ]; then load_bundle "$OPT_BUNDLE"; return; fi
+  if [ -z "$OPT_BUILD" ] && docker pull -q "$APP_IMAGE" >/dev/null 2>&1 && docker pull -q "$WEB_IMAGE" >/dev/null 2>&1; then
+    return
+  fi
+  if [ -z "$OPT_SOURCE" ] || [ ! -f "$OPT_SOURCE/Dockerfile" ]; then
+    if docker image inspect "$APP_IMAGE" >/dev/null 2>&1 && docker image inspect "$WEB_IMAGE" >/dev/null 2>&1; then return; fi
+    die "couldn't download the application images. Use --bundle, or a registry mirror that has them (install.sh --registry-mirror URL)"
+  fi
+  say "Building the application images (this takes a few minutes)"
+  docker build -q -t "$APP_IMAGE" "$OPT_SOURCE" >/dev/null
+  docker build -q -t "$WEB_IMAGE" "$OPT_SOURCE/apps/web" >/dev/null
+}
+
+cmd_setup() {
+  OPT_DOMAIN="" OPT_IP="" OPT_PORT="" OPT_PROXY="" OPT_LISTEN="" OPT_BUNDLE="" OPT_BUILD="" OPT_SOURCE=""
+  DAILY_BACKUP="" SETS=() local_version="" prefix="$IMAGE_PREFIX" configured=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --domain) OPT_DOMAIN="${2:?--domain needs a name}"; configured=1; shift 2 ;;
+      --ip) OPT_IP="${2:?--ip needs an address}"; configured=1; shift 2 ;;
+      --port) OPT_PORT="${2:?--port needs a number}"; configured=1; shift 2 ;;
+      --proxy) OPT_PROXY="${2:?--proxy needs a URL}"; configured=1; shift 2 ;;
+      --listen) OPT_LISTEN="${2:?--listen needs [IP:]PORT}"; configured=1; shift 2 ;;
+      --version) local_version="${2:?--version needs a version}"; shift 2 ;;
+      --bundle) OPT_BUNDLE="${2:?--bundle needs a file}"; shift 2 ;;
+      --build) OPT_BUILD=1; shift ;;
+      --source) OPT_SOURCE="${2:?--source needs a folder}"; shift 2 ;;
+      --image-prefix) prefix="${2:?--image-prefix needs a value}"; shift 2 ;;
+      --set) SETS+=("${2:?--set needs KEY=VALUE}"); configured=1; shift 2 ;;
+      --daily-backup) DAILY_BACKUP=true; configured=1; shift ;;
+      --no-daily-backup) DAILY_BACKUP=false; configured=1; shift ;;
+      -y | --yes) ASSUME_YES=1; shift ;;
+      -h | --help) setup_usage; exit 0 ;;
+      *) setup_usage >&2; die "unknown option: $1" ;;
+    esac
+  done
+  need_root
+  [ -z "$OPT_BUNDLE" ] || { [ -f "$OPT_BUNDLE" ] || die "bundle not found: $OPT_BUNDLE"; OPT_BUNDLE="$(readlink -f "$OPT_BUNDLE")"; }
+  [ -z "$OPT_SOURCE" ] || OPT_SOURCE="$(readlink -f "$OPT_SOURCE")"
+  [ -f "$DIR/compose.yml" ] || die "$DIR/compose.yml is missing: install with install.sh, which puts it there"
+  local fresh="" target current
+  [ -f "$ENV_FILE" ] || fresh=1
+  target="${local_version:-$VERSION}"
+  current="$(image_version)"
+  if [ -n "$current" ] && [ -z "$local_version" ] && version_lt "$target" "$current"; then
+    die "$current is installed, and this installs $target. Use the installer of $current or newer, or: sudo finops-agent upgrade"
+  fi
+  mem_kb="$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+  [ "$mem_kb" -ge 1500000 ] || warn "less than 1.5 GB of memory; the app may run slowly"
+
+  if [ -n "$fresh" ] && [ -z "$configured" ] && interactive; then wizard; fi
+
+  APP_IMAGE="$prefix/finops-agent-app:$target"
+  WEB_IMAGE="$prefix/finops-agent-web:$target"
+  resolve_address
+  choose_ports
+
+  # check the settings before writing anything
+  local pair key val checked=()
+  for pair in ${SETS[@]+"${SETS[@]}"}; do
+    [[ "$pair" == *=* ]] || die "--set takes KEY=VALUE: $pair"
+    key="$(norm_key "${pair%%=*}")"
+    val="$(check_setting "$key" "${pair#*=}")"
+    checked+=("$key=$val")
+  done
+
+  if [ -n "$fresh" ]; then
+    say "Writing the settings to $ENV_FILE"
+    (umask 077; : > "$ENV_FILE")
+    env_set FINOPS_APP_IMAGE "$APP_IMAGE"
+    env_set FINOPS_WEB_IMAGE "$WEB_IMAGE"
+    env_set POSTGRES_PASSWORD "$(secret)"
+    env_set FINOPS_JWT_SECRET "$(secret)"
+    env_set FINOPS_CREDENTIALS_KEY "$(fernet_key)"
+  else
+    say "Keeping the settings and secrets in $ENV_FILE"
+    env_set FINOPS_APP_IMAGE "$APP_IMAGE"
+    env_set FINOPS_WEB_IMAGE "$WEB_IMAGE"
+  fi
+  save_address
+  [ -n "$(env_get FINOPS_AI_PROVIDER)" ] || env_set FINOPS_AI_PROVIDER offline
+  if [ -n "$DAILY_BACKUP" ]; then env_set FINOPS_DAILY_BACKUP "$DAILY_BACKUP"
+  elif [ -z "$(env_get FINOPS_DAILY_BACKUP)" ]; then env_set FINOPS_DAILY_BACKUP true; fi
+  for pair in ${checked[@]+"${checked[@]}"}; do
+    if [ -n "${pair#*=}" ]; then env_set "${pair%%=*}" "${pair#*=}"; else env_unset "${pair%%=*}"; fi
+  done
+  install_cron
+  write_caddyfile
+  prepare_images
+
+  say "Starting (the first start takes a minute or two)"
+  compose up -d --pull missing --quiet-pull >/dev/null ||
+    die "couldn't start. If Docker Hub isn't reachable, use a registry mirror (install.sh --registry-mirror URL) or --bundle"
+  wait_healthy
+  restart_caddy
+  summary "$fresh"
+}
+
+summary() {
+  local url backups
+  url="$(env_get FINOPS_PUBLIC_URL)"
+  if [ "$(env_get FINOPS_DAILY_BACKUP)" = false ]; then backups="off; back up with: sudo finops-agent backup"
+  else backups="every night to $BACKUP_DIR, keeping 14"; fi
+  echo
+  if [ -n "$1" ]; then echo "${G}FinOps agent $(image_version) is running.${N}"; else echo "${G}FinOps agent $(image_version) is running, with your settings and data.${N}"; fi
+  cat <<EOF
+
+  Open:      $url
+EOF
+  [ -z "$1" ] || echo "  Next:      create the first account there. Sign-up closes after it; add everyone else from Settings."
+  cat <<EOF
+  Backups:   $backups
+             copy them off this server too
+  Manage:    sudo finops-agent status | config | logs | upgrade | doctor | help
+EOF
+  [ -n "$(env_get FINOPS_SMTP_HOST)" ] ||
+    echo "  Email:     not set up, so password resets need an admin: sudo finops-agent config set SMTP_HOST=... ALERT_EMAIL_TO=..."
+  if [ "$MODE" = proxy ]; then
+    echo
+    echo "Point your reverse proxy at http://$HTTPS_BIND and have it pass the Host and X-Forwarded-* headers."
+  else
+    if ! is_domain "$ADDRESS" || [ "$HTTPS_PORT" != 443 ]; then
+      echo
+      echo "Your browser will warn about the certificate. With a domain and port 443 free, it gets a real one:"
+      echo "  sudo finops-agent address --domain finops.example.ir"
+    fi
+    [ "$HTTPS_PORT" = 443 ] || echo "If this server has a firewall, open port $HTTPS_PORT."
+  fi
+}
+
+# ------------------------------------------------------------------ day to day
+
+cmd_address() {
+  OPT_DOMAIN="" OPT_IP="" OPT_PORT="" OPT_PROXY="" OPT_LISTEN=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --domain) OPT_DOMAIN="${2:?--domain needs a name}"; shift 2 ;;
+      --ip) OPT_IP="${2:?--ip needs an address}"; shift 2 ;;
+      --port) OPT_PORT="${2:?--port needs a number}"; shift 2 ;;
+      --proxy) OPT_PROXY="${2:?--proxy needs a URL}"; shift 2 ;;
+      --listen) OPT_LISTEN="${2:?--listen needs [IP:]PORT}"; shift 2 ;;
+      *) die "unknown option: $1 (see: finops-agent help)" ;;
+    esac
+  done
+  need_root
+  need_installed
+  if [ -z "$OPT_DOMAIN$OPT_IP$OPT_PORT$OPT_PROXY$OPT_LISTEN" ]; then
+    echo "$(env_get FINOPS_PUBLIC_URL)"
+    if [ "$(env_get FINOPS_BEHIND_PROXY)" = true ]; then echo "behind your reverse proxy, which forwards to http://$(env_get FINOPS_HTTPS_BIND)"; fi
+    return
+  fi
+  resolve_address
+  choose_ports
+  save_address
+  write_caddyfile
+  apply
+  restart_caddy
+  say "The dashboard is now at $(public_url)"
+  if [ "$MODE" = proxy ]; then echo "Point your reverse proxy at http://$HTTPS_BIND."; fi
+}
+
+cmd_config() {
+  local sub="${1:-list}"
+  [ $# -eq 0 ] || shift
+  case "$sub" in
+    keys)
+      printf '%s\n' "$SETTINGS" | awk -F'|' '$2 !~ /^(managed|fixed)/ { printf "  %-36s %s\n", substr($1, index($1, "_") + 1), $3 }'
+      echo
+      echo "Set with: sudo finops-agent config set KEY=VALUE (the address with 'address', versions with 'upgrade')"
+      return ;;
+  esac
+  need_root
+  need_installed
+  case "$sub" in
+    list | show)
+      local line key
+      while IFS= read -r line; do
+        case "$line" in "" | \#*) continue ;; esac
+        key="${line%%=*}"
+        printf '%s=%s\n' "$key" "$(show_value "$key" "$(env_get "$key")")"
+      done < "$ENV_FILE" ;;
+    get)
+      [ $# -eq 1 ] || die "usage: finops-agent config get KEY"
+      local key
+      key="$(norm_key "$1")"
+      grep -q "^$key=" "$ENV_FILE" || die "$key isn't set"
+      env_get "$key"; echo ;;
+    set | unset)
+      local restart=1 pairs=() arg key val old changed=() backup_changed=""
+      FORCE=""
+      for arg in "$@"; do
+        case "$arg" in --no-restart) restart="" ;; --force) FORCE=1 ;; *) pairs+=("$arg") ;; esac
+      done
+      if [ ${#pairs[@]} -eq 0 ]; then
+        if [ "$sub" = set ]; then die "usage: finops-agent config set KEY=VALUE..."; else die "usage: finops-agent config unset KEY..."; fi
+      fi
+      local checked=() ok_val
+      for arg in "${pairs[@]}"; do
+        if [ "$sub" = unset ]; then
+          key="$(norm_key "$arg")"; check_setting "$key" "" >/dev/null; checked+=("$key=")
+          continue
+        fi
+        if [[ "$arg" == *=* ]]; then key="$(norm_key "${arg%%=*}")"; val="${arg#*=}"
+        else
+          key="$(norm_key "$arg")"
+          if [ -t 0 ]; then printf '%s: ' "$key" >&2; IFS= read -r -s val || true; printf '\n' >&2
+          else IFS= read -r val || true; fi
+          val="${val%$'\r'}"  # a value piped from a file saved on Windows
+        fi
+        ok_val="$(check_setting "$key" "$val")"  # a plain assignment, so a refused value stops here
+        checked+=("$key=$ok_val")
+      done
+      for arg in "${checked[@]}"; do
+        key="${arg%%=*}" val="${arg#*=}" old="$(env_get "$key")"
+        if [ "$val" = "$old" ] && { [ -n "$val" ] || ! grep -q "^$key=" "$ENV_FILE"; }; then continue; fi
+        if [ -n "$val" ]; then env_set "$key" "$val"; say "$key=$(show_value "$key" "$val")"
+        else env_unset "$key"; say "$key removed"; fi
+        changed+=("$key")
+        [ "$key" != FINOPS_DAILY_BACKUP ] || backup_changed=1
+      done
+      if [ ${#changed[@]} -eq 0 ]; then say "Nothing changed"; return; fi
+      [ -z "$backup_changed" ] || install_cron
+      if [ -n "$restart" ]; then apply; say "Done: the services that use these settings were restarted"
+      else say "Saved. They take effect with: sudo finops-agent restart"; fi ;;
+    *) die "unknown: config $sub (see: finops-agent help)" ;;
+  esac
+}
+
+cmd_status() {
+  need_root
+  need_installed
+  local newest
+  echo "FinOps agent $(image_version) at $(env_get FINOPS_PUBLIC_URL)"
+  echo
+  compose ps -a --format 'table {{.Service}}\t{{.Status}}' || true
+  echo
+  if [ "$(env_get FINOPS_DAILY_BACKUP)" = false ]; then echo "Backups:  not nightly (sudo finops-agent backup)"
+  else
+    newest="$(ls -1t "$BACKUP_DIR"/finops-agent-*.tar.gz 2>/dev/null | head -1 || true)"
+    echo "Backups:  nightly to $BACKUP_DIR; newest: ${newest:+$(basename "$newest")}${newest:-none yet}"
+  fi
+  if [ -n "$(env_get FINOPS_SMTP_HOST)" ]; then echo "Email:    $(env_get FINOPS_SMTP_HOST), alerts to $(env_get FINOPS_ALERT_EMAIL_TO)"
+  else echo "Email:    not set up (sudo finops-agent config set SMTP_HOST=... ALERT_EMAIL_TO=...)"; fi
+  if [ -n "$(env_get FINOPS_BALE_BOT_TOKEN)" ]; then echo "Bale:     chat $(env_get FINOPS_BALE_CHAT_ID)"; else echo "Bale:     not set up"; fi
+}
+
+cmd_doctor() {
+  need_root
+  local fails=0 warns=0 running svc url code host port free_kb mem_kb newest latest
+  ok()   { printf '  %sok%s    %s\n' "$G" "$N" "$*"; }
+  bad()  { printf '  %sfail%s  %s\n' "$R" "$N" "$*"; fails=$((fails + 1)); }
+  meh()  { printf '  %swarn%s  %s\n' "$Y" "$N" "$*"; warns=$((warns + 1)); }
+  echo "Checking FinOps agent in $DIR"
+  if docker info >/dev/null 2>&1; then ok "Docker is running"; else bad "Docker isn't running: systemctl start docker"; fi
+  if docker compose version >/dev/null 2>&1; then ok "Docker Compose is installed"; else bad "Docker Compose is missing: install the docker-compose-plugin package"; fi
+  if [ ! -f "$ENV_FILE" ] || [ ! -f "$DIR/compose.yml" ]; then bad "not installed in $DIR: run the installer"; echo; return 1; fi
+  for key in POSTGRES_PASSWORD FINOPS_JWT_SECRET FINOPS_CREDENTIALS_KEY FINOPS_APP_IMAGE FINOPS_PUBLIC_URL; do
+    [ -n "$(env_get "$key")" ] || bad "$key is missing from $ENV_FILE: restore it from a backup's settings"
+  done
+  running=" $(compose ps --status running --services 2>/dev/null | tr '\n' ' ') "
+  local stopped=0
+  for svc in $SERVICES; do
+    if [[ "$running" != *" $svc "* ]]; then
+      bad "$svc isn't running: sudo finops-agent logs $svc, then sudo finops-agent start"
+      stopped=$((stopped + 1))
+    fi
+  done
+  [ "$stopped" -gt 0 ] || ok "all services are running"
+  url="$(env_get FINOPS_PUBLIC_URL)" port="$(env_get FINOPS_HTTPS_PORT)" host="$(env_get FINOPS_ADDRESS)"
+  if [ "$(env_get FINOPS_BEHIND_PROXY)" = true ]; then
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://$(env_get FINOPS_HTTPS_BIND)/health/ready" || true)"
+  else
+    code="$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 --resolve "$host:$port:127.0.0.1" "https://$host:$port/health/ready" || true)"
+  fi
+  if [ "$code" = 200 ]; then ok "the dashboard answers at $url"; else bad "the dashboard doesn't answer on this machine (HTTP ${code:-none}): sudo finops-agent logs caddy web api"; fi
+  if [ "$(env_get FINOPS_BEHIND_PROXY)" != true ] && is_domain "$host"; then
+    local resolved mine
+    resolved="$(getent ahostsv4 "$host" 2>/dev/null | awk '{print $1; exit}' || true)"
+    mine=" $(hostname -I 2>/dev/null) "
+    if [ -z "$resolved" ]; then meh "$host doesn't resolve yet: point its DNS A record at this server"
+    elif [[ "$mine" == *" $resolved "* ]]; then ok "$host points at this server"
+    else meh "$host points at $resolved, which isn't one of this server's addresses (fine behind a CDN)"; fi
+    if [ "$port" = 443 ]; then
+      if curl -s -o /dev/null --max-time 10 --resolve "$host:443:127.0.0.1" "https://$host/health/ready"; then ok "the certificate for $host is valid"
+      else meh "no valid certificate for $host yet: Caddy gets one once DNS points here and ports 80 and 443 are reachable"; fi
+    fi
+  fi
+  local root
+  root="$(docker info -f '{{.DockerRootDir}}' 2>/dev/null || true)"
+  free_kb="$(df -Pk "${root:-/}" 2>/dev/null | awk 'NR == 2 {print $4}' || true)"
+  if [ -z "$free_kb" ]; then :
+  elif [ "$free_kb" -lt 524288 ]; then bad "less than 512 MB of disk left: free some space (docker image prune removes unused images)"
+  elif [ "$free_kb" -lt 2097152 ]; then meh "less than 2 GB of disk left"
+  else ok "$((free_kb / 1048576)) GB of disk free"; fi
+  mem_kb="$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+  if [ "$mem_kb" -ge 1500000 ]; then ok "$((mem_kb / 1024)) MB of memory"; else meh "less than 1.5 GB of memory; the app may be slow"; fi
+  if [ "$(env_get FINOPS_DAILY_BACKUP)" = false ]; then meh "nightly backups are off: sudo finops-agent config set DAILY_BACKUP=true"
+  else
+    [ -f "$CRON_DIR/finops-agent-backup" ] || bad "nightly backups are on but not scheduled: sudo finops-agent setup --yes"
+    newest="$(find "$BACKUP_DIR" -maxdepth 1 -name 'finops-agent-*.tar.gz' -mtime -2 2>/dev/null | head -1 || true)"
+    if [ -n "$newest" ]; then ok "a backup from the last two days: $(basename "$newest")"
+    else meh "no backup in the last two days: see /var/log/finops-agent-backup.log, or run sudo finops-agent backup"; fi
+  fi
+  if [ -n "$(env_get FINOPS_SMTP_HOST)" ]; then ok "email is set up (test it: sudo finops-agent test-alerts)"
+  else meh "email isn't set up, so password resets need an admin: sudo finops-agent config set SMTP_HOST=... ALERT_EMAIL_TO=..."; fi
+  latest="$(latest_release)"
+  if [ -n "$latest" ] && version_lt "$(image_version)" "$latest"; then meh "$latest is out: sudo finops-agent upgrade"
+  elif [ -n "$latest" ]; then ok "$(image_version) is the latest version"; fi
+  echo
+  if [ "$fails" -gt 0 ]; then echo "$fails problem(s) to fix, $warns warning(s)."; return 1; fi
+  echo "Everything needed is in place${warns:+ ($warns warning(s))}."
+}
+
+cmd_upgrade() {
+  local target="" bundle="" backup=1 force=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --bundle) bundle="${2:?--bundle needs a file}"; shift 2 ;;
+      --no-backup) backup=""; shift ;;
+      --force) force=1; shift ;;
+      -y | --yes) ASSUME_YES=1; shift ;;
+      -*) die "unknown option: $1" ;;
+      *) target="$1"; shift ;;
+    esac
+  done
+  need_root
+  need_installed
+  local current prefix new_app tmp cid
+  current="$(image_version)"
+  prefix="$(env_get FINOPS_APP_IMAGE)"
+  prefix="${prefix%/finops-agent-app:*}"
+  if [ -n "$bundle" ]; then
+    [ -f "$bundle" ] || die "bundle not found: $bundle"
+    bundle="$(readlink -f "$bundle")"
+    [ -n "$target" ] || target="$(tar -tzf "$bundle" 2>/dev/null | sed -n 's#^finops-agent-\([0-9][^/]*\)/.*#\1#p' | head -1 || true)"
+  fi
+  if [ -z "$target" ]; then
+    target="$(latest_release)"
+    [ -n "$target" ] || die "couldn't ask GitHub for the latest version. Give it: sudo finops-agent upgrade 0.3.0 (or use --bundle)"
+  fi
+  target="${target#v}"
+  if [ "$target" = "$current" ] && [ -z "$force" ]; then say "$current is installed already"; return 0; fi
+  if version_lt "$target" "$current"; then
+    die "$target is older than $current. Going back means restoring the backup taken before the upgrade (finops-agent restore)"
+  fi
+  if interactive; then
+    exec 3<"$TTY"
+    ask_yes "Upgrade from $current to $target$([ -n "$backup" ] && echo ", after a backup")" y || die "nothing was changed"
+    exec 3<&-
+  fi
+  if [ -n "$backup" ]; then
+    say "Backing up first"
+    "$DIR/backup.sh" || die "the backup failed, so nothing was upgraded"
+  fi
+  new_app="$prefix/finops-agent-app:$target"
+  if [ -n "$bundle" ]; then load_bundle "$bundle"
+  else
+    say "Downloading $target"
+    docker pull -q "$new_app" >/dev/null && docker pull -q "$prefix/finops-agent-web:$target" >/dev/null ||
+      die "couldn't download $target. Use --bundle, or a registry mirror that has it"
+  fi
+  # the new version brings its own compose file, backup script and this command, inside its image
+  tmp="$(mktemp -d)"
+  cid="$(docker create "$new_app")"
+  docker cp "$cid:/app/deploy/." "$tmp/" >/dev/null || true
+  docker rm "$cid" >/dev/null
+  for f in compose.install.yml backup.sh finops-agent; do
+    [ -s "$tmp/$f" ] || { rm -rf "$tmp"; die "$new_app has no deploy/$f; run that version's installer instead"; }
+  done
+  install -m 644 "$tmp/compose.install.yml" "$DIR/compose.yml.new" && mv -f "$DIR/compose.yml.new" "$DIR/compose.yml"
+  install -m 700 "$tmp/backup.sh" "$DIR/backup.sh.new" && mv -f "$DIR/backup.sh.new" "$DIR/backup.sh"
+  # a new file rather than writing over this one, which bash is still reading
+  install -m 755 "$tmp/finops-agent" "$DIR/finops-agent.new" && mv -f "$DIR/finops-agent.new" "$DIR/finops-agent"
+  rm -rf "$tmp"
+  say "Applying $target"
+  FINOPS_DIR="$DIR" exec "$DIR/finops-agent" setup --yes --version "$target" --image-prefix "$prefix"
+}
+
+cmd_logs() {
+  local follow="" tail=100 services=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f | --follow) follow=1; shift ;;
+      --tail) tail="${2:?--tail needs a number}"; shift 2 ;;
+      *) services+=("$1"); shift ;;
+    esac
+  done
+  need_root
+  need_installed
+  compose logs --tail "$tail" ${follow:+--follow} ${services[@]+"${services[@]}"}
+}
+
+cmd_lifecycle() {
+  local action="$1"
+  shift
+  need_root
+  need_installed
+  case "$action" in
+    start) compose up -d "$@" >/dev/null; wait_healthy; say "Started" ;;
+    stop) compose stop "$@"; say "Stopped. Start again with: sudo finops-agent start" ;;
+    restart) compose restart "$@" >/dev/null; wait_healthy; say "Restarted" ;;
+  esac
+}
+
+cmd_exec_api() {
+  need_root
+  need_installed
+  if [ -t 0 ]; then compose exec api python -m finops_api.cli "$@"
+  else compose exec -T api python -m finops_api.cli "$@"; fi
+}
+
+cmd_version() {
+  echo "finops-agent $VERSION"
+  if [ -r "$ENV_FILE" ]; then echo "running: $(image_version)"; fi
+}
+
+cmd_uninstall() {
+  local delete="" yes="" reply
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --delete-data) delete=1; shift ;;
+      -y | --yes) yes=1; shift ;;
+      *) die "unknown option: $1" ;;
+    esac
+  done
+  need_root
+  need_installed
+  if [ -z "$yes" ]; then
+    interactive || die "add --yes to uninstall without being asked"
+    exec 3<"$TTY"
+    if [ -n "$delete" ]; then
+      echo "This stops FinOps agent and deletes its database, uploaded invoices and settings for good."
+      echo "Backups in $BACKUP_DIR are kept."
+      ask reply "Type delete to go on" ""
+      [ "$reply" = delete ] || die "nothing was changed"
+    else
+      echo "This stops FinOps agent and removes its containers and the finops-agent command."
+      echo "The data and settings stay in Docker volumes and $DIR, so installing again brings everything back."
+      ask_yes "Uninstall" n || die "nothing was changed"
+    fi
+    exec 3<&-
+  fi
+  if [ -n "$delete" ]; then compose down --volumes --remove-orphans; else compose down --remove-orphans; fi
+  rm -f "$CRON_DIR/finops-agent-backup"
+  if [ -L "$BIN_DIR/finops-agent" ]; then rm -f "$BIN_DIR/finops-agent"; fi
+  if [ -n "$delete" ]; then
+    rm -rf "$DIR"
+    say "Uninstalled, and the data is deleted. Backups are still in $BACKUP_DIR."
+  else
+    say "Uninstalled. The data is kept: run the installer again to bring it back."
+  fi
+}
+
+CMD="${1:-help}"
+[ $# -eq 0 ] || shift
+case "$CMD" in
+  setup) cmd_setup "$@" ;;
+  address) cmd_address "$@" ;;
+  config) cmd_config "$@" ;;
+  status) cmd_status "$@" ;;
+  doctor) cmd_doctor "$@" ;;
+  upgrade) cmd_upgrade "$@" ;;
+  logs) cmd_logs "$@" ;;
+  start | stop | restart) cmd_lifecycle "$CMD" "$@" ;;
+  backup) need_root; need_installed; exec "$DIR/backup.sh" "$@" ;;
+  restore) need_root; need_installed; [ $# -ge 1 ] || die "usage: finops-agent restore FILE [--yes]"; exec "$DIR/backup.sh" --restore "$@" ;;
+  reset-password) cmd_exec_api reset-password "$@" ;;
+  test-alerts) cmd_exec_api test-alerts "$@" ;;
+  compose) need_root; need_installed; compose "$@" ;;
+  version | --version | -V) cmd_version ;;
+  uninstall) cmd_uninstall "$@" ;;
+  help | -h | --help) usage ;;
+  *) usage >&2; die "unknown command: $CMD" ;;
+esac

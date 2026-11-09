@@ -69,9 +69,13 @@ def _reset_by_email() -> bool:
 
 @router.get("/api/v1/auth/status")
 def auth_status(db: Session = Depends(get_db)):
-    """Public: lets the sign-in page show only what applies to this installation."""
-    return {"registration_open": _registration_open(db), "demo_user": get_settings().env == "dev",
-            "password_reset_email": _reset_by_email()}
+    """Public: lets the sign-in page show only what applies to this installation.
+
+    `setup_needed` means nobody has an account yet, so the dashboard opens on creating the first one (the owner).
+    """
+    no_accounts = db.scalar(select(User.id).limit(1)) is None
+    return {"registration_open": get_settings().allow_registration or no_accounts, "setup_needed": no_accounts,
+            "demo_user": get_settings().env == "dev", "password_reset_email": _reset_by_email()}
 
 
 @router.post("/api/v1/auth/register")

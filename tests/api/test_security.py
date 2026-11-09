@@ -53,3 +53,25 @@ def test_prod_refuses_default_database_password(api_env, monkeypatch):
     finally:
         monkeypatch.undo()
         get_settings.cache_clear()
+
+
+def test_a_fresh_installation_asks_for_its_first_account(api_env, monkeypatch, tmp_path):
+    """The dashboard opens on creating the owner's account until one exists, then never again."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from finops_api.config import get_settings
+    from finops_api.db import Base
+    from finops_api.routers.auth import auth_status
+    from finops_api.security import create_user_with_org
+
+    monkeypatch.setattr(get_settings(), "allow_registration", False)
+    engine = create_engine(f"sqlite:///{(tmp_path / 'fresh.db').as_posix()}")
+    Base.metadata.create_all(engine)
+    with Session(engine) as db:
+        fresh = auth_status(db)
+        assert fresh["setup_needed"] is True and fresh["registration_open"] is True
+        create_user_with_org(db, "owner@fresh.example.ir", "owner-password-1", "Owner", "Fresh")
+        db.commit()
+        after = auth_status(db)
+        assert after["setup_needed"] is False and after["registration_open"] is False

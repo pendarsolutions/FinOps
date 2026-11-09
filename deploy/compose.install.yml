@@ -1,37 +1,18 @@
-# Used by install.sh. Runs prebuilt images only: nothing is built on the server.
+# Installed as /opt/finops-agent/compose.yml by install.sh and run by `finops-agent`. Prebuilt images only.
 name: finops-agent
 
 x-app: &app
   image: ${FINOPS_APP_IMAGE}
   restart: unless-stopped
-  environment: &app-env
+  # every setting in .env (sudo finops-agent config set ...); the ones below are fixed by the installation
+  env_file: .env
+  environment:
     FINOPS_ENV: prod
     FINOPS_DATABASE_URL: postgresql+psycopg://finops:${POSTGRES_PASSWORD}@postgres:5432/finops
     FINOPS_REDIS_URL: redis://redis:6379/0
     FINOPS_SYNC_MODE: celery
-    FINOPS_JWT_SECRET: ${FINOPS_JWT_SECRET}
-    FINOPS_CREDENTIALS_KEY: ${FINOPS_CREDENTIALS_KEY}
-    FINOPS_CORS_ORIGINS: ${FINOPS_CORS_ORIGINS}
-    FINOPS_PUBLIC_URL: ${FINOPS_PUBLIC_URL:-}
     FINOPS_ALLOW_REGISTRATION: "false"
-    FINOPS_AI_PROVIDER: ${FINOPS_AI_PROVIDER:-offline}
-    FINOPS_ANTHROPIC_API_KEY: ${FINOPS_ANTHROPIC_API_KEY:-}
     FINOPS_STORAGE_DIR: /app/var/uploads
-    FINOPS_INVOICE_RETENTION_DAYS: ${FINOPS_INVOICE_RETENTION_DAYS:-30}
-    FINOPS_COLLECTOR_SOURCE_IP: ${FINOPS_COLLECTOR_SOURCE_IP:-}
-    FINOPS_CATALOG_URL: ${FINOPS_CATALOG_URL:-}
-    FINOPS_CATALOG_PUBLIC_KEY: ${FINOPS_CATALOG_PUBLIC_KEY:-}
-    FINOPS_CATALOG_PUBLISH_DIR: ${FINOPS_CATALOG_PUBLISH_DIR:-}
-    FINOPS_CATALOG_SIGNING_KEY: ${FINOPS_CATALOG_SIGNING_KEY:-}
-    FINOPS_SMTP_HOST: ${FINOPS_SMTP_HOST:-}
-    FINOPS_SMTP_PORT: ${FINOPS_SMTP_PORT:-587}
-    FINOPS_SMTP_USER: ${FINOPS_SMTP_USER:-}
-    FINOPS_SMTP_PASSWORD: ${FINOPS_SMTP_PASSWORD:-}
-    FINOPS_SMTP_FROM: ${FINOPS_SMTP_FROM:-}
-    FINOPS_SMTP_STARTTLS: ${FINOPS_SMTP_STARTTLS:-true}
-    FINOPS_ALERT_EMAIL_TO: ${FINOPS_ALERT_EMAIL_TO:-}
-    FINOPS_BALE_BOT_TOKEN: ${FINOPS_BALE_BOT_TOKEN:-}
-    FINOPS_BALE_CHAT_ID: ${FINOPS_BALE_CHAT_ID:-}
 
 services:
   postgres:
@@ -92,7 +73,8 @@ services:
     depends_on: [web]
     ports:
       - "${FINOPS_HTTP_BIND:-80}:80"
-      - "${FINOPS_HTTPS_PORT:-443}:${FINOPS_HTTPS_PORT:-443}"
+      # the port the app is served on; HTTPS_BIND is that port, or IP:PORT behind your own proxy
+      - "${FINOPS_HTTPS_BIND:-443}:${FINOPS_HTTPS_PORT:-443}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

@@ -24,7 +24,6 @@
   --scrim: color-mix(in srgb, var(--color-neutral-950) 45%, transparent);
   /* Motion built from the motion tokens (motion guideline). */
   --glaze-gap: calc(var(--duration-lay) * 10); /* 250ms between tiles, as in Pendar's animated logo */
-  --duration-brand: calc(var(--duration-slow) * 2.5); /* 800ms: entrances on the public pages, as on pendarsolutions.ir */
   --lay-start: 0ms; /* when a laid wordmark starts */
   --lay-from: inset(0 100% 0 0); /* a bar laid in reading direction starts clipped to nothing at its start */
   --start-sign: -1; /* the start side: left (-1) in English, right (1) in Persian */
@@ -1430,22 +1429,6 @@ li,
 }
 .hw-status dd {
   margin: var(--spacing-1) 0 0;
-}
-.hw-public-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-4);
-  padding: var(--spacing-3) var(--spacing-4);
-  border-block-end: 1px solid var(--color-line-default);
-}
-.hw-public-main {
-  display: flex;
-  justify-content: center;
-  padding: var(--spacing-6) var(--spacing-4) var(--spacing-12);
-}
-.hw-public-main .hw {
-  width: 100%;
 }
 .hw-example .table td:first-child,
 .hw-example .table th:first-child {

@@ -4,11 +4,10 @@ import { Layout } from "./components/Layout";
 import { useSession } from "./lib/session";
 import { LoginPage } from "./pages/Login";
 import { ForgotPasswordPage, ResetPasswordPage } from "./pages/PasswordReset";
-import { LandingPage } from "./pages/Landing";
 import { OverviewPage } from "./pages/Overview";
 import { InfrastructurePage } from "./pages/Infrastructure";
 import { ServersPage } from "./pages/Servers";
-import { HowItWorksContent, HowItWorksPublic } from "./pages/HowItWorks";
+import { HowItWorksContent } from "./pages/HowItWorks";
 import { CostsPage } from "./pages/Costs";
 import { OpportunitiesPage } from "./pages/Opportunities";
 import { ComparePage } from "./pages/Compare";
@@ -17,26 +16,31 @@ import { CatalogPage } from "./pages/Catalog";
 import { IntegrationsPage } from "./pages/Integrations";
 import { SettingsPage } from "./pages/Settings";
 
+/** Signed-out visitors go to sign-in, which sends a fresh installation on to creating its first account. */
 function RequireAuth({ children }: { children: ReactElement }) {
   const { session } = useSession();
   const loc = useLocation();
   if (!session) {
-    // Visitors hitting the root get the landing page; deep links go straight to sign-in and come back after.
-    if (loc.pathname === "/") return <Navigate to="/welcome" replace />;
-    return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
+    const from = loc.pathname === "/" ? undefined : { from: loc.pathname + loc.search };
+    return <Navigate to="/login" replace state={from} />;
   }
   return children;
 }
 
+/**
+ * The dashboard an installation serves. The public website (landing page, install command) is a separate project in
+ * site/, so a server never shows marketing pages.
+ */
 export function App() {
   return (
     <Routes>
-      <Route path="/welcome" element={<LandingPage />} />
-      <Route path="/how-it-works" element={<HowItWorksPublic />} />
       <Route path="/login" element={<LoginPage mode="login" />} />
       <Route path="/register" element={<LoginPage mode="register" />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      {/* addresses from 0.2.0 and earlier, which had a landing page */}
+      <Route path="/welcome" element={<Navigate to="/" replace />} />
+      <Route path="/how-it-works" element={<Navigate to="/guide" replace />} />
       <Route
         element={
           <RequireAuth>

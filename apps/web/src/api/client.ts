@@ -89,7 +89,7 @@ const post = <T>(p: string, b: unknown = {}) => request<T>("POST", p, b);
 const V = "/api/v1";
 
 export const api = {
-  authStatus: () => get<{ registration_open: boolean; demo_user: boolean; password_reset_email: boolean }>(`${V}/auth/status`),
+  authStatus: () => get<{ registration_open: boolean; setup_needed: boolean; demo_user: boolean; password_reset_email: boolean }>(`${V}/auth/status`),
   forgotPassword: (email: string) => post<{ status: string }>(`${V}/auth/forgot-password`, { email }),
   resetPassword: (token: string, password: string) => post<{ status: string }>(`${V}/auth/reset-password`, { token, password }),
   changePassword: (current_password: string, new_password: string) =>

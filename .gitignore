@@ -8,5 +8,6 @@ var/
 .env
 node_modules/
 apps/web/dist/
+site/dist/
 *.db
 finops-agent-*.tar.gz

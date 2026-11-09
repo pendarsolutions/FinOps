@@ -5,7 +5,7 @@
 # The read-only key is used only here, on a developer's machine. The built site never calls Specimen.
 # Everything this writes is generated: change values in Specimen and run this again instead of editing the files.
 #   apps/web/src/pendar/   tokens.css, fonts/, icons.svg, icons.ts, logo.ts
-#   apps/web/public/       favicon.ico, favicon.svg, favicon-*.png, apple-touch-icon.png
+#   apps/web/public/       favicon.ico, favicon.svg, favicon-*.png, apple-touch-icon.png (and a copy in site/public/)
 set -euo pipefail
 
 : "${SPECIMEN_TOKEN:?set SPECIMEN_TOKEN to a read-only Specimen API key}"
@@ -42,4 +42,7 @@ echo "  Estedad license (OFL 1.1)"
 
 mkdir -p "$OUT" "$PUBLIC"
 "$PY" "$ROOT/scripts/pendar_assets.py" "$TMP" "$OUT" "$PUBLIC" "$VERSION"
+# the public site (site/) uses the same tokens, font, icons and logo through an alias; its favicons are copies
+mkdir -p "$ROOT/site/public"
+cp "$PUBLIC"/favicon* "$PUBLIC"/apple-touch-icon.png "$ROOT/site/public/"
 echo "Done. Review the changes and commit them."

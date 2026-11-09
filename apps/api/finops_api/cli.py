@@ -82,6 +82,44 @@ def cmd_reset_password(args: argparse.Namespace) -> None:
         print(f"new password for {email}: {password}\nthey can change it under Settings after signing in")
 
 
+def cmd_test_alerts(args: argparse.Namespace) -> None:
+    """Send one test message through each alert channel that's set up, and say which worked (`finops-agent test-alerts`)."""
+    from .alerts import _send_bale, _send_email
+
+    s = get_settings()
+    subject = "FinOps agent: test alert"
+    body = "This is a test from FinOps agent. Alerts about prices and renewals will arrive here."
+    tried = failed = 0
+    if s.smtp_host:
+        tried += 1
+        to = args.to or s.alert_email_to
+        if not to:
+            print("email: no recipient. Set ALERT_EMAIL_TO, or pass --to")
+            failed += 1
+        else:
+            try:
+                _send_email(subject, body, to)
+                print(f"email: sent to {to} through {s.smtp_host}:{s.smtp_port}")
+            except Exception as exc:  # noqa: BLE001 - report any delivery failure to the person testing
+                print(f"email: failed: {type(exc).__name__}: {exc}")
+                failed += 1
+    if s.bale_bot_token and s.bale_chat_id:
+        tried += 1
+        try:
+            _send_bale(subject, body)
+            print(f"bale: sent to chat {s.bale_chat_id}")
+        except Exception as exc:  # noqa: BLE001
+            # the request URL holds the bot token, so only the kind of error and the status are shown
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            print(f"bale: failed: {type(exc).__name__}" + (f" (HTTP {status})" if status else ""))
+            failed += 1
+    if not tried:
+        sys.exit("no alert channel is set up. Email: finops-agent config set SMTP_HOST=... ALERT_EMAIL_TO=...; "
+                 "Bale: finops-agent config set BALE_CHAT_ID=... and BALE_BOT_TOKEN")
+    if failed:
+        sys.exit(1)
+
+
 def cmd_sync(args: argparse.Namespace) -> None:
     with SessionLocal() as db:
         ids = [args.provider] if args.provider else [p.id for p in db.scalars(select(ProviderRow))]
@@ -171,6 +209,9 @@ def main() -> None:
     rp.add_argument("--email", required=True)
     rp.add_argument("--password-stdin", action="store_true", help="read the new password from standard input")
     rp.set_defaults(fn=cmd_reset_password)
+    ta = sub.add_parser("test-alerts", help="send a test message through each alert channel that's set up")
+    ta.add_argument("--to", help="email address for this test (default: FINOPS_ALERT_EMAIL_TO)")
+    ta.set_defaults(fn=cmd_test_alerts)
     s = sub.add_parser("sync-prices")
     s.add_argument("--provider")
     s.add_argument("--strict", action="store_true", help="exit 1 if any sync failed or was quarantined")

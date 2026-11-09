@@ -72,7 +72,7 @@ backup() {
 
 # The current settings with the backup's, except the ones that belong to this machine rather than to the data:
 # image versions, ports, address, and the database password the running database was created with.
-MACHINE_KEYS="FINOPS_APP_IMAGE|FINOPS_WEB_IMAGE|FINOPS_HTTPS_PORT|FINOPS_HTTP_BIND|POSTGRES_PASSWORD|FINOPS_CORS_ORIGINS|FINOPS_PUBLIC_URL|FINOPS_DAILY_BACKUP"
+MACHINE_KEYS="FINOPS_APP_IMAGE|FINOPS_WEB_IMAGE|FINOPS_ADDRESS|FINOPS_BEHIND_PROXY|FINOPS_HTTPS_PORT|FINOPS_HTTPS_BIND|FINOPS_HTTP_BIND|POSTGRES_PASSWORD|FINOPS_CORS_ORIGINS|FINOPS_PUBLIC_URL|FINOPS_DAILY_BACKUP"
 merge_env() {
   grep -vE "^($MACHINE_KEYS)=" "$1" || true
   grep -E "^($MACHINE_KEYS)=" "$2" || true

@@ -10,6 +10,17 @@ system.
 
 ### Added
 
+- **One-line install:** `curl -fsSL https://github.com/pendarsolutions/FinOps/releases/latest/download/install.sh | sudo bash`.
+  Each release attaches a one-file, readable `install.sh` that needs nothing else. In a terminal it asks for the
+  domain, port, nightly backups, email and Bale; with options (`--domain`, `--set KEY=VALUE`, `--yes`...) it asks
+  nothing, for scripts and Ansible.
+- **The `finops-agent` command** runs an installation: `status`, `doctor` (checks DNS, the certificate, disk,
+  backups and updates, and says how to fix each problem), `config set/get/unset/keys` (checks values, keeps secrets
+  out of shell history, restarts only what changed), `address`, `upgrade` (backs up first; works offline with
+  `--bundle`), `logs`, `restart`, `backup`, `restore`, `reset-password`, `test-alerts`, `uninstall`.
+- **Behind your own reverse proxy:** `--proxy https://finops.example.ir --listen 127.0.0.1:8080` serves plain HTTP to
+  nginx, Traefik or a load balancer that already handles HTTPS.
+- **First-account setup:** a fresh installation opens on creating the owner's account.
 - **Backups.** A nightly backup at 03:30 that keeps the newest 14, and one command to back up or restore
   (`/opt/finops-agent/backup.sh`). A backup holds the database, the uploaded invoices and the settings with the keys
   that decrypt stored SSH keys. A restore asks first, backs up the current data before changing anything, and keeps
@@ -24,6 +35,10 @@ system.
 
 ### Changed
 
+- **An installation serves the dashboard only.** The landing page and the public "how it works" page moved to the
+  public website, a separate project in `site/` with the install command and links to the code. Signed-out visitors
+  get sign-in, and old `/welcome` and `/how-it-works` addresses redirect.
+- Every `FINOPS_` setting in `/opt/finops-agent/.env` now reaches the app, so new settings need no compose change.
 - **Pendar design system** (version 3): Estedad replaces Vazirmatn, with Pendar's colours, icons, wordmark and
   loader. Dark mode follows the system.
 - **Solar Hijri dates** throughout the Persian interface (۱۴۰۵/۰۸/۱۷), with moments shown in the reader's time.
@@ -31,11 +46,12 @@ system.
 - Price update statuses are written out ("Updated", "Held for review") instead of `OK` and `FAILED`, and common
   error messages appear in Persian.
 - Form fields line up at the top, with each form's button on its own row.
-- The installer writes `FINOPS_PUBLIC_URL` (used for links in emails) and passes `FINOPS_SMTP_FROM` and
-  `FINOPS_SMTP_STARTTLS` to the app.
+- The installer writes `FINOPS_PUBLIC_URL` (used for links in emails) and remembers the address in
+  `FINOPS_ADDRESS`.
 
 ### Fixed
 
+- Running the 0.2.0 installer again without `--domain` switched a domain installation to its IP address.
 - `sudo ./install.sh` failed with "Permission denied" on a fresh clone: the scripts weren't executable in git.
 - A password change didn't end sessions that were already signed in.
 - On a development server, the welcome tour opened on every page load, even after it was dismissed.
