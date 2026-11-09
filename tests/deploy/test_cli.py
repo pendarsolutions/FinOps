@@ -384,3 +384,16 @@ def test_installer_from_a_clone_needs_root(box):
     (box.fakes / "id").write_text("#!/usr/bin/env bash\necho 1000\n", newline="\n")
     r = box.run(script=ROOT / "install.sh")
     assert r.returncode != 0 and "run this as root" in r.stderr
+
+
+def test_versions_compare_like_semver(tmp_path):
+    """A release candidate is older than its release, so the real release can upgrade a server that ran the candidate."""
+    lib = tmp_path / "lib.sh"
+    text = (ROOT / "deploy" / "finops-agent").read_text()
+    lib.write_text(re.search(r"^version_lt\(\) \{.*?^\}\n", text, re.M | re.S).group(0), newline="\n")
+    cases = {("0.3.0-rc.1", "0.3.0"): True, ("0.3.0", "0.3.0-rc.1"): False, ("0.3.0-rc.1", "0.3.0-rc.2"): True,
+             ("0.2.0", "0.3.0-rc.1"): True, ("0.9.0", "0.10.0"): True, ("0.10.0", "0.9.0"): False,
+             ("0.3.0", "0.3.0"): False, ("0.3.1-rc.1", "0.3.0"): False}
+    for (a, b), older in cases.items():
+        r = subprocess.run([BASH, "-c", f'source "$0"; version_lt {a} {b}', _sh_path(lib)], timeout=30)
+        assert (r.returncode == 0) is older, (a, b)

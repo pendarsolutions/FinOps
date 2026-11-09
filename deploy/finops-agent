@@ -152,7 +152,16 @@ is_domain() { [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([
 url_host() { local h="${1#*://}"; h="${h%%/*}"; printf '%s' "${h%%:*}"; }
 origin_of() { printf '%s' "$1" | sed -E 's#^(https?://[^/]+).*#\1#'; }
 image_version() { local img; img="$(env_get FINOPS_APP_IMAGE)"; printf '%s' "${img##*:}"; }
-version_lt() { [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]; }
+# version_lt A B: A is older than B. A pre-release (0.3.0-rc.1) comes before its release (0.3.0), as in semver;
+# sort -V alone puts it after.
+version_lt() {
+  local a="$1" b="$2" ra="${1%%-*}" rb="${2%%-*}"
+  [ "$a" != "$b" ] || return 1
+  if [ "$ra" != "$rb" ]; then [ "$(printf '%s\n%s\n' "$ra" "$rb" | sort -V | head -1)" = "$ra" ]; return; fi
+  [ "$a" != "$ra" ] || return 1   # A is the release, so B is one of its pre-releases
+  [ "$b" != "$rb" ] || return 0   # B is the release
+  [ "$(printf '%s\n%s\n' "$a" "$b" | sort -V | head -1)" = "$a" ]
+}
 latest_release() {
   curl -fsSL --max-time 10 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null |
     sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -1 || true
